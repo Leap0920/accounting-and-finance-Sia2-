@@ -158,8 +158,8 @@ $current_user = getCurrentUser();
                         <li>
                             <hr class="dropdown-divider">
                         </li>
-                        <li><a class="dropdown-item text-danger" href="logout.php"><i
-                                    class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
+                        <li><a class="dropdown-item text-danger" href="#" data-bs-toggle="modal"
+                                data-bs-target="#logoutModal"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
                     </ul>
                 </div>
             </div>
@@ -260,25 +260,30 @@ $current_user = getCurrentUser();
     <!-- Logout Confirmation Modal -->
     <div class="modal fade" id="logoutModal" tabindex="-1" aria-labelledby="logoutModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content border-0 shadow-lg" style="border-radius: 15px; overflow: hidden;">
-                <div class="modal-header border-0 pb-0" style="background-color: #0A3D3D; color: white;">
-                    <h5 class="modal-title px-3 py-2" id="logoutModalLabel">
-                        <i class="fas fa-sign-out-alt me-2"></i> Confirm Logout
-                    </h5>
-                    <button type="button" class="btn-close btn-close-white me-2" data-bs-dismiss="modal" aria-label="Close"></button>
+            <div class="modal-content border-0 shadow-lg"
+                style="border-radius: 20px; overflow: hidden; background-color: #0A3D3D; color: white;">
+                <div class="modal-header border-0 pb-0 justify-content-end">
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"
+                        style="opacity: 0.8;"></button>
                 </div>
                 <div class="modal-body p-5 text-center">
                     <div class="mb-4">
-                        <div class="d-inline-flex align-items-center justify-content-center bg-light rounded-circle" style="width: 80px; height: 80px;">
-                            <i class="fas fa-sign-out-alt fa-3x" style="color: #0A3D3D;"></i>
+                        <div class="d-inline-flex align-items-center justify-content-center bg-white rounded-circle"
+                            style="width: 90px; height: 90px; background: rgba(255, 255, 255, 0.1) !important;">
+                            <i class="fas fa-sign-out-alt fa-3x" style="color: white;"></i>
                         </div>
                     </div>
-                    <h4 class="mb-2 fw-bold" style="color: #0A3D3D;">Ready to Leave?</h4>
-                    <p class="text-muted mb-0">You are about to securely log out of your session. Make sure all your accounting work is saved.</p>
+                    <h2 class="mb-3 fw-bold" style="letter-spacing: 1px;">Ready to Leave?</h2>
+                    <p class="mb-0" style="color: rgba(255, 255, 255, 0.85); font-size: 1.1rem; line-height: 1.6;">You
+                        are about to securely log out of your session. Make sure all your accounting work is saved.</p>
                 </div>
-                <div class="modal-footer border-0 justify-content-center pb-4 px-4">
-                    <button type="button" class="btn btn-outline-secondary px-5 py-2 rounded-pill fw-semibold me-2" data-bs-dismiss="modal">Go Back</button>
-                    <a href="logout.php" id="confirmLogout" class="btn px-5 py-2 rounded-pill fw-semibold shadow-sm text-white" style="background-color: #0A3D3D;">Yes, Logout</a>
+                <div class="modal-footer border-0 justify-content-center pb-5 px-4 gap-3">
+                    <button type="button" class="btn px-4 py-2 fw-semibold" data-bs-dismiss="modal"
+                        style="border: 2px solid rgba(255,255,255,0.3); color: white; border-radius: 12px; min-width: 140px; background: transparent; transition: all 0.3s;">Go
+                        Back</button>
+                    <a href="logout.php" class="btn px-4 py-2 fw-semibold shadow-sm"
+                        style="background: white; color: #0A3D3D; border: 2px solid white; border-radius: 12px; min-width: 140px; transition: all 0.3s;">Yes,
+                        Logout</a>
                 </div>
             </div>
         </div>

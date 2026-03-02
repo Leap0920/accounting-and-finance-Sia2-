@@ -14,103 +14,103 @@ header('Content-Type: application/json');
 
 try {
     $action = $_GET['action'] ?? $_POST['action'] ?? '';
-    
+
     switch ($action) {
         case 'get_statistics':
             echo json_encode(getStatistics());
             break;
-            
+
         case 'get_chart_data':
             echo json_encode(getChartData());
             break;
-            
+
         case 'get_accounts':
             echo json_encode(getAccounts());
             break;
-            
+
         case 'get_recent_transactions':
         case 'get_transactions':
             echo json_encode(getRecentTransactions());
             break;
-            
+
         case 'get_audit_trail':
             echo json_encode(getAuditTrail());
             break;
-            
+
         case 'get_journal_types':
             echo json_encode(getJournalTypes());
             break;
-            
+
         case 'get_fiscal_periods':
             echo json_encode(getFiscalPeriods());
             break;
-            
+
         case 'get_journal_entry_details':
             echo json_encode(getJournalEntryDetails());
             break;
-            
+
         case 'update_journal_entry':
             echo json_encode(updateJournalEntry());
             break;
-            
+
         case 'post_journal_entry':
             echo json_encode(postJournalEntry());
             break;
-            
+
         case 'void_journal_entry':
             echo json_encode(voidJournalEntry());
             break;
-            
+
         case 'get_trial_balance':
             echo json_encode(getTrialBalance());
             break;
-            
+
         case 'export_accounts':
             echo json_encode(exportAccounts());
             break;
-            
+
         case 'export_transactions':
             echo json_encode(exportTransactions());
             break;
-            
+
         case 'get_account_transactions':
             echo json_encode(getAccountTransactions());
             break;
-            
+
         case 'get_account_types':
             echo json_encode(getAccountTypesList());
             break;
-            
+
         case 'get_bank_transaction_details':
             echo json_encode(getBankTransactionDetails());
             break;
-            
+
         case 'get_pending_applications':
             echo json_encode(getPendingApplications());
             break;
-            
+
         case 'get_application_details':
             echo json_encode(getApplicationDetails());
             break;
-            
+
         case 'approve_application':
             echo json_encode(approveApplication());
             break;
-            
+
         case 'decline_application':
             echo json_encode(declineApplication());
             break;
             break;
-            
+
         default:
             echo json_encode(['success' => false, 'message' => 'Invalid action']);
     }
-    
+
 } catch (Exception $e) {
     error_log("General Ledger API Error: " . $e->getMessage());
     error_log("Stack trace: " . $e->getTraceAsString());
     echo json_encode([
-        'success' => false, 
+        'success' => false,
         'message' => 'An error occurred: ' . $e->getMessage(),
         'error_type' => get_class($e)
     ]);
@@ -118,43 +118,32 @@ try {
     error_log("General Ledger API Fatal Error: " . $e->getMessage());
     error_log("Stack trace: " . $e->getTraceAsString());
     echo json_encode([
-        'success' => false, 
+        'success' => false,
         'message' => 'A fatal error occurred: ' . $e->getMessage(),
         'error_type' => get_class($e)
     ]);
 }
 
-function getStatistics() {
+function getStatistics()
+{
     global $conn;
-    
+
     try {
-        // Get total accounts (GL accounts + Bank customer accounts)
-        $gl_accounts = $conn->query("SELECT COUNT(*) as total FROM accounts WHERE is_active = 1");
-        $gl_row = $gl_accounts->fetch_assoc();
-        $gl_count = $gl_row['total'] ?? 0;
-        
-        $bank_accounts = $conn->query("SELECT COUNT(*) as total FROM customer_accounts WHERE is_locked = 0");
-        $bank_row = $bank_accounts->fetch_assoc();
-        $bank_count = $bank_row['total'] ?? 0;
-        
-        $total_accounts = $gl_count + $bank_count;
-        
-        // Get total posted transactions (journal entries + bank transactions)
+        // Get total GL accounts
+        $accounts_result = $conn->query("SELECT COUNT(*) as total FROM accounts WHERE is_active = 1");
+        $accounts_row = $accounts_result->fetch_assoc();
+        $total_accounts = $accounts_row['total'] ?? 0;
+
+        // Get total posted Transactions
         $je_result = $conn->query("SELECT COUNT(*) as total FROM journal_entries WHERE status = 'posted'");
         $je_row = $je_result->fetch_assoc();
-        $je_count = $je_row['total'] ?? 0;
-        
-        $bt_result = $conn->query("SELECT COUNT(*) as total FROM bank_transactions");
-        $bt_row = $bt_result->fetch_assoc();
-        $bt_count = $bt_row['total'] ?? 0;
-        
-        $total_transactions = $je_count + $bt_count;
-        
-        // Get total audit entries from audit_logs table
-        $result = $conn->query("SELECT COUNT(*) as total FROM audit_logs");
-        $row = $result->fetch_assoc();
-        $total_audit = $row['total'] ?? 0;
-        
+        $total_transactions = $je_row['total'] ?? 0;
+
+        // Get total audit entries
+        $audit_result = $conn->query("SELECT COUNT(*) as total FROM audit_logs");
+        $audit_row = $audit_result->fetch_assoc();
+        $total_audit = $audit_row['total'] ?? 0;
+
         return [
             'success' => true,
             'data' => [
@@ -163,23 +152,23 @@ function getStatistics() {
                 'total_audit' => $total_audit
             ]
         ];
-        
+
     } catch (Exception $e) {
-        // Return fallback data if database query fails
         return [
             'success' => true,
             'data' => [
-                'total_accounts' => 247,
-                'total_transactions' => 1542,
-                'total_audit' => 89
+                'total_accounts' => 0,
+                'total_transactions' => 0,
+                'total_audit' => 0
             ]
         ];
     }
 }
 
-function getChartData() {
+function getChartData()
+{
     global $conn;
-    
+
     try {
         // Account types distribution - join with account_types table
         $result = $conn->query("
@@ -191,13 +180,13 @@ function getChartData() {
             WHERE a.is_active = 1 
             GROUP BY at.category
         ");
-        
+
         $account_types = ['labels' => [], 'values' => []];
         while ($row = $result->fetch_assoc()) {
             $account_types['labels'][] = ucfirst($row['type']);
-            $account_types['values'][] = (int)$row['count'];
+            $account_types['values'][] = (int) $row['count'];
         }
-        
+
         // Transaction summary by journal type
         $result = $conn->query("
             SELECT 
@@ -208,13 +197,13 @@ function getChartData() {
             WHERE je.status = 'posted'
             GROUP BY jt.id, jt.name
         ");
-        
+
         $transaction_summary = ['labels' => [], 'values' => []];
         while ($row = $result->fetch_assoc()) {
             $transaction_summary['labels'][] = $row['category'];
-            $transaction_summary['values'][] = (int)$row['count'];
+            $transaction_summary['values'][] = (int) $row['count'];
         }
-        
+
         return [
             'success' => true,
             'data' => [
@@ -222,7 +211,7 @@ function getChartData() {
                 'transaction_summary' => $transaction_summary
             ]
         ];
-        
+
     } catch (Exception $e) {
         // Return fallback data if database query fails
         return [
@@ -241,140 +230,87 @@ function getChartData() {
     }
 }
 
-function getAccounts() {
+function getAccounts()
+{
     global $conn;
-    
+
     try {
         $search = $_GET['search'] ?? '';
         $accountType = $_GET['account_type'] ?? '';
         $accounts = [];
-        
-        // Use the correct table names from bank-system
-        // Check if bank_transactions table exists for balance calculation
-        $hasTransactionsTable = false;
-        $checkTrans = $conn->query("SHOW TABLES LIKE 'bank_transactions'");
-        if ($checkTrans && $checkTrans->num_rows > 0) {
-            $hasTransactionsTable = true;
-        }
-        
-        // Build balance calculation using transaction-type-based logic
-        // All amounts are stored as positive; transaction type determines if credit or debit
-        if ($hasTransactionsTable) {
-            $balanceCalc = "(SELECT COALESCE(
-                                SUM(
-                                    CASE tt.type_name
-                                        WHEN 'Deposit' THEN bt.amount
-                                        WHEN 'Transfer In' THEN bt.amount
-                                        WHEN 'Interest Payment' THEN bt.amount
-                                        WHEN 'Loan Disbursement' THEN bt.amount
-                                        -- Debits (subtract from balance)
-                                        WHEN 'Withdrawal' THEN -bt.amount
-                                        WHEN 'Transfer Out' THEN -bt.amount
-                                        WHEN 'Service Charge' THEN -bt.amount
-                                        WHEN 'Loan Payment' THEN -bt.amount
-                                        ELSE 0
-                                    END
-                                ), 0
-                            )
-                            FROM bank_transactions bt
-                            INNER JOIN transaction_types tt ON bt.transaction_type_id = tt.transaction_type_id
-                            WHERE bt.account_id = ca.account_id)";
-        } else {
-            // Try balance column in accounts table, or default to 0
-            $balanceCalc = "COALESCE(ca.balance, 0)";
-        }
-        
-        // Main query - use customer_accounts, bank_customers, bank_account_types
-        $bankSql = "SELECT 
-            ca.account_id,
-            ca.account_number,
-            CONCAT(COALESCE(bc.first_name, ''), ' ', COALESCE(bc.last_name, '')) as account_name,
-            COALESCE(bat.type_name, 'Unknown') as account_type,
-            $balanceCalc as available_balance
-        FROM customer_accounts ca
-        INNER JOIN bank_customers bc ON ca.customer_id = bc.customer_id
-        INNER JOIN bank_account_types bat ON ca.account_type_id = bat.account_type_id
-        WHERE ca.is_locked = 0";
-        
+
+        // Use the v_account_balances view which provides accurate GL account balances
+        $sql = "SELECT 
+            code as account_number,
+            name as account_name,
+            account_type,
+            closing_balance as available_balance
+        FROM v_account_balances 
+        WHERE 1=1";
+
         $params = [];
         $types = '';
-        
+
         if ($search) {
-            $bankSql .= " AND (
-                CONCAT(COALESCE(bc.first_name, ''), ' ', COALESCE(bc.last_name, '')) LIKE ? 
-                OR ca.account_number LIKE ?
-            )";
+            $sql .= " AND (name LIKE ? OR code LIKE ?)";
             $searchParam = "%$search%";
             $params[] = $searchParam;
             $params[] = $searchParam;
             $types .= 'ss';
         }
-        
+
         if ($accountType) {
-            $bankSql .= " AND bat.type_name = ?";
-            $params[] = $accountType;
+            $sql .= " AND account_type = ?";
+            $params[] = strtolower($accountType);
             $types .= 's';
         }
-        
-        $bankSql .= " ORDER BY ca.account_number";
-        
+
+        $sql .= " ORDER BY code";
+
         // Get total count for pagination
-        $countSql = "SELECT COUNT(*) as total FROM ($bankSql) as count_query";
+        $countSql = "SELECT COUNT(*) as total FROM ($sql) as count_query";
         $countStmt = $conn->prepare($countSql);
-        if (!$countStmt) {
-            throw new Exception("Failed to prepare count query: " . $conn->error);
-        }
-        
         if (!empty($params)) {
             $countStmt->bind_param($types, ...$params);
         }
         $countStmt->execute();
-        $countResult = $countStmt->get_result();
-        $totalCount = $countResult->fetch_assoc()['total'] ?? 0;
-        
+        $totalCount = $countStmt->get_result()->fetch_assoc()['total'] ?? 0;
+
         // Add pagination
-        $limit = (int)($_GET['limit'] ?? 25);
-        $offset = (int)($_GET['offset'] ?? 0);
-        $bankSql .= " LIMIT ? OFFSET ?";
-        
-        $bankStmt = $conn->prepare($bankSql);
-        if (!$bankStmt) {
-            throw new Exception("Failed to prepare query: " . $conn->error);
-        }
-        
+        $limit = (int) ($_GET['limit'] ?? 25);
+        $offset = (int) ($_GET['offset'] ?? 0);
+        $sql .= " LIMIT ? OFFSET ?";
+
+        $stmt = $conn->prepare($sql);
         if (!empty($params)) {
             $types .= 'ii';
             $params[] = $limit;
             $params[] = $offset;
-            $bankStmt->bind_param($types, ...$params);
+            $stmt->bind_param($types, ...$params);
         } else {
-            $bankStmt->bind_param('ii', $limit, $offset);
+            $stmt->bind_param('ii', $limit, $offset);
         }
-        
-        $bankStmt->execute();
-        $bankResult = $bankStmt->get_result();
-        
-        if (!$bankResult) {
-            throw new Exception("Query execution failed: " . $conn->error);
-        }
-        
-        while ($row = $bankResult->fetch_assoc()) {
+
+        $stmt->execute();
+        $result = $stmt->get_result();
+
+        while ($row = $result->fetch_assoc()) {
             $accounts[] = [
                 'account_number' => $row['account_number'],
-                'account_name' => trim($row['account_name']),
-                'account_type' => $row['account_type'],
-                'available_balance' => (float)$row['available_balance'],
-                'source' => 'bank'
+                'account_name' => $row['account_name'],
+                'account_type' => ucfirst($row['account_type']),
+                'available_balance' => (float) $row['available_balance'],
+                'source' => 'gl'
             ];
         }
-        
+
         return [
             'success' => true,
             'data' => $accounts,
             'count' => count($accounts),
-            'total' => (int)$totalCount
+            'total' => (int) $totalCount
         ];
-        
+
     } catch (Exception $e) {
         error_log("Error in getAccounts: " . $e->getMessage());
         return [
@@ -385,96 +321,65 @@ function getAccounts() {
     }
 }
 
-function getRecentTransactions() {
+function getRecentTransactions()
+{
     global $conn;
-    
+
     try {
-        // Get filter parameters
         $dateFrom = $_GET['date_from'] ?? '';
         $dateTo = $_GET['date_to'] ?? '';
         $type = $_GET['type'] ?? '';
-        
-        // Combined query to show BOTH journal entries AND bank transactions (same as transaction-reading.php)
-        $sql = "SELECT * FROM (
-            -- Journal Entries from Accounting System
-            SELECT 
-                CONCAT('JE-', je.id) as id,
+
+        $sql = "SELECT 
+                je.id,
                 je.journal_no,
                 je.entry_date,
                 je.description,
-                COALESCE(je.total_debit, 0) as total_debit,
-                COALESCE(je.total_credit, 0) as total_credit,
+                je.total_debit,
+                je.total_credit,
                 je.status,
-                jt.code as type_code,
                 jt.name as type_name,
                 'journal' as source
             FROM journal_entries je
             INNER JOIN journal_types jt ON je.journal_type_id = jt.id
-            WHERE je.status = 'posted'
-            
-            UNION ALL
-            
-            -- Bank Transactions from Bank System
-            SELECT 
-                CONCAT('BT-', bt.transaction_id) as id,
-                bt.transaction_ref as journal_no,
-                DATE(bt.created_at) as entry_date,
-                COALESCE(bt.description, 'Bank Transaction') as description,
-                CASE WHEN bt.amount > 0 THEN bt.amount ELSE 0 END as total_debit,
-                CASE WHEN bt.amount < 0 THEN ABS(bt.amount) ELSE 0 END as total_credit,
-                'posted' as status,
-                tt.type_name as type_code,
-                tt.type_name as type_name,
-                'bank' as source
-            FROM bank_transactions bt
-            INNER JOIN transaction_types tt ON bt.transaction_type_id = tt.transaction_type_id
-            LEFT JOIN bank_employees be ON bt.employee_id = be.employee_id
-            INNER JOIN customer_accounts ca ON bt.account_id = ca.account_id
-        ) combined_transactions
-        WHERE 1=1";
-        
+            WHERE 1=1";
+
         $params = [];
         $types = '';
-        
+
         if ($dateFrom) {
-            $sql .= " AND entry_date >= ?";
+            $sql .= " AND je.entry_date >= ?";
             $params[] = $dateFrom;
             $types .= 's';
         }
-        
+
         if ($dateTo) {
-            $sql .= " AND entry_date <= ?";
+            $sql .= " AND je.entry_date <= ?";
             $params[] = $dateTo;
             $types .= 's';
         }
-        
+
         if ($type) {
-            $sql .= " AND (type_code LIKE ? OR type_name LIKE ?)";
+            $sql .= " AND jt.name LIKE ?";
             $searchType = "%$type%";
             $params[] = $searchType;
-            $params[] = $searchType;
-            $types .= 'ss';
+            $types .= 's';
         }
-        
-        // Get total count for pagination
+
+        // Get total count
         $countSql = "SELECT COUNT(*) as total FROM ($sql) as count_query";
         $countStmt = $conn->prepare($countSql);
-        if (!$countStmt) {
-            throw new Exception("Failed to prepare count query: " . $conn->error);
-        }
-        
         if (!empty($params)) {
             $countStmt->bind_param($types, ...$params);
         }
         $countStmt->execute();
-        $countResult = $countStmt->get_result();
-        $totalCount = $countResult->fetch_assoc()['total'] ?? 0;
-        
+        $totalCount = $countStmt->get_result()->fetch_assoc()['total'] ?? 0;
+
         // Add pagination
-        $limit = (int)($_GET['limit'] ?? 25);
-        $offset = (int)($_GET['offset'] ?? 0);
-        $sql .= " ORDER BY entry_date DESC, id DESC LIMIT ? OFFSET ?";
-        
+        $limit = (int) ($_GET['limit'] ?? 25);
+        $offset = (int) ($_GET['offset'] ?? 0);
+        $sql .= " ORDER BY je.entry_date DESC, je.id DESC LIMIT ? OFFSET ?";
+
         $stmt = $conn->prepare($sql);
         if (!empty($params)) {
             $types .= 'ii';
@@ -484,9 +389,10 @@ function getRecentTransactions() {
         } else {
             $stmt->bind_param('ii', $limit, $offset);
         }
+
         $stmt->execute();
         $result = $stmt->get_result();
-        
+
         $transactions = [];
         while ($row = $result->fetch_assoc()) {
             $transactions[] = [
@@ -494,44 +400,38 @@ function getRecentTransactions() {
                 'journal_no' => $row['journal_no'],
                 'entry_date' => date('M d, Y', strtotime($row['entry_date'])),
                 'description' => $row['description'] ?? '-',
-                'total_debit' => (float)$row['total_debit'],
-                'total_credit' => (float)$row['total_credit'],
+                'total_debit' => (float) $row['total_debit'],
+                'total_credit' => (float) $row['total_credit'],
                 'status' => $row['status'],
-                'type_code' => $row['type_code'],
                 'type_name' => $row['type_name'],
                 'source' => $row['source']
             ];
         }
-        
+
         return [
             'success' => true,
             'data' => $transactions,
             'count' => count($transactions),
-            'total' => (int)$totalCount
+            'total' => (int) $totalCount
         ];
-        
+
     } catch (Exception $e) {
-        // Return fallback data if database query fails
         return [
-            'success' => true,
-            'data' => [
-                ['journal_no' => 'TXN-2024-001', 'entry_date' => 'Jan 15, 2024', 'description' => 'Office Supplies Purchase', 'total_debit' => 2450.00, 'total_credit' => 0, 'status' => 'posted', 'source' => 'journal'],
-                ['journal_no' => 'TXN-2024-002', 'entry_date' => 'Jan 14, 2024', 'description' => 'Client Payment Received', 'total_debit' => 0, 'total_credit' => 15750.00, 'status' => 'posted', 'source' => 'journal'],
-                ['journal_no' => 'TXN-2024-003', 'entry_date' => 'Jan 13, 2024', 'description' => 'Utility Bill Payment', 'total_debit' => 1250.00, 'total_credit' => 0, 'status' => 'posted', 'source' => 'journal'],
-                ['journal_no' => 'TXN-2024-004', 'entry_date' => 'Jan 12, 2024', 'description' => 'Equipment Lease Payment', 'total_debit' => 3200.00, 'total_credit' => 0, 'status' => 'posted', 'source' => 'journal'],
-                ['journal_no' => 'TXN-2024-005', 'entry_date' => 'Jan 11, 2024', 'description' => 'Service Revenue', 'total_debit' => 0, 'total_credit' => 8900.00, 'status' => 'posted', 'source' => 'journal']
-            ]
+            'success' => false,
+            'message' => 'Database error: ' . $e->getMessage(),
+            'data' => []
         ];
     }
 }
 
-function getAuditTrail() {
+function getAuditTrail()
+{
     global $conn;
-    
+
     try {
         $dateFrom = $_GET['date_from'] ?? '';
         $dateTo = $_GET['date_to'] ?? '';
-        
+
         // Query activity_logs table (the actual table name in the system)
         $sql = "
             SELECT 
@@ -548,22 +448,22 @@ function getAuditTrail() {
             LEFT JOIN users u ON al.user_id = u.id
             WHERE 1=1
         ";
-        
+
         $params = [];
         $types = '';
-        
+
         if ($dateFrom) {
             $sql .= " AND DATE(al.created_at) >= ?";
             $params[] = $dateFrom;
             $types .= 's';
         }
-        
+
         if ($dateTo) {
             $sql .= " AND DATE(al.created_at) <= ?";
             $params[] = $dateTo;
             $types .= 's';
         }
-        
+
         // Get total count for pagination
         $countSql = "SELECT COUNT(*) as total FROM ($sql) as count_query";
         if (!empty($params)) {
@@ -575,12 +475,12 @@ function getAuditTrail() {
             $countResult = $conn->query($countSql);
         }
         $totalCount = $countResult->fetch_assoc()['total'] ?? 0;
-        
+
         // Add pagination
-        $limit = (int)($_GET['limit'] ?? 25);
-        $offset = (int)($_GET['offset'] ?? 0);
+        $limit = (int) ($_GET['limit'] ?? 25);
+        $offset = (int) ($_GET['offset'] ?? 0);
         $sql .= " ORDER BY al.created_at DESC LIMIT ? OFFSET ?";
-        
+
         if (!empty($params)) {
             $types .= 'ii';
             $params[] = $limit;
@@ -595,7 +495,7 @@ function getAuditTrail() {
             $stmt->execute();
             $result = $stmt->get_result();
         }
-        
+
         $audit_logs = [];
         while ($row = $result->fetch_assoc()) {
             $audit_logs[] = [
@@ -609,14 +509,14 @@ function getAuditTrail() {
                 'created_at' => date('M d, Y H:i:s', strtotime($row['created_at']))
             ];
         }
-        
+
         return [
             'success' => true,
             'data' => $audit_logs,
             'count' => count($audit_logs),
-            'total' => (int)$totalCount
+            'total' => (int) $totalCount
         ];
-        
+
     } catch (Exception $e) {
         // Return empty array if table doesn't exist yet
         return [
@@ -627,12 +527,13 @@ function getAuditTrail() {
     }
 }
 
-function getJournalTypes() {
+function getJournalTypes()
+{
     global $conn;
-    
+
     try {
         $result = $conn->query("SELECT id, code, name, description FROM journal_types WHERE 1=1 ORDER BY code");
-        
+
         $types = [];
         while ($row = $result->fetch_assoc()) {
             $types[] = [
@@ -642,12 +543,12 @@ function getJournalTypes() {
                 'description' => $row['description'] ?? ''
             ];
         }
-        
+
         return [
             'success' => true,
             'data' => $types
         ];
-        
+
     } catch (Exception $e) {
         return [
             'success' => false,
@@ -657,9 +558,10 @@ function getJournalTypes() {
     }
 }
 
-function getFiscalPeriods() {
+function getFiscalPeriods()
+{
     global $conn;
-    
+
     try {
         $result = $conn->query("
             SELECT id, period_name, start_date, end_date, status 
@@ -668,7 +570,7 @@ function getFiscalPeriods() {
             ORDER BY start_date DESC 
             LIMIT 1
         ");
-        
+
         $periods = [];
         while ($row = $result->fetch_assoc()) {
             $periods[] = [
@@ -679,7 +581,7 @@ function getFiscalPeriods() {
                 'status' => $row['status']
             ];
         }
-        
+
         // If no open period, get the most recent one
         if (empty($periods)) {
             $result = $conn->query("
@@ -698,12 +600,12 @@ function getFiscalPeriods() {
                 ];
             }
         }
-        
+
         return [
             'success' => true,
             'data' => $periods
         ];
-        
+
     } catch (Exception $e) {
         return [
             'success' => false,
@@ -713,17 +615,18 @@ function getFiscalPeriods() {
     }
 }
 
-function getJournalEntryDetails() {
+function getJournalEntryDetails()
+{
     global $conn;
     $currentUser = getCurrentUser();
-    
+
     try {
         $journalId = $_GET['id'] ?? '';
-        
+
         if (empty($journalId)) {
             return ['success' => false, 'message' => 'Journal entry ID is required'];
         }
-        
+
         // Get journal entry header
         $sql = "
             SELECT 
@@ -742,17 +645,17 @@ function getJournalEntryDetails() {
             LEFT JOIN fiscal_periods fp ON je.fiscal_period_id = fp.id
             WHERE je.id = ?
         ";
-        
+
         $stmt = $conn->prepare($sql);
         $stmt->bind_param('i', $journalId);
         $stmt->execute();
         $result = $stmt->get_result();
         $entry = $result->fetch_assoc();
-        
+
         if (!$entry) {
             return ['success' => false, 'message' => 'Journal entry not found'];
         }
-        
+
         // Get journal lines
         $sql = "
             SELECT 
@@ -766,12 +669,12 @@ function getJournalEntryDetails() {
             WHERE jl.journal_entry_id = ?
             ORDER BY jl.id
         ";
-        
+
         $stmt = $conn->prepare($sql);
         $stmt->bind_param('i', $journalId);
         $stmt->execute();
         $result = $stmt->get_result();
-        
+
         $lines = [];
         while ($row = $result->fetch_assoc()) {
             $lines[] = [
@@ -780,27 +683,26 @@ function getJournalEntryDetails() {
                 'account_code' => $row['account_code'],
                 'account_name' => $row['account_name'],
                 'account_category' => $row['account_category'],
-                'debit' => (float)$row['debit'],
-                'credit' => (float)$row['credit'],
+                'debit' => (float) $row['debit'],
+                'credit' => (float) $row['credit'],
                 'memo' => $row['memo'] ?? ''
             ];
         }
-        
+
         $entry['lines'] = $lines;
         $entry['can_edit'] = ($entry['status'] === 'draft');
         $entry['can_post'] = ($entry['status'] === 'draft');
         $entry['can_void'] = ($entry['status'] === 'posted');
-        
+
         // Format dates for display
-        $entry['entry_date'] = $entry['entry_date'];
         $entry['created_at'] = $entry['created_at'] ?? null;
         $entry['posted_at'] = $entry['posted_at'] ?? null;
-        
+
         return [
             'success' => true,
             'data' => $entry
         ];
-        
+
     } catch (Exception $e) {
         return [
             'success' => false,
@@ -809,23 +711,24 @@ function getJournalEntryDetails() {
     }
 }
 
-function updateJournalEntry() {
+function updateJournalEntry()
+{
     global $conn;
     $currentUser = getCurrentUser();
-    
+
     try {
         $data = json_decode(file_get_contents('php://input'), true);
-        
+
         if (!$data) {
             $data = $_POST;
         }
-        
+
         $journalEntryId = $data['journal_entry_id'] ?? '';
-        
+
         if (empty($journalEntryId)) {
             return ['success' => false, 'message' => 'Journal entry ID is required'];
         }
-        
+
         // Check if entry exists and is draft
         $checkSql = "SELECT status FROM journal_entries WHERE id = ?";
         $checkStmt = $conn->prepare($checkSql);
@@ -833,20 +736,20 @@ function updateJournalEntry() {
         $checkStmt->execute();
         $result = $checkStmt->get_result();
         $entry = $result->fetch_assoc();
-        
+
         if (!$entry) {
             return ['success' => false, 'message' => 'Journal entry not found'];
         }
-        
+
         if ($entry['status'] !== 'draft') {
             return ['success' => false, 'message' => 'Only draft entries can be edited'];
         }
-        
+
         // Validate (same as create)
         if (empty($data['lines']) || !is_array($data['lines']) || count($data['lines']) < 2) {
             return ['success' => false, 'message' => 'At least 2 journal lines are required'];
         }
-        
+
         // Convert account codes to IDs if needed
         foreach ($data['lines'] as &$line) {
             if (!is_numeric($line['account_id'])) {
@@ -864,7 +767,7 @@ function updateJournalEntry() {
             }
         }
         unset($line);
-        
+
         $totalDebit = 0;
         $totalCredit = 0;
         foreach ($data['lines'] as $line) {
@@ -873,13 +776,13 @@ function updateJournalEntry() {
             $totalDebit += $debit;
             $totalCredit += $credit;
         }
-        
+
         if (abs($totalDebit - $totalCredit) > 0.01) {
             return ['success' => false, 'message' => 'Total debits must equal total credits'];
         }
-        
+
         $conn->begin_transaction();
-        
+
         try {
             // Update journal entry header
             $sql = "
@@ -888,27 +791,28 @@ function updateJournalEntry() {
                     fiscal_period_id = ?, reference_no = ?, total_debit = ?, total_credit = ?
                 WHERE id = ?
             ";
-            
+
             $stmt = $conn->prepare($sql);
+            $refNo = $data['reference_no'] ?? null;
             $stmt->bind_param(
                 'issisddi',
                 $data['journal_type_id'],
                 $data['entry_date'],
                 $data['description'],
                 $data['fiscal_period_id'],
-                $data['reference_no'] ?? null,
+                $refNo,
                 $totalDebit,
                 $totalCredit,
                 $journalEntryId
             );
             $stmt->execute();
-            
+
             // Delete existing lines
             $deleteSql = "DELETE FROM journal_lines WHERE journal_entry_id = ?";
             $deleteStmt = $conn->prepare($deleteSql);
             $deleteStmt->bind_param('i', $journalEntryId);
             $deleteStmt->execute();
-            
+
             // Insert new lines
             $lineSql = "
                 INSERT INTO journal_lines 
@@ -916,33 +820,33 @@ function updateJournalEntry() {
                 VALUES (?, ?, ?, ?, ?)
             ";
             $lineStmt = $conn->prepare($lineSql);
-            
+
             foreach ($data['lines'] as $line) {
                 $debit = floatval($line['debit'] ?? 0);
                 $credit = floatval($line['credit'] ?? 0);
                 $memo = $line['memo'] ?? '';
-                
+
                 if ($debit > 0 || $credit > 0) {
                     $lineStmt->bind_param('iidds', $journalEntryId, $line['account_id'], $debit, $credit, $memo);
                     $lineStmt->execute();
                 }
             }
-            
+
             // Log to audit trail
             logAuditAction($conn, $currentUser['id'], 'UPDATE', 'journal_entry', $journalEntryId, "Updated journal entry");
-            
+
             $conn->commit();
-            
+
             return [
                 'success' => true,
                 'message' => 'Journal entry updated successfully'
             ];
-            
+
         } catch (Exception $e) {
             $conn->rollback();
             throw $e;
         }
-        
+
     } catch (Exception $e) {
         return [
             'success' => false,
@@ -951,19 +855,20 @@ function updateJournalEntry() {
     }
 }
 
-function postJournalEntry() {
+function postJournalEntry()
+{
     global $conn;
     $currentUser = getCurrentUser();
-    
+
     try {
         $journalEntryId = $_POST['journal_entry_id'] ?? $_GET['id'] ?? '';
-        
+
         if (empty($journalEntryId)) {
             return ['success' => false, 'message' => 'Journal entry ID is required'];
         }
-        
+
         $conn->begin_transaction();
-        
+
         try {
             // Get entry details
             $sql = "SELECT status, fiscal_period_id FROM journal_entries WHERE id = ?";
@@ -972,15 +877,15 @@ function postJournalEntry() {
             $stmt->execute();
             $result = $stmt->get_result();
             $entry = $result->fetch_assoc();
-            
+
             if (!$entry) {
                 return ['success' => false, 'message' => 'Journal entry not found'];
             }
-            
+
             if ($entry['status'] !== 'draft') {
                 return ['success' => false, 'message' => 'Only draft entries can be posted'];
             }
-            
+
             // Update status
             $updateSql = "
                 UPDATE journal_entries 
@@ -990,25 +895,25 @@ function postJournalEntry() {
             $updateStmt = $conn->prepare($updateSql);
             $updateStmt->bind_param('ii', $currentUser['id'], $journalEntryId);
             $updateStmt->execute();
-            
+
             // Update account balances
             updateAccountBalances($conn, $journalEntryId, $entry['fiscal_period_id']);
-            
+
             // Log to audit trail
             logAuditAction($conn, $currentUser['id'], 'POST', 'journal_entry', $journalEntryId, "Posted journal entry");
-            
+
             $conn->commit();
-            
+
             return [
                 'success' => true,
                 'message' => 'Journal entry posted successfully'
             ];
-            
+
         } catch (Exception $e) {
             $conn->rollback();
             throw $e;
         }
-        
+
     } catch (Exception $e) {
         return [
             'success' => false,
@@ -1017,20 +922,21 @@ function postJournalEntry() {
     }
 }
 
-function voidJournalEntry() {
+function voidJournalEntry()
+{
     global $conn;
     $currentUser = getCurrentUser();
-    
+
     try {
         $journalEntryId = $_POST['journal_entry_id'] ?? $_GET['id'] ?? '';
         $reason = $_POST['reason'] ?? 'Voided by user';
-        
+
         if (empty($journalEntryId)) {
             return ['success' => false, 'message' => 'Journal entry ID is required'];
         }
-        
+
         $conn->begin_transaction();
-        
+
         try {
             // Get entry details
             $sql = "SELECT status, fiscal_period_id FROM journal_entries WHERE id = ?";
@@ -1039,41 +945,41 @@ function voidJournalEntry() {
             $stmt->execute();
             $result = $stmt->get_result();
             $entry = $result->fetch_assoc();
-            
+
             if (!$entry) {
                 return ['success' => false, 'message' => 'Journal entry not found'];
             }
-            
+
             if ($entry['status'] === 'voided') {
                 return ['success' => false, 'message' => 'Journal entry is already voided'];
             }
-            
+
             // If posted, reverse account balances
             if ($entry['status'] === 'posted') {
                 reverseAccountBalances($conn, $journalEntryId, $entry['fiscal_period_id']);
             }
-            
+
             // Update status
             $updateSql = "UPDATE journal_entries SET status = 'voided' WHERE id = ?";
             $updateStmt = $conn->prepare($updateSql);
             $updateStmt->bind_param('i', $journalEntryId);
             $updateStmt->execute();
-            
+
             // Log to audit trail
             logAuditAction($conn, $currentUser['id'], 'VOID', 'journal_entry', $journalEntryId, "Voided journal entry: $reason");
-            
+
             $conn->commit();
-            
+
             return [
                 'success' => true,
                 'message' => 'Journal entry voided successfully'
             ];
-            
+
         } catch (Exception $e) {
             $conn->rollback();
             throw $e;
         }
-        
+
     } catch (Exception $e) {
         return [
             'success' => false,
@@ -1083,29 +989,31 @@ function voidJournalEntry() {
 }
 
 // Helper functions
-function generateJournalNumber($conn) {
+function generateJournalNumber($conn)
+{
     $prefix = 'JE';
     $date = date('Ymd');
     $random = strtoupper(substr(md5(uniqid(rand(), true)), 0, 4));
     $journalNo = "$prefix-$date-$random";
-    
+
     // Check if exists, regenerate if needed
     $checkSql = "SELECT id FROM journal_entries WHERE journal_no = ?";
     $checkStmt = $conn->prepare($checkSql);
     $checkStmt->bind_param('s', $journalNo);
     $checkStmt->execute();
     $result = $checkStmt->get_result();
-    
+
     if ($result->num_rows > 0) {
         // Regenerate with different random
         $random = strtoupper(substr(md5(uniqid(rand(), true)), 0, 4));
         $journalNo = "$prefix-$date-$random";
     }
-    
+
     return $journalNo;
 }
 
-function updateAccountBalances($conn, $journalEntryId, $fiscalPeriodId) {
+function updateAccountBalances($conn, $journalEntryId, $fiscalPeriodId)
+{
     // Get all journal lines for this entry
     $sql = "
         SELECT account_id, debit, credit 
@@ -1116,19 +1024,19 @@ function updateAccountBalances($conn, $journalEntryId, $fiscalPeriodId) {
     $stmt->bind_param('i', $journalEntryId);
     $stmt->execute();
     $result = $stmt->get_result();
-    
+
     while ($row = $result->fetch_assoc()) {
         $accountId = $row['account_id'];
         $debit = floatval($row['debit']);
         $credit = floatval($row['credit']);
-        
+
         // Check if balance record exists
         $checkSql = "SELECT id FROM account_balances WHERE account_id = ? AND fiscal_period_id = ?";
         $checkStmt = $conn->prepare($checkSql);
         $checkStmt->bind_param('ii', $accountId, $fiscalPeriodId);
         $checkStmt->execute();
         $checkResult = $checkStmt->get_result();
-        
+
         if ($checkResult->num_rows > 0) {
             // Get current balance to calculate new closing balance
             $currentSql = "SELECT opening_balance, debit_movements, credit_movements FROM account_balances WHERE account_id = ? AND fiscal_period_id = ?";
@@ -1137,11 +1045,11 @@ function updateAccountBalances($conn, $journalEntryId, $fiscalPeriodId) {
             $currentStmt->execute();
             $currentResult = $currentStmt->get_result();
             $currentRow = $currentResult->fetch_assoc();
-            
+
             $newDebitMovements = floatval($currentRow['debit_movements']) + $debit;
             $newCreditMovements = floatval($currentRow['credit_movements']) + $credit;
             $newClosingBalance = floatval($currentRow['opening_balance']) + $newDebitMovements - $newCreditMovements;
-            
+
             // Update existing balance
             $updateSql = "
                 UPDATE account_balances 
@@ -1169,7 +1077,8 @@ function updateAccountBalances($conn, $journalEntryId, $fiscalPeriodId) {
     }
 }
 
-function reverseAccountBalances($conn, $journalEntryId, $fiscalPeriodId) {
+function reverseAccountBalances($conn, $journalEntryId, $fiscalPeriodId)
+{
     // Get all journal lines and reverse them
     $sql = "
         SELECT account_id, debit, credit 
@@ -1180,24 +1089,24 @@ function reverseAccountBalances($conn, $journalEntryId, $fiscalPeriodId) {
     $stmt->bind_param('i', $journalEntryId);
     $stmt->execute();
     $result = $stmt->get_result();
-    
+
     while ($row = $result->fetch_assoc()) {
         $accountId = $row['account_id'];
         $debit = floatval($row['credit']); // Reverse: debit becomes credit
         $credit = floatval($row['debit']); // Reverse: credit becomes debit
-        
+
         // Get current balance to calculate new closing balance after reversal
         $currentSql = "SELECT opening_balance, debit_movements, credit_movements FROM account_balances WHERE account_id = ? AND fiscal_period_id = ?";
         $currentStmt = $conn->prepare($currentSql);
         $currentStmt->bind_param('ii', $accountId, $fiscalPeriodId);
         $currentStmt->execute();
         $currentResult = $currentStmt->get_result();
-        
+
         if ($currentRow = $currentResult->fetch_assoc()) {
             $newDebitMovements = floatval($currentRow['debit_movements']) - $debit;
             $newCreditMovements = floatval($currentRow['credit_movements']) - $credit;
             $newClosingBalance = floatval($currentRow['opening_balance']) + $newDebitMovements - $newCreditMovements;
-            
+
             // Update balance (subtract instead of add)
             $updateSql = "
                 UPDATE account_balances 
@@ -1214,18 +1123,19 @@ function reverseAccountBalances($conn, $journalEntryId, $fiscalPeriodId) {
     }
 }
 
-function logAuditAction($conn, $userId, $action, $objectType, $objectId, $description) {
+function logAuditAction($conn, $userId, $action, $objectType, $objectId, $description)
+{
     try {
         $ipAddress = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
         $additionalInfo = json_encode(['description' => $description]);
-        
+
         $sql = "
             INSERT INTO audit_logs 
             (user_id, action, object_type, object_id, additional_info, ip_address, created_at)
             VALUES (?, ?, ?, ?, ?, ?, NOW())
         ";
-        
-        $objectIdStr = (string)$objectId;
+
+        $objectIdStr = (string) $objectId;
         $stmt = $conn->prepare($sql);
         $stmt->bind_param('isssss', $userId, $action, $objectType, $objectIdStr, $additionalInfo, $ipAddress);
         $stmt->execute();
@@ -1239,13 +1149,14 @@ function logAuditAction($conn, $userId, $action, $objectType, $objectId, $descri
  * Get Trial Balance using REAL client data from operational subsystems
  * Uses Bank System, Loan Subsystem, and HRIS-SIA data only
  */
-function getTrialBalance() {
+function getTrialBalance()
+{
     global $conn;
-    
+
     try {
         $dateFrom = $_GET['date_from'] ?? '';
         $dateTo = $_GET['date_to'] ?? '';
-        
+
         // Default to current month if no dates provided
         if (empty($dateFrom)) {
             $dateFrom = date('Y-m-01');
@@ -1253,17 +1164,19 @@ function getTrialBalance() {
         if (empty($dateTo)) {
             $dateTo = date('Y-m-t');
         }
-        
+
         $accounts = [];
         $totalDebit = 0;
         $totalCredit = 0;
-        
+
         // 1. BANK SYSTEM: Get bank transactions with real customer accounts (ASSETS)
-        if ($conn->query("SHOW TABLES LIKE 'bank_transactions'")->num_rows > 0 && 
+        if (
+            $conn->query("SHOW TABLES LIKE 'bank_transactions'")->num_rows > 0 &&
             $conn->query("SHOW TABLES LIKE 'customer_accounts'")->num_rows > 0 &&
             $conn->query("SHOW TABLES LIKE 'bank_customers'")->num_rows > 0 &&
-            $conn->query("SHOW TABLES LIKE 'transaction_types'")->num_rows > 0) {
-            
+            $conn->query("SHOW TABLES LIKE 'transaction_types'")->num_rows > 0
+        ) {
+
             $sql = "
                 SELECT 
                     ca.account_number as code,
@@ -1285,23 +1198,23 @@ function getTrialBalance() {
                     AND DATE(bt.created_at) BETWEEN ? AND ?
                 GROUP BY ca.account_id, ca.account_number, bc.first_name, bc.middle_name, bc.last_name
             ";
-            
+
             $stmt = $conn->prepare($sql);
             if ($stmt) {
                 $stmt->bind_param('ss', $dateFrom, $dateTo);
                 $stmt->execute();
                 $result = $stmt->get_result();
-                
+
                 while ($row = $result->fetch_assoc()) {
-                    $debitBalance = (float)$row['total_debit'];
-                    $creditBalance = (float)$row['total_credit'];
+                    $debitBalance = (float) $row['total_debit'];
+                    $creditBalance = (float) $row['total_credit'];
                     $netBalance = $debitBalance - $creditBalance;
-                    
+
                     // Only include accounts with non-zero balances
                     if ($debitBalance > 0 || $creditBalance > 0) {
                         $totalDebit += $debitBalance;
                         $totalCredit += $creditBalance;
-                        
+
                         $accounts[] = [
                             'id' => 'BANK-' . $row['code'],
                             'code' => $row['code'],
@@ -1316,7 +1229,7 @@ function getTrialBalance() {
                 $stmt->close();
             }
         }
-        
+
         // 2. LOAN SUBSYSTEM: Get loan applications with real borrower data (LIABILITIES)
         if ($conn->query("SHOW TABLES LIKE 'loan_applications'")->num_rows > 0) {
             $sql = "
@@ -1333,23 +1246,23 @@ function getTrialBalance() {
                 WHERE DATE(la.created_at) BETWEEN ? AND ?
                 GROUP BY la.id, la.full_name
             ";
-            
+
             $stmt = $conn->prepare($sql);
             if ($stmt) {
                 $stmt->bind_param('ss', $dateFrom, $dateTo);
                 $stmt->execute();
                 $result = $stmt->get_result();
-                
+
                 while ($row = $result->fetch_assoc()) {
-                    $debitBalance = (float)$row['total_debit'];
-                    $creditBalance = (float)$row['total_credit'];
+                    $debitBalance = (float) $row['total_debit'];
+                    $creditBalance = (float) $row['total_credit'];
                     $netBalance = $creditBalance; // Liabilities are credits
-                    
+
                     // Only include loans with non-zero balances
                     if ($creditBalance > 0) {
                         $totalDebit += $debitBalance;
                         $totalCredit += $creditBalance;
-                        
+
                         $accounts[] = [
                             'id' => 'LOAN-' . str_replace('LOAN-', '', $row['code']),
                             'code' => $row['code'],
@@ -1364,11 +1277,13 @@ function getTrialBalance() {
                 $stmt->close();
             }
         }
-        
+
         // 3. PAYROLL: Get payroll runs with real employee data (EXPENSES)
-        if ($conn->query("SHOW TABLES LIKE 'payroll_runs'")->num_rows > 0 &&
-            $conn->query("SHOW TABLES LIKE 'payslips'")->num_rows > 0) {
-            
+        if (
+            $conn->query("SHOW TABLES LIKE 'payroll_runs'")->num_rows > 0 &&
+            $conn->query("SHOW TABLES LIKE 'payslips'")->num_rows > 0
+        ) {
+
             $sql = "
                 SELECT 
                     CONCAT('PAY-', ps.employee_external_no) as code,
@@ -1382,23 +1297,23 @@ function getTrialBalance() {
                     AND DATE(pr.run_at) BETWEEN ? AND ?
                 GROUP BY ps.employee_external_no
             ";
-            
+
             $stmt = $conn->prepare($sql);
             if ($stmt) {
                 $stmt->bind_param('ss', $dateFrom, $dateTo);
                 $stmt->execute();
                 $result = $stmt->get_result();
-                
+
                 while ($row = $result->fetch_assoc()) {
-                    $debitBalance = (float)$row['total_debit'];
-                    $creditBalance = (float)$row['total_credit'];
+                    $debitBalance = (float) $row['total_debit'];
+                    $creditBalance = (float) $row['total_credit'];
                     $netBalance = $debitBalance; // Expenses are debits
-                    
+
                     // Only include accounts with non-zero balances
                     if ($debitBalance > 0) {
                         $totalDebit += $debitBalance;
                         $totalCredit += 0; // Expenses don't have credit balance
-                        
+
                         $accounts[] = [
                             'id' => 'PAY-' . str_replace('PAY-', '', $row['code']),
                             'code' => $row['code'],
@@ -1413,18 +1328,18 @@ function getTrialBalance() {
                 $stmt->close();
             }
         }
-        
+
         // Sort accounts by code
-        usort($accounts, function($a, $b) {
+        usort($accounts, function ($a, $b) {
             return strcmp($a['code'], $b['code']);
         });
-        
+
         // Apply pagination
         $totalCount = count($accounts);
-        $limit = (int)($_GET['limit'] ?? 50);
-        $offset = (int)($_GET['offset'] ?? 0);
+        $limit = (int) ($_GET['limit'] ?? 50);
+        $offset = (int) ($_GET['offset'] ?? 0);
         $paginatedAccounts = array_slice($accounts, $offset, $limit);
-        
+
         // Recalculate totals for paginated accounts (or keep full totals)
         $paginatedTotalDebit = 0;
         $paginatedTotalCredit = 0;
@@ -1432,7 +1347,7 @@ function getTrialBalance() {
             $paginatedTotalDebit += $acc['debit_balance'];
             $paginatedTotalCredit += $acc['credit_balance'];
         }
-        
+
         return [
             'success' => true,
             'data' => [
@@ -1448,7 +1363,7 @@ function getTrialBalance() {
             'count' => count($paginatedAccounts),
             'total' => $totalCount
         ];
-        
+
     } catch (Exception $e) {
         return [
             'success' => false,
@@ -1458,12 +1373,13 @@ function getTrialBalance() {
     }
 }
 
-function exportAccounts() {
+function exportAccounts()
+{
     global $conn;
-    
+
     try {
         $search = $_GET['search'] ?? '';
-        
+
         $sql = "
             SELECT 
                 a.code,
@@ -1477,10 +1393,10 @@ function exportAccounts() {
                 AND ab.fiscal_period_id = (SELECT id FROM fiscal_periods WHERE status = 'open' ORDER BY start_date DESC LIMIT 1)
             WHERE a.is_active = 1
         ";
-        
+
         $params = [];
         $types = '';
-        
+
         if ($search) {
             $sql .= " AND (a.name LIKE ? OR a.code LIKE ?)";
             $searchParam = "%$search%";
@@ -1488,33 +1404,33 @@ function exportAccounts() {
             $params[] = $searchParam;
             $types .= 'ss';
         }
-        
+
         $sql .= " ORDER BY a.code";
-        
+
         $stmt = $conn->prepare($sql);
         if (!empty($params)) {
             $stmt->bind_param($types, ...$params);
         }
         $stmt->execute();
         $result = $stmt->get_result();
-        
+
         $accounts = [];
         while ($row = $result->fetch_assoc()) {
             $accounts[] = [
                 'code' => $row['code'],
                 'name' => $row['name'],
                 'type' => ucfirst($row['account_type']),
-                'balance' => (float)$row['balance'],
+                'balance' => (float) $row['balance'],
                 'status' => $row['is_active'] ? 'Active' : 'Inactive'
             ];
         }
-        
+
         return [
             'success' => true,
             'data' => $accounts,
             'filename' => 'accounts_export_' . date('Y-m-d') . '.csv'
         ];
-        
+
     } catch (Exception $e) {
         return [
             'success' => false,
@@ -1523,14 +1439,15 @@ function exportAccounts() {
     }
 }
 
-function exportTransactions() {
+function exportTransactions()
+{
     global $conn;
-    
+
     try {
         $dateFrom = $_GET['date_from'] ?? '';
         $dateTo = $_GET['date_to'] ?? '';
         $type = $_GET['type'] ?? '';
-        
+
         $sql = "
             SELECT 
                 je.journal_no,
@@ -1547,37 +1464,37 @@ function exportTransactions() {
             INNER JOIN users u ON je.created_by = u.id
             WHERE je.status = 'posted'
         ";
-        
+
         $params = [];
         $types = '';
-        
+
         if ($dateFrom) {
             $sql .= " AND je.entry_date >= ?";
             $params[] = $dateFrom;
             $types .= 's';
         }
-        
+
         if ($dateTo) {
             $sql .= " AND je.entry_date <= ?";
             $params[] = $dateTo;
             $types .= 's';
         }
-        
+
         if ($type) {
             $sql .= " AND jt.code = ?";
             $params[] = $type;
             $types .= 's';
         }
-        
+
         $sql .= " ORDER BY je.entry_date DESC, je.journal_no DESC";
-        
+
         $stmt = $conn->prepare($sql);
         if (!empty($params)) {
             $stmt->bind_param($types, ...$params);
         }
         $stmt->execute();
         $result = $stmt->get_result();
-        
+
         $transactions = [];
         while ($row = $result->fetch_assoc()) {
             $transactions[] = [
@@ -1586,19 +1503,19 @@ function exportTransactions() {
                 'type' => $row['type_name'],
                 'description' => $row['description'] ?? '',
                 'reference_no' => $row['reference_no'] ?? '',
-                'debit' => (float)$row['total_debit'],
-                'credit' => (float)$row['total_credit'],
+                'debit' => (float) $row['total_debit'],
+                'credit' => (float) $row['total_credit'],
                 'status' => $row['status'],
                 'created_by' => $row['created_by']
             ];
         }
-        
+
         return [
             'success' => true,
             'data' => $transactions,
             'filename' => 'transactions_export_' . date('Y-m-d') . '.csv'
         ];
-        
+
     } catch (Exception $e) {
         return [
             'success' => false,
@@ -1607,21 +1524,95 @@ function exportTransactions() {
     }
 }
 
-function getAccountTransactions() {
+function getAccountTransactions()
+{
     global $conn;
-    
+
     try {
         $accountNumber = $_GET['account_code'] ?? '';
-        
+        $source = $_GET['source'] ?? 'bank';
+
         if (empty($accountNumber)) {
             return [
                 'success' => false,
                 'message' => 'Account number is required'
             ];
         }
-        
+
+        if ($source === 'gl') {
+            // Get GL account info from accounts table
+            $sql = "SELECT 
+                        a.code as account_number,
+                        a.name as account_name,
+                        at.name as account_type,
+                        COALESCE(v.closing_balance, 0) as available_balance
+                    FROM accounts a
+                    INNER JOIN account_types at ON a.type_id = at.id
+                    LEFT JOIN v_account_balances v ON a.code = v.code
+                    WHERE a.code = ?
+                    LIMIT 1";
+
+            $stmt = $conn->prepare($sql);
+            if (!$stmt)
+                throw new Exception("Prepare failed: " . $conn->error);
+            $stmt->bind_param('s', $accountNumber);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            $accountInfo = $result->fetch_assoc();
+
+            if (!$accountInfo) {
+                return ['success' => false, 'message' => 'GL Account not found'];
+            }
+
+            // Get journal entries for this account
+            $sql = "SELECT 
+                        je.entry_date as date,
+                        je.journal_no as reference,
+                        je.description,
+                        jl.debit,
+                        jl.credit
+                    FROM journal_lines jl
+                    INNER JOIN journal_entries je ON jl.journal_entry_id = je.id
+                    INNER JOIN accounts a ON jl.account_id = a.id
+                    WHERE a.code = ? AND je.status = 'posted'
+                    ORDER BY je.entry_date DESC, je.id DESC
+                    LIMIT 100";
+
+            $stmt = $conn->prepare($sql);
+            if (!$stmt)
+                throw new Exception("Prepare failed: " . $conn->error);
+            $stmt->bind_param('s', $accountNumber);
+            $stmt->execute();
+            $result = $stmt->get_result();
+
+            $transactions = [];
+            while ($row = $result->fetch_assoc()) {
+                $transactions[] = [
+                    'date' => $row['date'],
+                    'reference' => $row['reference'],
+                    'description' => $row['description'],
+                    'debit' => (float) $row['debit'],
+                    'credit' => (float) $row['credit']
+                ];
+            }
+
+            return [
+                'success' => true,
+                'data' => [
+                    'account' => [
+                        'account_number' => $accountInfo['account_number'],
+                        'account_name' => trim($accountInfo['account_name']),
+                        'account_type' => $accountInfo['account_type'],
+                        'available_balance' => (float) $accountInfo['available_balance'],
+                        'source' => 'gl'
+                    ],
+                    'transactions' => $transactions
+                ]
+            ];
+        }
+
+        // Default BANK system logic
         // Get bank customer account info using ONLY bank-system tables
-        // Use transaction-type-based balance calculation (same as Basic Operation)
         $sql = "SELECT 
                     ca.account_number,
                     CONCAT(COALESCE(bc.first_name, ''), ' ', COALESCE(bc.last_name, '')) as account_name,
@@ -1650,20 +1641,22 @@ function getAccountTransactions() {
                 INNER JOIN bank_account_types bat ON ca.account_type_id = bat.account_type_id
                 WHERE ca.account_number = ? AND ca.is_locked = 0
                 LIMIT 1";
-        
+
         $stmt = $conn->prepare($sql);
+        if (!$stmt)
+            throw new Exception("Prepare failed: " . $conn->error);
         $stmt->bind_param('s', $accountNumber);
         $stmt->execute();
         $result = $stmt->get_result();
         $accountInfo = $result->fetch_assoc();
-        
+
         if (!$accountInfo) {
             return [
                 'success' => false,
                 'message' => 'Account not found'
             ];
         }
-        
+
         // Get bank transactions for this account
         $sql = "SELECT 
                     DATE(bt.created_at) as date,
@@ -1677,23 +1670,25 @@ function getAccountTransactions() {
                 WHERE ca.account_number = ?
                 ORDER BY bt.created_at DESC
                 LIMIT 100";
-        
+
         $stmt = $conn->prepare($sql);
+        if (!$stmt)
+            throw new Exception("Prepare failed: " . $conn->error);
         $stmt->bind_param('s', $accountNumber);
         $stmt->execute();
         $result = $stmt->get_result();
-        
+
         $transactions = [];
         while ($row = $result->fetch_assoc()) {
             $transactions[] = [
                 'date' => $row['date'],
                 'reference' => $row['reference'],
                 'description' => $row['description'],
-                'debit' => (float)$row['debit'],
-                'credit' => (float)$row['credit']
+                'debit' => (float) $row['debit'],
+                'credit' => (float) $row['credit']
             ];
         }
-        
+
         return [
             'success' => true,
             'data' => [
@@ -1701,13 +1696,13 @@ function getAccountTransactions() {
                     'account_number' => $accountInfo['account_number'],
                     'account_name' => trim($accountInfo['account_name']),
                     'account_type' => $accountInfo['account_type'],
-                    'available_balance' => (float)$accountInfo['available_balance'],
+                    'available_balance' => (float) $accountInfo['available_balance'],
                     'source' => 'bank'
                 ],
                 'transactions' => $transactions
             ]
         ];
-        
+
     } catch (Exception $e) {
         return [
             'success' => false,
@@ -1716,34 +1711,35 @@ function getAccountTransactions() {
     }
 }
 
-function getAccountTypesList() {
+function getAccountTypesList()
+{
     global $conn;
-    
+
     try {
         $sql = "SELECT DISTINCT type_name 
                 FROM bank_account_types 
                 WHERE type_name != 'USD Account'
                 ORDER BY type_name";
-        
+
         $result = $conn->query($sql);
         $types = [];
-        
+
         if ($result) {
             while ($row = $result->fetch_assoc()) {
                 $types[] = $row['type_name'];
             }
         }
-        
+
         // Filter out USD Account from the results as well (in case query didn't work)
-        $types = array_filter($types, function($type) {
+        $types = array_filter($types, function ($type) {
             return strtolower($type) !== 'usd account';
         });
-        
+
         return [
             'success' => true,
             'data' => array_values($types) // Re-index array
         ];
-        
+
     } catch (Exception $e) {
         // Return default types if query fails (excluding USD Account)
         return [
@@ -1753,16 +1749,17 @@ function getAccountTypesList() {
     }
 }
 
-function getBankTransactionDetails() {
+function getBankTransactionDetails()
+{
     global $conn;
-    
+
     try {
         $transactionId = $_GET['id'] ?? '';
-        
+
         if (empty($transactionId)) {
             return ['success' => false, 'message' => 'Transaction ID is required'];
         }
-        
+
         $sql = "SELECT 
                     bt.transaction_id,
                     bt.transaction_ref,
@@ -1778,29 +1775,29 @@ function getBankTransactionDetails() {
                 INNER JOIN transaction_types tt ON bt.transaction_type_id = tt.transaction_type_id
                 WHERE bt.transaction_id = ?
                 LIMIT 1";
-        
+
         $stmt = $conn->prepare($sql);
         $stmt->bind_param('i', $transactionId);
         $stmt->execute();
         $result = $stmt->get_result();
         $transaction = $result->fetch_assoc();
-        
+
         if (!$transaction) {
             return ['success' => false, 'message' => 'Bank transaction not found'];
         }
-        
+
         return [
             'success' => true,
             'data' => [
                 'transaction_ref' => $transaction['transaction_ref'],
                 'account_number' => $transaction['account_number'],
                 'transaction_type' => $transaction['transaction_type'],
-                'amount' => (float)$transaction['amount'],
+                'amount' => (float) $transaction['amount'],
                 'description' => $transaction['description'] ?? 'Bank Transaction',
                 'created_at' => $transaction['created_at']
             ]
         ];
-        
+
     } catch (Exception $e) {
         return [
             'success' => false,
@@ -1813,135 +1810,89 @@ function getBankTransactionDetails() {
 // CARD APPLICATION FUNCTIONS
 // ========================================
 
-function getPendingApplications() {
+function getPendingApplications()
+{
     global $conn;
-    
+
     try {
-        $statusFilter = $_GET['status_filter'] ?? 'pending'; // 'pending' or 'all'
+        $statusFilter = $_GET['status_filter'] ?? 'pending';
         $search = $_GET['search'] ?? '';
-        $limit = (int)($_GET['limit'] ?? 25);
-        $offset = (int)($_GET['offset'] ?? 0);
-        
-        // Build WHERE clause based on status filter
+        $limit = (int) ($_GET['limit'] ?? 25);
+        $offset = (int) ($_GET['offset'] ?? 0);
+
         $whereClause = "WHERE 1=1";
         $params = [];
         $types = '';
-        
+
         if ($statusFilter === 'pending') {
-            $whereClause .= " AND aa.application_status = 'pending'";
+            $whereClause .= " AND status = 'Pending'";
         }
-        // If 'all', show all statuses (pending, approved, rejected)
-        
+
         if ($search) {
-            $whereClause .= " AND (
-                aa.application_number LIKE ? 
-                OR CONCAT(aa.first_name, ' ', aa.last_name) LIKE ?
-                OR aa.email LIKE ?
-            )";
+            $whereClause .= " AND (full_name LIKE ? OR email LIKE ? OR id LIKE ?)";
             $searchParam = "%$search%";
             $params[] = $searchParam;
             $params[] = $searchParam;
             $params[] = $searchParam;
             $types .= 'sss';
         }
-        
-        // Main query to get applications with requested cards
+
         $sql = "SELECT 
-            aa.application_id,
-            aa.application_number,
-            CONCAT(aa.first_name, ' ', aa.last_name) as applicant_name,
-            aa.first_name,
-            aa.last_name,
-            aa.email,
-            aa.phone_number,
-            aa.application_status,
-            aa.submitted_at,
-            aa.selected_cards,
-            aa.account_type,
-            aa.annual_income,
-            GROUP_CONCAT(DISTINCT 
-                CASE 
-                    WHEN aa.selected_cards LIKE '%debit%' THEN 'Debit Card'
-                    WHEN aa.selected_cards LIKE '%credit%' THEN 'Credit Card'
-                    WHEN aa.selected_cards LIKE '%prepaid%' THEN 'Prepaid Card'
-                END
-                SEPARATOR ', '
-            ) as requested_cards_display
-        FROM account_applications aa
+            id as application_id,
+            id as application_number,
+            full_name as applicant_name,
+            email,
+            contact_number as phone_number,
+            status as application_status,
+            created_at as submitted_at,
+            loan_type as selected_cards,
+            loan_amount as annual_income
+        FROM loan_applications 
         $whereClause
-        GROUP BY aa.application_id
-        ORDER BY aa.submitted_at DESC
+        ORDER BY created_at DESC
         LIMIT ? OFFSET ?";
-        
-        // Get total count for pagination
-        $countSql = "SELECT COUNT(DISTINCT aa.application_id) as total 
-                     FROM account_applications aa 
-                     $whereClause";
-        
+
+        // Get total count
+        $countSql = "SELECT COUNT(*) as total FROM loan_applications $whereClause";
         $countStmt = $conn->prepare($countSql);
-        if (!$countStmt) {
-            throw new Exception("Failed to prepare count query: " . $conn->error);
-        }
-        
         if (!empty($params)) {
             $countStmt->bind_param($types, ...$params);
         }
         $countStmt->execute();
-        $countResult = $countStmt->get_result();
-        $totalCount = $countResult->fetch_assoc()['total'] ?? 0;
-        $countStmt->close();
-        
+        $totalCount = $countStmt->get_result()->fetch_assoc()['total'] ?? 0;
+
         // Execute main query
         $types .= 'ii';
         $params[] = $limit;
         $params[] = $offset;
-        
+
         $stmt = $conn->prepare($sql);
-        if (!$stmt) {
-            throw new Exception("Failed to prepare query: " . $conn->error);
-        }
-        
         $stmt->bind_param($types, ...$params);
         $stmt->execute();
         $result = $stmt->get_result();
-        
+
         $applications = [];
         while ($row = $result->fetch_assoc()) {
-            // Parse selected_cards to create readable list
-            $cardsList = [];
-            if (!empty($row['selected_cards'])) {
-                $cards = explode(',', $row['selected_cards']);
-                foreach ($cards as $card) {
-                    $card = trim($card);
-                    if ($card === 'debit') $cardsList[] = 'Debit Card';
-                    elseif ($card === 'credit') $cardsList[] = 'Credit Card';
-                    elseif ($card === 'prepaid') $cardsList[] = 'Prepaid Card';
-                }
-            }
-            
             $applications[] = [
-                'application_id' => (int)$row['application_id'],
-                'application_number' => $row['application_number'],
+                'application_id' => (int) $row['application_id'],
+                'application_number' => 'APP-' . str_pad($row['application_id'], 5, '0', STR_PAD_LEFT),
                 'applicant_name' => $row['applicant_name'],
-                'requested_cards' => implode(', ', $cardsList),
-                'submission_date' => $row['submitted_at'],
-                'status' => $row['application_status'],
-                'account_type' => $row['account_type'],
-                'annual_income' => (float)$row['annual_income']
+                'requested_cards' => $row['selected_cards'],
+                'submission_date' => date('M d, Y', strtotime($row['submitted_at'])),
+                'status' => strtolower($row['application_status']),
+                'account_type' => 'Loan Application',
+                'annual_income' => (float) $row['annual_income']
             ];
         }
-        
-        $stmt->close();
-        
+
         return [
             'success' => true,
             'data' => $applications,
             'count' => count($applications),
-            'total' => (int)$totalCount
+            'total' => (int) $totalCount
         ];
-        
+
     } catch (Exception $e) {
-        error_log("Error in getPendingApplications: " . $e->getMessage());
         return [
             'success' => false,
             'message' => 'Database error: ' . $e->getMessage(),
@@ -1950,642 +1901,118 @@ function getPendingApplications() {
     }
 }
 
-function getApplicationDetails() {
+function getApplicationDetails()
+{
     global $conn;
-    
+
     try {
-        $applicationId = (int)($_GET['application_id'] ?? 0);
-        
+        $applicationId = (int) ($_GET['application_id'] ?? 0);
+
         if (!$applicationId) {
-            return [
-                'success' => false,
-                'message' => 'Application ID is required'
-            ];
+            return ['success' => false, 'message' => 'Application ID is required'];
         }
-        
-        $sql = "SELECT 
-            aa.*,
-            aa.selected_cards,
-            aa.additional_services
-        FROM account_applications aa
-        WHERE aa.application_id = ?";
-        
+
+        $sql = "SELECT * FROM loan_applications WHERE id = ?";
         $stmt = $conn->prepare($sql);
-        if (!$stmt) {
-            throw new Exception("Failed to prepare query: " . $conn->error);
-        }
-        
         $stmt->bind_param('i', $applicationId);
         $stmt->execute();
         $result = $stmt->get_result();
-        
+
         if ($result->num_rows === 0) {
-            $stmt->close();
-            return [
-                'success' => false,
-                'message' => 'Application not found'
-            ];
+            return ['success' => false, 'message' => 'Application not found'];
         }
-        
+
         $row = $result->fetch_assoc();
-        $stmt->close();
-        
-        // Parse selected cards
-        $selectedCards = [];
-        if (!empty($row['selected_cards'])) {
-            $cards = explode(',', $row['selected_cards']);
-            foreach ($cards as $card) {
-                $card = trim($card);
-                if ($card) {
-                    $selectedCards[] = [
-                        'type' => $card,
-                        'name' => ucfirst($card) . ' Card'
-                    ];
-                }
-            }
-        }
-        
-        // Parse additional services (if stored as JSON or comma-separated)
-        $additionalServices = [];
-        if (!empty($row['additional_services'])) {
-            // Try to decode as JSON first
-            $services = json_decode($row['additional_services'], true);
-            if (json_last_error() === JSON_ERROR_NONE && is_array($services)) {
-                $additionalServices = $services;
-            } else {
-                // Fallback to comma-separated
-                $services = explode(',', $row['additional_services']);
-                foreach ($services as $service) {
-                    $service = trim($service);
-                    if ($service) {
-                        $additionalServices[] = $service;
-                    }
-                }
-            }
-        }
-        
-        // Format account type for display
-        $accountTypeDisplay = '';
-        if ($row['account_type'] === 'acct-checking') {
-            $accountTypeDisplay = 'Checking';
-        } elseif ($row['account_type'] === 'acct-savings') {
-            $accountTypeDisplay = 'Savings';
-        } elseif ($row['account_type'] === 'acct-both') {
-            $accountTypeDisplay = 'Both (Checking & Savings)';
-        }
-        
+        $nameParts = explode(' ', $row['full_name']);
+        $firstName = $nameParts[0] ?? '';
+        $lastName = count($nameParts) > 1 ? implode(' ', array_slice($nameParts, 1)) : '';
+
         return [
             'success' => true,
             'data' => [
-                'application_id' => (int)$row['application_id'],
-                'application_number' => $row['application_number'],
-                'application_status' => $row['application_status'],
-                'submitted_at' => $row['submitted_at'],
-                
-                // Personal Information
-                'first_name' => $row['first_name'],
-                'last_name' => $row['last_name'],
+                'application_id' => (int) $row['id'],
+                'application_number' => 'APP-' . str_pad($row['id'], 5, '0', STR_PAD_LEFT),
+                'application_status' => strtolower($row['status']),
+                'submitted_at' => $row['created_at'],
+                'applicant_name' => $row['full_name'],
+                'first_name' => $firstName,
+                'last_name' => $lastName,
                 'email' => $row['email'],
-                'phone_number' => $row['phone_number'],
-                'date_of_birth' => $row['date_of_birth'],
-                
-                // Address
-                'street_address' => $row['street_address'],
-                'barangay' => $row['barangay'] ?? '',
-                'city' => $row['city'],
-                'state' => $row['state'],
-                'zip_code' => $row['zip_code'],
-                
-                // Identity
-                'ssn' => $row['ssn'],
-                'id_type' => $row['id_type'],
-                'id_number' => $row['id_number'],
-                
-                // Employment
-                'employment_status' => $row['employment_status'],
-                'employer_name' => $row['employer_name'] ?? '',
-                'job_title' => $row['job_title'] ?? '',
-                'annual_income' => (float)$row['annual_income'],
-                
-                // Preferences
-                'account_type' => $row['account_type'],
-                'account_type_display' => $accountTypeDisplay,
-                'selected_cards' => $selectedCards,
-                'additional_services' => $additionalServices,
-                
-                // Terms
-                'terms_accepted' => (bool)$row['terms_accepted'],
-                'privacy_acknowledged' => (bool)$row['privacy_acknowledged'],
-                'marketing_consent' => (bool)$row['marketing_consent']
+                'phone_number' => $row['contact_number'],
+                'employment_status' => $row['job'] ?? 'Not Specified',
+                'employer_name' => 'N/A',
+                'job_title' => $row['job'] ?? 'N/A',
+                'annual_income' => (float) ($row['monthly_salary'] ?? 0) * 12,
+                'account_type_display' => $row['loan_type'],
+                'selected_cards' => [['type' => 'loan', 'name' => $row['loan_type']]],
+                'loan_amount' => (float) $row['loan_amount'],
+                'loan_terms' => $row['loan_terms'],
+                'remarks' => $row['remarks'],
+                'date_of_birth' => 'N/A',
+                'street_address' => 'N/A',
+                'barangay' => 'N/A',
+                'city' => 'N/A',
+                'state' => 'N/A',
+                'zip_code' => 'N/A',
+                'ssn' => 'N/A',
+                'id_type' => 'Valid ID',
+                'id_number' => $row['valid_id_number'] ?? 'N/A',
+                'additional_services' => [],
+                'terms_accepted' => true,
+                'privacy_acknowledged' => true,
+                'marketing_consent' => false
             ]
         ];
-        
+
     } catch (Exception $e) {
-        error_log("Error in getApplicationDetails: " . $e->getMessage());
-        return [
-            'success' => false,
-            'message' => 'Database error: ' . $e->getMessage()
-        ];
+        return ['success' => false, 'message' => 'Database error: ' . $e->getMessage()];
     }
 }
 
-function approveApplication() {
+function approveApplication()
+{
     global $conn;
-    
     try {
-        // Check if session functions are available
-        if (!function_exists('getCurrentUser')) {
-            require_once '../../includes/session.php';
-        }
-        
-        $applicationId = (int)($_POST['application_id'] ?? 0);
+        $applicationId = (int) ($_POST['application_id'] ?? 0);
         $currentUser = getCurrentUser();
-        $userId = $currentUser['id'] ?? null;
-        
-        if (!$applicationId) {
-            return [
-                'success' => false,
-                'message' => 'Application ID is required'
-            ];
-        }
-        
-        if (!$userId) {
-            return [
-                'success' => false,
-                'message' => 'User authentication required'
-            ];
-        }
-        
-        // Start transaction
-        $conn->begin_transaction();
-        
-        // Get application details
-        $sql = "SELECT * FROM account_applications WHERE application_id = ?";
+
+        if (!$applicationId)
+            return ['success' => false, 'message' => 'Application ID is required'];
+
+        $sql = "UPDATE loan_applications SET status = 'Approved', approved_at = NOW(), approved_by = ? WHERE id = ?";
         $stmt = $conn->prepare($sql);
-        if (!$stmt) {
-            $conn->rollback();
-            return [
-                'success' => false,
-                'message' => 'Failed to prepare query: ' . $conn->error
-            ];
+        $stmt->bind_param('si', $currentUser['full_name'], $applicationId);
+
+        if ($stmt->execute()) {
+            return ['success' => true, 'message' => 'Application approved successfully'];
         }
-        $stmt->bind_param('i', $applicationId);
-        $stmt->execute();
-        $result = $stmt->get_result();
-        
-        if ($result->num_rows === 0) {
-            $stmt->close();
-            $conn->rollback();
-            return [
-                'success' => false,
-                'message' => 'Application not found'
-            ];
-        }
-        
-        $app = $result->fetch_assoc();
-        $stmt->close();
-        
-        // Check if customer already exists by email
-        $checkCustomerSql = "SELECT customer_id FROM bank_customers WHERE email = ? LIMIT 1";
-        $checkStmt = $conn->prepare($checkCustomerSql);
-        if (!$checkStmt) {
-            $conn->rollback();
-            return [
-                'success' => false,
-                'message' => 'Failed to prepare customer check query: ' . $conn->error
-            ];
-        }
-        $checkStmt->bind_param('s', $app['email']);
-        $checkStmt->execute();
-        $customerResult = $checkStmt->get_result();
-        
-        $customerId = null;
-        if ($customerResult->num_rows > 0) {
-            // Customer exists, use existing ID
-            $customerRow = $customerResult->fetch_assoc();
-            $customerId = $customerRow['customer_id'];
-        } else {
-            // Create new customer
-            // Generate a simple password hash (customer will need to reset)
-            $tempPassword = bin2hex(random_bytes(8));
-            $passwordHash = password_hash($tempPassword, PASSWORD_DEFAULT);
-            
-            // Use minimal fields that are definitely in bank_customers table
-            // Based on the schema, we'll use: first_name, last_name, email, password_hash
-            $insertCustomerSql = "INSERT INTO bank_customers 
-                (first_name, last_name, email, password_hash, created_at)
-                VALUES (?, ?, ?, ?, NOW())";
-            
-            $insertStmt = $conn->prepare($insertCustomerSql);
-            if (!$insertStmt) {
-                $conn->rollback();
-                return [
-                    'success' => false,
-                    'message' => 'Failed to prepare customer insert statement: ' . $conn->error
-                ];
-            }
-            $insertStmt->bind_param('ssss', 
-                $app['first_name'],
-                $app['last_name'],
-                $app['email'],
-                $passwordHash
-            );
-            
-            if (!$insertStmt->execute()) {
-                $insertStmt->close();
-                $conn->rollback();
-                return [
-                    'success' => false,
-                    'message' => 'Failed to create customer: ' . $insertStmt->error
-                ];
-            }
-            
-            $customerId = $insertStmt->insert_id;
-            $insertStmt->close();
-        }
-        
-        $checkStmt->close();
-        
-        // Determine account type ID based on application preference
-        $accountTypeName = 'Savings'; // Default
-        if ($app['account_type'] === 'acct-checking') {
-            $accountTypeName = 'Checking';
-        } elseif ($app['account_type'] === 'acct-both') {
-            $accountTypeName = 'Savings'; // Create Savings first, can add Checking later
-        }
-        
-        // Get account type ID
-        $accountTypeSql = "SELECT account_type_id FROM bank_account_types WHERE type_name = ? LIMIT 1";
-        $accountTypeStmt = $conn->prepare($accountTypeSql);
-        if (!$accountTypeStmt) {
-            $conn->rollback();
-            return [
-                'success' => false,
-                'message' => 'Failed to prepare account type query: ' . $conn->error
-            ];
-        }
-        $accountTypeStmt->bind_param('s', $accountTypeName);
-        $accountTypeStmt->execute();
-        $accountTypeResult = $accountTypeStmt->get_result();
-        
-        if ($accountTypeResult->num_rows === 0) {
-            // Create account type if it doesn't exist
-            $createTypeSql = "INSERT INTO bank_account_types (type_name, description) VALUES (?, ?)";
-            $createTypeStmt = $conn->prepare($createTypeSql);
-            if (!$createTypeStmt) {
-                $accountTypeStmt->close();
-                $conn->rollback();
-                return [
-                    'success' => false,
-                    'message' => 'Failed to prepare account type insert: ' . $conn->error
-                ];
-            }
-            $description = $accountTypeName . ' Account';
-            $createTypeStmt->bind_param('ss', $accountTypeName, $description);
-            $createTypeStmt->execute();
-            $accountTypeId = $createTypeStmt->insert_id;
-            $createTypeStmt->close();
-        } else {
-            $accountTypeRow = $accountTypeResult->fetch_assoc();
-            $accountTypeId = $accountTypeRow['account_type_id'];
-        }
-        if ($accountTypeStmt) {
-            $accountTypeStmt->close();
-        }
-        
-        // Generate account number
-        $prefix = ($accountTypeName === 'Savings') ? 'SA' : 'CHA';
-        $currentYear = date('Y');
-        $uniqueDigits = str_pad(mt_rand(0, 9999), 4, '0', STR_PAD_LEFT);
-        $accountNumber = "{$prefix}-{$uniqueDigits}-{$currentYear}";
-        
-        // Check if account number exists, regenerate if needed
-        $checkAccountSql = "SELECT COUNT(*) as count FROM customer_accounts WHERE account_number = ?";
-        $checkAccountStmt = $conn->prepare($checkAccountSql);
-        if (!$checkAccountStmt) {
-            $accountTypeStmt->close();
-            $conn->rollback();
-            return [
-                'success' => false,
-                'message' => 'Failed to prepare account number check: ' . $conn->error
-            ];
-        }
-        $checkAccountStmt->bind_param('s', $accountNumber);
-        $checkAccountStmt->execute();
-        $accountCheckResult = $checkAccountStmt->get_result();
-        $accountCheckRow = $accountCheckResult->fetch_assoc();
-        
-        if ($accountCheckRow['count'] > 0) {
-            // Regenerate with timestamp
-            $accountNumber = "{$prefix}-{$uniqueDigits}-{$currentYear}-" . time();
-        }
-        $checkAccountStmt->close();
-        
-        // Set interest rate (0.5% for Savings, NULL for Checking)
-        $interestRate = ($accountTypeName === 'Savings') ? 0.50 : null;
-        
-        // Create account
-        $createAccountSql = "INSERT INTO customer_accounts 
-            (customer_id, account_number, account_type_id, interest_rate, is_locked, created_at)
-            VALUES (?, ?, ?, ?, 0, NOW())";
-        
-        $createAccountStmt = $conn->prepare($createAccountSql);
-        if (!$createAccountStmt) {
-            $conn->rollback();
-            return [
-                'success' => false,
-                'message' => 'Failed to prepare account creation statement: ' . $conn->error
-            ];
-        }
-        $createAccountStmt->bind_param('isid', 
-            $customerId,
-            $accountNumber,
-            $accountTypeId,
-            $interestRate
-        );
-        
-        if (!$createAccountStmt->execute()) {
-            $createAccountStmt->close();
-            $conn->rollback();
-            return [
-                'success' => false,
-                'message' => 'Failed to create account: ' . $createAccountStmt->error
-            ];
-        }
-        
-        $accountId = $createAccountStmt->insert_id;
-        $createAccountStmt->close();
-        
-        // Check if table exists first
-        $tableCheck = $conn->query("SHOW TABLES LIKE 'account_applications'");
-        if (!$tableCheck || $tableCheck->num_rows === 0) {
-            $conn->rollback();
-            return [
-                'success' => false,
-                'message' => 'account_applications table does not exist in the database'
-            ];
-        }
-        
-        // Check what columns exist in the table
-        $columnsCheck = $conn->query("SHOW COLUMNS FROM account_applications");
-        $columnNames = [];
-        if ($columnsCheck) {
-            while ($row = $columnsCheck->fetch_assoc()) {
-                $columnNames[] = $row['Field'];
-            }
-        }
-        $hasDecisionBy = in_array('decision_by', $columnNames);
-        $hasCustomerId = in_array('customer_id', $columnNames);
-        $hasAccountId = in_array('account_id', $columnNames);
-        $hasReviewedAt = in_array('reviewed_at', $columnNames);
-        
-        // Build UPDATE statement based on available columns
-        $updateFields = ["application_status = 'approved'"];
-        if ($hasReviewedAt) {
-            $updateFields[] = "reviewed_at = NOW()";
-        }
-        $params = [];
-        $types = '';
-        
-        if ($hasDecisionBy) {
-            $updateFields[] = "decision_by = ?";
-            $params[] = $userId;
-            $types .= 'i';
-        }
-        if ($hasCustomerId) {
-            $updateFields[] = "customer_id = ?";
-            $params[] = $customerId;
-            $types .= 'i';
-        }
-        if ($hasAccountId) {
-            $updateFields[] = "account_id = ?";
-            $params[] = $accountId;
-            $types .= 'i';
-        }
-        
-        // Add application_id for WHERE clause
-        $params[] = $applicationId;
-        $types .= 'i';
-        
-        $updateAppSql = "UPDATE account_applications 
-            SET " . implode(', ', $updateFields) . "
-            WHERE application_id = ?";
-        
-        $updateAppStmt = $conn->prepare($updateAppSql);
-        if (!$updateAppStmt) {
-            $conn->rollback();
-            $errorMsg = $conn->error;
-            error_log("Approve application prepare error: " . $errorMsg);
-            error_log("SQL: " . $updateAppSql);
-            return [
-                'success' => false,
-                'message' => 'Failed to prepare update statement: ' . $errorMsg . ' (SQL: ' . $updateAppSql . ')'
-            ];
-        }
-        
-        // Bind parameters in correct order
-        $updateAppStmt->bind_param($types, ...$params);
-        
-        if (!$updateAppStmt->execute()) {
-            $updateAppStmt->close();
-            $conn->rollback();
-            return [
-                'success' => false,
-                'message' => 'Failed to update application: ' . $updateAppStmt->error
-            ];
-        }
-        $updateAppStmt->close();
-        
-        // Log status change (if application_status_history table exists)
-        // Check if table exists first
-        $tableCheck = $conn->query("SHOW TABLES LIKE 'application_status_history'");
-        if ($tableCheck && $tableCheck->num_rows > 0) {
-            $logHistorySql = "INSERT INTO application_status_history 
-                (application_id, old_status, new_status, changed_by, change_reason, changed_at)
-                VALUES (?, 'pending', 'approved', ?, 'Application approved by finance staff', NOW())";
-            
-            $logStmt = $conn->prepare($logHistorySql);
-            if ($logStmt) {
-                $logStmt->bind_param('ii', $applicationId, $userId);
-                $logStmt->execute();
-                $logStmt->close();
-            }
-        }
-        
-        // Commit transaction
-        $conn->commit();
-        
-        return [
-            'success' => true,
-            'message' => 'Application approved successfully. Customer account created.',
-            'customer_id' => $customerId,
-            'account_id' => $accountId,
-            'account_number' => $accountNumber
-        ];
-        
+        return ['success' => false, 'message' => 'Failed to approve application'];
     } catch (Exception $e) {
-        if ($conn->in_transaction) {
-            $conn->rollback();
-        }
-        error_log("Error in approveApplication: " . $e->getMessage());
-        return [
-            'success' => false,
-            'message' => 'Error approving application: ' . $e->getMessage()
-        ];
+        return ['success' => false, 'message' => $e->getMessage()];
     }
 }
 
-function declineApplication() {
+function declineApplication()
+{
     global $conn;
-    
     try {
-        // Check if session functions are available
-        if (!function_exists('getCurrentUser')) {
-            require_once '../../includes/session.php';
-        }
-        
-        $applicationId = (int)($_POST['application_id'] ?? 0);
-        $rejectionReason = trim($_POST['rejection_reason'] ?? '');
+        $applicationId = (int) ($_POST['application_id'] ?? 0);
+        $reason = $_POST['reason'] ?? 'No reason provided';
         $currentUser = getCurrentUser();
-        $userId = $currentUser['id'] ?? null;
-        
-        if (!$applicationId) {
-            return [
-                'success' => false,
-                'message' => 'Application ID is required'
-            ];
+
+        if (!$applicationId)
+            return ['success' => false, 'message' => 'Application ID is required'];
+
+        $sql = "UPDATE loan_applications SET status = 'Rejected', rejected_at = NOW(), rejected_by = ?, rejection_remarks = ? WHERE id = ?";
+        $stmt = $conn->prepare($sql);
+        $stmt->bind_param('ssi', $currentUser['full_name'], $reason, $applicationId);
+
+        if ($stmt->execute()) {
+            return ['success' => true, 'message' => 'Application declined'];
         }
-        
-        if (empty($rejectionReason)) {
-            return [
-                'success' => false,
-                'message' => 'Rejection reason is required'
-            ];
-        }
-        
-        if (!$userId) {
-            return [
-                'success' => false,
-                'message' => 'User authentication required'
-            ];
-        }
-        
-        // Start transaction
-        $conn->begin_transaction();
-        
-        // Check if table exists first
-        $tableCheck = $conn->query("SHOW TABLES LIKE 'account_applications'");
-        if (!$tableCheck || $tableCheck->num_rows === 0) {
-            $conn->rollback();
-            return [
-                'success' => false,
-                'message' => 'account_applications table does not exist in the database'
-            ];
-        }
-        
-        
-        // Check what columns exist in the table
-        $columnsCheck = $conn->query("SHOW COLUMNS FROM account_applications");
-        $columnNames = [];
-        if ($columnsCheck) {
-            while ($row = $columnsCheck->fetch_assoc()) {
-                $columnNames[] = $row['Field'];
-            }
-        }
-        $hasDecisionBy = in_array('decision_by', $columnNames);
-        $hasRejectionReason = in_array('rejection_reason', $columnNames);
-        $hasReviewedAt = in_array('reviewed_at', $columnNames);
-        
-        // Update application status - build SQL based on available columns
-        $updateFields = ["application_status = 'rejected'"];
-        if ($hasReviewedAt) {
-            $updateFields[] = "reviewed_at = NOW()";
-        }
-        
-        $params = [];
-        $types = '';
-        
-        if ($hasDecisionBy) {
-            $updateFields[] = "decision_by = ?";
-            $params[] = $userId;
-            $types .= 'i';
-        }
-        
-        if ($hasRejectionReason) {
-            $updateFields[] = "rejection_reason = ?";
-            $params[] = $rejectionReason;
-            $types .= 's';
-        }
-        
-        // Add application_id for WHERE clause
-        $params[] = $applicationId;
-        $types .= 'i';
-        
-        $updateSql = "UPDATE account_applications 
-            SET " . implode(', ', $updateFields) . "
-            WHERE application_id = ?";
-        
-        $stmt = $conn->prepare($updateSql);
-        if (!$stmt) {
-            $conn->rollback();
-            $errorMsg = $conn->error;
-            error_log("Decline application prepare error: " . $errorMsg);
-            error_log("SQL: " . $updateSql);
-            return [
-                'success' => false,
-                'message' => 'Failed to prepare update statement: ' . $errorMsg . ' (SQL: ' . $updateSql . ')'
-            ];
-        }
-        
-        // Bind parameters
-        if (!empty($params)) {
-            $stmt->bind_param($types, ...$params);
-        }
-        
-        if (!$stmt->execute()) {
-            $stmt->close();
-            $conn->rollback();
-            return [
-                'success' => false,
-                'message' => 'Failed to decline application: ' . $stmt->error
-            ];
-        }
-        
-        $stmt->close();
-        
-        // Log status change (if application_status_history table exists)
-        // Check if table exists first
-        $tableCheck = $conn->query("SHOW TABLES LIKE 'application_status_history'");
-        if ($tableCheck && $tableCheck->num_rows > 0) {
-            $logHistorySql = "INSERT INTO application_status_history 
-                (application_id, old_status, new_status, changed_by, change_reason, changed_at)
-                VALUES (?, 'pending', 'rejected', ?, ?, NOW())";
-            
-            $logStmt = $conn->prepare($logHistorySql);
-            if ($logStmt) {
-                $logStmt->bind_param('iis', $applicationId, $userId, $rejectionReason);
-                $logStmt->execute();
-                $logStmt->close();
-            }
-        }
-        
-        // Commit transaction
-        $conn->commit();
-        
-        return [
-            'success' => true,
-            'message' => 'Application declined successfully'
-        ];
-        
+        return ['success' => false, 'message' => 'Failed to decline application'];
     } catch (Exception $e) {
-        if ($conn->in_transaction) {
-            $conn->rollback();
-        }
-        error_log("Error in declineApplication: " . $e->getMessage());
-        return [
-            'success' => false,
-            'message' => 'Error declining application: ' . $e->getMessage()
-        ];
+        return ['success' => false, 'message' => $e->getMessage()];
     }
 }
 ?>

@@ -13,36 +13,36 @@ let paginationState = {
     trialBalance: { perPage: 25, currentPage: 1 }
 };
 
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     initializeGeneralLedger();
 });
 
 function initializeGeneralLedger() {
     console.log('General Ledger module initialized');
-    
+
     // Add smooth animations
     addSmoothAnimations();
-    
+
     // Add Enter key support for account search
     const accountSearchInput = document.getElementById('account-search');
     if (accountSearchInput) {
-        accountSearchInput.addEventListener('keypress', function(e) {
+        accountSearchInput.addEventListener('keypress', function (e) {
             if (e.key === 'Enter') {
                 e.preventDefault();
                 applyAccountFilter();
             }
         });
     }
-    
+
     // Load account types dynamically for filter dropdown
     loadAccountTypes();
-    
+
     // Load initial data with better error handling
     loadStatistics();
     loadCharts();
     loadAccountsTable();
     loadTransactionsTable();
-    
+
     // Load audit trail after a delay to ensure DOM is ready
     setTimeout(() => {
         if (document.getElementById('audit-trail-table')) {
@@ -61,7 +61,7 @@ function addSmoothAnimations() {
     cards.forEach((card, index) => {
         card.style.opacity = '0';
         card.style.transform = 'translateY(20px)';
-        
+
         setTimeout(() => {
             card.style.transition = 'all 0.6s ease';
             card.style.opacity = '1';
@@ -77,11 +77,11 @@ function addSmoothAnimations() {
 function loadStatistics() {
     // Show loading state immediately
     showStatisticsLoadingState();
-    
+
     // Try to fetch from API with timeout
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
-    
+
     fetch('../modules/api/general-ledger-data.php?action=get_statistics', {
         signal: controller.signal
     })
@@ -115,7 +115,7 @@ function showStatisticsLoadingState() {
         'total-transactions': 'Loading...',
         'total-audit': 'Loading...'
     };
-    
+
     Object.entries(elements).forEach(([id, text]) => {
         const element = document.getElementById(id);
         if (element) {
@@ -130,7 +130,7 @@ function animateStatistics(data) {
         'total-transactions': data.total_transactions || 0,
         'total-audit': data.total_audit || 0
     };
-    
+
     Object.entries(elements).forEach(([id, value]) => {
         const element = document.getElementById(id);
         if (element) {
@@ -146,17 +146,17 @@ function animateNumber(element, start, end, duration) {
     const startTime = performance.now();
     const startValue = start;
     const endValue = end;
-    
+
     function updateNumber(currentTime) {
         const elapsed = currentTime - startTime;
         const progress = Math.min(elapsed / duration, 1);
-        
+
         // Use easing function for smoother animation
         const easeOutCubic = 1 - Math.pow(1 - progress, 3);
         const currentValue = Math.floor(startValue + (endValue - startValue) * easeOutCubic);
-        
+
         element.textContent = currentValue.toLocaleString();
-        
+
         if (progress < 1) {
             requestAnimationFrame(updateNumber);
         } else {
@@ -168,7 +168,7 @@ function animateNumber(element, start, end, duration) {
             }, 100);
         }
     }
-    
+
     requestAnimationFrame(updateNumber);
 }
 
@@ -179,7 +179,7 @@ function animateNumber(element, start, end, duration) {
 function loadCharts() {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 5000);
-    
+
     fetch('../modules/api/general-ledger-data.php?action=get_chart_data', {
         signal: controller.signal
     })
@@ -218,7 +218,7 @@ function loadCharts() {
 function renderAccountTypesChart(data) {
     const ctx = document.getElementById('accountTypesChart');
     if (!ctx) return;
-    
+
     new Chart(ctx, {
         type: 'pie',
         data: {
@@ -271,7 +271,7 @@ function renderAccountTypesChart(data) {
                     displayColors: true,
                     cornerRadius: 8,
                     callbacks: {
-                        label: function(context) {
+                        label: function (context) {
                             let label = context.label || '';
                             if (label) {
                                 label += ': ';
@@ -292,7 +292,7 @@ function renderAccountTypesChart(data) {
 function renderTransactionSummaryChart(data) {
     const ctx = document.getElementById('transactionSummaryChart');
     if (!ctx) return;
-    
+
     new Chart(ctx, {
         type: 'bar',
         data: {
@@ -330,7 +330,7 @@ function renderTransactionSummaryChart(data) {
                     displayColors: false,
                     cornerRadius: 8,
                     callbacks: {
-                        label: function(context) {
+                        label: function (context) {
                             return context.parsed.y + ' transactions';
                         }
                     }
@@ -424,7 +424,7 @@ function renderAuditCharts(data) {
                         displayColors: true,
                         cornerRadius: 8,
                         callbacks: {
-                            label: function(context) {
+                            label: function (context) {
                                 let label = context.label || '';
                                 if (label) {
                                     label += ': ';
@@ -482,7 +482,7 @@ function renderAuditCharts(data) {
                         displayColors: false,
                         cornerRadius: 8,
                         callbacks: {
-                            label: function(context) {
+                            label: function (context) {
                                 return context.parsed.y + ' transactions';
                             }
                         }
@@ -536,7 +536,7 @@ function loadAccountTypes() {
                 if (typeFilter) {
                     // Clear existing options except "All Account Types"
                     typeFilter.innerHTML = '<option value="">All Account Types</option>';
-                    
+
                     // Add account types from database, excluding USD Account
                     data.data.forEach(type => {
                         // Filter out USD Account
@@ -609,12 +609,12 @@ function loadAccountsTable(searchTerm = '', accountType = '') {
 
 function displayAccountsTable(accounts, responseData = {}) {
     const tbody = document.querySelector('#accounts-table tbody');
-    
+
     if (!tbody) {
         console.error('Accounts table tbody not found');
         return;
     }
-    
+
     if (accounts.length === 0) {
         tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4">No accounts found</td></tr>';
         const hintElement = document.getElementById('accounts-hint');
@@ -623,7 +623,7 @@ function displayAccountsTable(accounts, responseData = {}) {
         }
         return;
     }
-    
+
     let html = '';
     // Show all bank customer accounts
     accounts.forEach((account, index) => {
@@ -633,13 +633,13 @@ function displayAccountsTable(accounts, responseData = {}) {
                 <td><span class="account-name">${escapeHtml(account.account_name)}</span></td>
                 <td><span class="badge bg-info">${escapeHtml(account.account_type)}</span></td>
                 <td class="amount-cell">₱${formatCurrency(account.available_balance)}</td>
-                <td><button class="btn btn-sm btn-outline-primary" onclick="viewAccountDetails('${escapeHtml(account.account_number)}', 'bank')">View</button></td>
+                <td><button class="btn btn-sm btn-outline-primary" onclick="viewAccountDetails('${escapeHtml(account.account_number)}', '${escapeHtml(account.source || 'bank')}')">View</button></td>
             </tr>
         `;
     });
-    
+
     tbody.innerHTML = html;
-    
+
     // Update table hint to show count
     const hintElement = document.getElementById('accounts-hint');
     if (hintElement) {
@@ -648,13 +648,13 @@ function displayAccountsTable(accounts, responseData = {}) {
         const end = Math.min(start + accounts.length - 1, total);
         hintElement.textContent = `Showing ${start}-${end} of ${total} account${total !== 1 ? 's' : ''}`;
     }
-    
+
     // Add fade-in animation to table rows
     const rows = tbody.querySelectorAll('tr');
     rows.forEach((row, index) => {
         row.style.opacity = '0';
         row.style.transform = 'translateX(-20px)';
-        
+
         setTimeout(() => {
             row.style.transition = 'all 0.4s ease';
             row.style.opacity = '1';
@@ -706,7 +706,7 @@ function loadTransactionsTable() {
 
 function displayTransactionsTable(transactions, responseData = {}) {
     const tbody = document.querySelector('#transactions-table tbody');
-    
+
     if (transactions.length === 0) {
         tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4">No transactions found</td></tr>';
         const hintElement = document.getElementById('transactions-hint');
@@ -715,7 +715,7 @@ function displayTransactionsTable(transactions, responseData = {}) {
         }
         return;
     }
-    
+
     let html = '';
     transactions.forEach((txn, index) => {
         const rawId = txn.id || txn.entry_id || '';
@@ -743,9 +743,9 @@ function displayTransactionsTable(transactions, responseData = {}) {
             </tr>
         `;
     });
-    
+
     tbody.innerHTML = html;
-    
+
     // Update table hint to show count
     const hintElement = document.getElementById('transactions-hint');
     if (hintElement) {
@@ -754,13 +754,13 @@ function displayTransactionsTable(transactions, responseData = {}) {
         const end = Math.min(start + transactions.length - 1, total);
         hintElement.textContent = `Showing ${start}-${end} of ${total} transaction${total !== 1 ? 's' : ''}`;
     }
-    
+
     // Add fade-in animation to table rows
     const rows = tbody.querySelectorAll('tr');
     rows.forEach((row, index) => {
         row.style.opacity = '0';
         row.style.transform = 'translateX(-20px)';
-        
+
         setTimeout(() => {
             row.style.transition = 'all 0.4s ease';
             row.style.opacity = '1';
@@ -799,17 +799,17 @@ function viewDrillDown() {
 function applyAccountFilter() {
     const searchInput = document.getElementById('account-search');
     const typeFilter = document.getElementById('account-type-filter');
-    
+
     if (!searchInput || !typeFilter) {
         console.error('Account filter inputs not found');
         return;
     }
-    
+
     const searchTerm = searchInput.value.trim();
     const accountType = typeFilter.value;
-    
+
     console.log('Applying account filter:', { search: searchTerm, type: accountType });
-    
+
     let filterMsg = '';
     if (searchTerm && accountType) {
         filterMsg = `Filtering by "${searchTerm}" and "${accountType}"...`;
@@ -818,25 +818,25 @@ function applyAccountFilter() {
     } else if (accountType) {
         filterMsg = `Filtering by account type: "${accountType}"...`;
     }
-    
+
     if (filterMsg) {
         showNotification(filterMsg, 'info');
     }
-    
+
     loadAccountsTable(searchTerm, accountType);
 }
 
 function resetAccountFilter() {
     const searchInput = document.getElementById('account-search');
     const typeFilter = document.getElementById('account-type-filter');
-    
+
     if (searchInput) {
         searchInput.value = '';
     }
     if (typeFilter) {
         typeFilter.value = '';
     }
-    
+
     console.log('Resetting account filter...');
     loadAccountsTable('', '');
     showNotification('Account filter reset', 'info');
@@ -896,14 +896,14 @@ function showLoadingState(section) {
 
 function viewAccountDetails(accountCode, source = '') {
     console.log('Opening account details for:', accountCode, source);
-    
+
     // Show modal
     const modal = new bootstrap.Modal(document.getElementById('accountDetailModal'));
     modal.show();
-    
+
     // Set loading state
     document.getElementById('accountDetailBody').innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div><p class="mt-3">Loading account details...</p></div>';
-    
+
     // Fetch account transaction history
     const params = new URLSearchParams();
     params.append('action', 'get_account_transactions');
@@ -911,7 +911,7 @@ function viewAccountDetails(accountCode, source = '') {
     if (source) {
         params.append('source', source);
     }
-    
+
     fetch(`../modules/api/general-ledger-data.php?${params.toString()}`)
         .then(response => response.json())
         .then(data => {
@@ -930,7 +930,7 @@ function viewAccountDetails(accountCode, source = '') {
 function displayAccountTransactions(data) {
     const accountInfo = data.account;
     const transactions = data.transactions || [];
-    
+
     let html = `
         <div class="account-detail-header mb-4">
             <div class="row">
@@ -963,7 +963,7 @@ function displayAccountTransactions(data) {
                     </tr>
                 </thead>
                 <tbody>`;
-    
+
     if (transactions.length === 0) {
         html += '<tr><td colspan="6" class="text-center text-muted py-4">No transactions found for this account</td></tr>';
     } else {
@@ -972,7 +972,7 @@ function displayAccountTransactions(data) {
             const debit = parseFloat(txn.debit) || 0;
             const credit = parseFloat(txn.credit) || 0;
             runningBalance += debit - credit;
-            
+
             html += `
                 <tr>
                     <td>${escapeHtml(txn.date)}</td>
@@ -985,7 +985,7 @@ function displayAccountTransactions(data) {
             `;
         });
     }
-    
+
     html += `
                 </tbody>
             </table>
@@ -995,7 +995,7 @@ function displayAccountTransactions(data) {
             <small>Showing ${transactions.length} transaction${transactions.length !== 1 ? 's' : ''}</small>
         </div>
     `;
-    
+
     document.getElementById('accountDetailBody').innerHTML = html;
 }
 
@@ -1032,23 +1032,23 @@ function printTransactions() {
         showNotification('No transaction data to print', 'error');
         return;
     }
-    
+
     // Get filter values for header
     const dateFrom = document.getElementById('transaction-from')?.value || '';
     const dateTo = document.getElementById('transaction-to')?.value || '';
-    const dateRange = dateFrom && dateTo 
+    const dateRange = dateFrom && dateTo
         ? `${new Date(dateFrom).toLocaleDateString()} to ${new Date(dateTo).toLocaleDateString()}`
         : 'All Transactions';
-    
+
     // Get all transaction rows (including header)
     const thead = table.querySelector('thead');
     const tbody = table.querySelector('tbody');
-    
+
     if (!thead || !tbody || tbody.children.length === 0) {
         showNotification('No transaction data to print', 'error');
         return;
     }
-    
+
     // Create print-friendly HTML
     let printContent = `
         <!DOCTYPE html>
@@ -1133,7 +1133,7 @@ function printTransactions() {
             </div>
             <table>
     `;
-    
+
     // Add table header
     printContent += '<thead><tr>';
     const headerCells = thead.querySelectorAll('th');
@@ -1145,11 +1145,11 @@ function printTransactions() {
         }
     });
     printContent += '</tr></thead>';
-    
+
     // Add table body
     printContent += '<tbody>';
     const rows = tbody.querySelectorAll('tr');
-    
+
     if (rows.length === 0 || (rows.length === 1 && rows[0].querySelector('td[colspan]'))) {
         printContent += '<tr><td colspan="5" class="no-data">No transactions found</td></tr>';
     } else {
@@ -1169,7 +1169,7 @@ function printTransactions() {
             }
         });
     }
-    
+
     printContent += `
             </tbody>
             </table>
@@ -1180,18 +1180,18 @@ function printTransactions() {
         </body>
         </html>
     `;
-    
+
     // Open print window
     const printWindow = window.open('', '_blank');
     if (!printWindow) {
         showNotification('Please allow pop-ups to print this report', 'error');
         return;
     }
-    
+
     printWindow.document.write(printContent);
     printWindow.document.close();
     printWindow.focus();
-    
+
     // Wait for content to load, then trigger print
     setTimeout(() => {
         printWindow.print();
@@ -1211,12 +1211,12 @@ function refreshTransactions() {
 function scrollToSection(sectionId) {
     const element = document.getElementById(sectionId);
     if (element) {
-        element.scrollIntoView({ 
-            behavior: 'smooth', 
+        element.scrollIntoView({
+            behavior: 'smooth',
             block: 'start',
             inline: 'nearest'
         });
-        
+
         // Add highlight effect
         element.style.boxShadow = '0 0 20px rgba(245, 166, 35, 0.3)';
         setTimeout(() => {
@@ -1261,7 +1261,7 @@ function showNotification(message, type = 'info') {
             <span>${message}</span>
         </div>
     `;
-    
+
     // Add styles
     notification.style.cssText = `
         position: fixed;
@@ -1277,14 +1277,14 @@ function showNotification(message, type = 'info') {
         transition: transform 0.3s ease;
         max-width: 300px;
     `;
-    
+
     document.body.appendChild(notification);
-    
+
     // Animate in
     setTimeout(() => {
         notification.style.transform = 'translateX(0)';
     }, 100);
-    
+
     // Remove after 3 seconds
     setTimeout(() => {
         notification.style.transform = 'translateX(400px)';
@@ -1364,28 +1364,28 @@ let currentJournalEntryId = null;
 
 function viewTransactionDetailsById(entryId, journalNo, source = 'journal') {
     console.log('View transaction details:', { entryId, journalNo, source });
-    
+
     // Show loading state immediately
     const modalBody = document.getElementById('journalEntryDetailBody');
     if (!modalBody) {
         showNotification('Error: Modal not found', 'error');
         return;
     }
-    
+
     modalBody.innerHTML = '<div class="text-center py-4"><div class="spinner-border text-primary" role="status"></div><p class="mt-3">Loading transaction details...</p></div>';
     const modalElement = document.getElementById('journalEntryDetailModal');
     if (modalElement) {
         const modal = bootstrap.Modal.getInstance(modalElement) || new bootstrap.Modal(modalElement);
         modal.show();
     }
-    
+
     // Extract numeric ID from string like "JE-123" or "BT-456"
     let numericId = 0;
     if (entryId) {
         const match = entryId.toString().match(/(\d+)$/);
         numericId = match ? parseInt(match[1]) : 0;
     }
-    
+
     if (!numericId || numericId <= 0) {
         console.warn('Invalid entry ID, trying journal number:', journalNo);
         if (journalNo) {
@@ -1396,7 +1396,7 @@ function viewTransactionDetailsById(entryId, journalNo, source = 'journal') {
         }
         return;
     }
-    
+
     // Load details based on source
     if (source === 'bank') {
         loadBankTransactionDetails(numericId, journalNo);
@@ -1427,12 +1427,12 @@ function viewTransactionDetails(journalNo) {
 
 function loadJournalEntryDetails(entryId) {
     console.log('Loading journal entry details for ID:', entryId);
-    
+
     if (!entryId || entryId <= 0) {
         showNotification('Invalid journal entry ID', 'error');
         return;
     }
-    
+
     fetch(`../modules/api/general-ledger-data.php?action=get_journal_entry_details&id=${entryId}`)
         .then(response => {
             if (!response.ok) {
@@ -1467,14 +1467,14 @@ function loadJournalEntryDetails(entryId) {
 
 function loadBankTransactionDetails(transactionId, journalNo) {
     console.log('Loading bank transaction details for ID:', transactionId);
-    
+
     // For bank transactions, show a simplified view
     const modalBody = document.getElementById('journalEntryDetailBody');
     if (!modalBody) {
         showNotification('Error: Modal not found', 'error');
         return;
     }
-    
+
     // Fetch bank transaction details
     fetch(`../modules/api/general-ledger-data.php?action=get_bank_transaction_details&id=${transactionId}`)
         .then(response => response.json())
@@ -1506,10 +1506,10 @@ function loadBankTransactionDetails(transactionId, journalNo) {
 function displayBankTransactionDetails(txn) {
     const body = document.getElementById('journalEntryDetailBody');
     if (!body) return;
-    
+
     const date = txn.created_at ? new Date(txn.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'N/A';
     const amount = parseFloat(txn.amount || 0);
-    
+
     let html = `
         <div class="bank-transaction-header mb-4">
             <div class="row">
@@ -1550,9 +1550,9 @@ function displayBankTransactionDetails(txn) {
             <p class="mt-2 p-3 bg-light rounded">${escapeHtml(txn.description || 'N/A')}</p>
         </div>
     `;
-    
+
     body.innerHTML = html;
-    
+
     // Hide action buttons for bank transactions
     const postBtn = document.getElementById('postJournalEntryBtn');
     const voidBtn = document.getElementById('voidJournalEntryBtn');
@@ -1562,23 +1562,23 @@ function displayBankTransactionDetails(txn) {
 
 function displayJournalEntryDetails(entry) {
     const body = document.getElementById('journalEntryDetailBody');
-    
+
     if (!body) {
         console.error('Journal entry detail body not found');
         showNotification('Error: Modal element not found', 'error');
         return;
     }
-    
+
     if (!entry) {
         body.innerHTML = '<div class="alert alert-danger">No data available</div>';
         return;
     }
-    
+
     // Format dates
     const entryDate = entry.entry_date ? new Date(entry.entry_date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : 'N/A';
     const createdDate = entry.created_at ? new Date(entry.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'N/A';
     const postedDate = entry.posted_at ? new Date(entry.posted_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'N/A';
-    
+
     let html = `
         <div class="journal-entry-header mb-4">
             <div class="row">
@@ -1648,7 +1648,7 @@ function displayJournalEntryDetails(entry) {
                 </thead>
                 <tbody>
     `;
-    
+
     if (entry.lines && entry.lines.length > 0) {
         entry.lines.forEach((line, index) => {
             html += `
@@ -1664,7 +1664,7 @@ function displayJournalEntryDetails(entry) {
     } else {
         html += '<tr><td colspan="5" class="text-center text-muted py-3">No account lines found</td></tr>';
     }
-    
+
     html += `
                 </tbody>
                 <tfoot class="table-light">
@@ -1678,9 +1678,9 @@ function displayJournalEntryDetails(entry) {
             </table>
         </div>
     `;
-    
+
     body.innerHTML = html;
-    
+
     // Show/hide action buttons based on permissions
     const postBtn = document.getElementById('postJournalEntryBtn');
     const voidBtn = document.getElementById('voidJournalEntryBtn');
@@ -1690,7 +1690,7 @@ function displayJournalEntryDetails(entry) {
     if (voidBtn) {
         voidBtn.classList.toggle('d-none', !entry.can_void);
     }
-    
+
     // Show modal if not already shown
     const modalElement = document.getElementById('journalEntryDetailModal');
     if (modalElement) {
@@ -1712,72 +1712,72 @@ function getStatusColor(status) {
 
 function postJournalEntry() {
     if (!currentJournalEntryId) return;
-    
+
     if (!confirm('Are you sure you want to post this journal entry? This action cannot be undone.')) {
         return;
     }
-    
+
     const formData = new FormData();
     formData.append('action', 'post_journal_entry');
     formData.append('journal_entry_id', currentJournalEntryId);
-    
+
     fetch('../modules/api/general-ledger-data.php', {
         method: 'POST',
         body: formData
     })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showNotification(data.message, 'success');
-            const modal = bootstrap.Modal.getInstance(document.getElementById('journalEntryDetailModal'));
-            modal.hide();
-            loadTransactionsTable();
-            loadStatistics();
-        } else {
-            showNotification(data.message || 'Error posting journal entry', 'error');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showNotification('Error posting journal entry', 'error');
-    });
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showNotification(data.message, 'success');
+                const modal = bootstrap.Modal.getInstance(document.getElementById('journalEntryDetailModal'));
+                modal.hide();
+                loadTransactionsTable();
+                loadStatistics();
+            } else {
+                showNotification(data.message || 'Error posting journal entry', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showNotification('Error posting journal entry', 'error');
+        });
 }
 
 function voidJournalEntry() {
     if (!currentJournalEntryId) return;
-    
+
     const reason = prompt('Please enter a reason for voiding this journal entry:');
     if (!reason) return;
-    
+
     if (!confirm('Are you sure you want to void this journal entry? This will reverse all account balances.')) {
         return;
     }
-    
+
     const formData = new FormData();
     formData.append('action', 'void_journal_entry');
     formData.append('journal_entry_id', currentJournalEntryId);
     formData.append('reason', reason);
-    
+
     fetch('../modules/api/general-ledger-data.php', {
         method: 'POST',
         body: formData
     })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showNotification(data.message, 'success');
-            const modal = bootstrap.Modal.getInstance(document.getElementById('journalEntryDetailModal'));
-            modal.hide();
-            loadTransactionsTable();
-            loadStatistics();
-        } else {
-            showNotification(data.message || 'Error voiding journal entry', 'error');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showNotification('Error voiding journal entry', 'error');
-    });
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showNotification(data.message, 'success');
+                const modal = bootstrap.Modal.getInstance(document.getElementById('journalEntryDetailModal'));
+                modal.hide();
+                loadTransactionsTable();
+                loadStatistics();
+            } else {
+                showNotification(data.message || 'Error voiding journal entry', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showNotification('Error voiding journal entry', 'error');
+        });
 }
 
 // ========================================
@@ -1787,14 +1787,14 @@ function voidJournalEntry() {
 function loadAuditTrail() {
     const dateFrom = document.getElementById('audit-date-from')?.value || '';
     const dateTo = document.getElementById('audit-date-to')?.value || '';
-    
+
     const params = new URLSearchParams();
     params.append('action', 'get_audit_trail');
     if (dateFrom) params.append('date_from', dateFrom);
     if (dateTo) params.append('date_to', dateTo);
     params.append('limit', paginationState.audit.perPage);
     params.append('offset', (paginationState.audit.currentPage - 1) * paginationState.audit.perPage);
-    
+
     fetch(`../modules/api/general-ledger-data.php?${params.toString()}`)
         .then(response => response.json())
         .then(data => {
@@ -1814,12 +1814,12 @@ function loadAuditTrail() {
 
 function displayAuditTrail(logs, responseData = {}) {
     const tbody = document.querySelector('#audit-trail-table tbody');
-    
+
     if (!tbody) {
         console.error('Audit trail table not found');
         return;
     }
-    
+
     if (logs.length === 0) {
         tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-muted">No audit log entries found</td></tr>';
         const hintElement = document.getElementById('audit-hint');
@@ -1828,7 +1828,7 @@ function displayAuditTrail(logs, responseData = {}) {
         }
         return;
     }
-    
+
     let html = '';
     logs.forEach((log, index) => {
         html += `
@@ -1842,9 +1842,9 @@ function displayAuditTrail(logs, responseData = {}) {
             </tr>
         `;
     });
-    
+
     tbody.innerHTML = html;
-    
+
     // Update count hint
     const hintElement = document.getElementById('audit-hint');
     if (hintElement) {
@@ -1864,15 +1864,15 @@ function resetAuditFilter() {
 function exportAuditTrail() {
     const dateFrom = document.getElementById('audit-date-from')?.value || '';
     const dateTo = document.getElementById('audit-date-to')?.value || '';
-    
+
     showNotification('Generating PDF report...', 'info');
-    
+
     const params = new URLSearchParams();
     params.append('action', 'get_audit_trail');
     params.append('limit', '1000');
     if (dateFrom) params.append('date_from', dateFrom);
     if (dateTo) params.append('date_to', dateTo);
-    
+
     fetch(`../modules/api/general-ledger-data.php?${params.toString()}`)
         .then(response => response.json())
         .then(data => {
@@ -1891,16 +1891,16 @@ function exportAuditTrail() {
 function generateAuditTrailPDF(auditLogs, dateFrom, dateTo) {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF('landscape', 'mm', 'a4');
-    
+
     // Colors
     const primaryColor = [0, 128, 128];
     const headerBg = [0, 128, 128];
     const lightGray = [248, 249, 250];
-    
+
     // Header
     doc.setFillColor(...primaryColor);
     doc.rect(0, 0, 297, 35, 'F');
-    
+
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(24);
     doc.setFont('helvetica', 'bold');
@@ -1908,7 +1908,7 @@ function generateAuditTrailPDF(auditLogs, dateFrom, dateTo) {
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
     doc.text('Secure. Invest. Achieve', 14, 25);
-    
+
     doc.setFontSize(16);
     doc.setFont('helvetica', 'bold');
     doc.text('Audit Trail Report', 297 - 14, 18, { align: 'right' });
@@ -1916,25 +1916,25 @@ function generateAuditTrailPDF(auditLogs, dateFrom, dateTo) {
     doc.setFont('helvetica', 'normal');
     const dateRange = dateFrom && dateTo ? `${dateFrom} to ${dateTo}` : 'All Records';
     doc.text(`Period: ${dateRange}`, 297 - 14, 25, { align: 'right' });
-    
+
     // Summary
     doc.setTextColor(0, 0, 0);
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
     doc.text('Summary', 14, 45);
-    
+
     // Count by action type
     const actionCounts = {};
     auditLogs.forEach(log => {
         const action = log.action || 'Unknown';
         actionCounts[action] = (actionCounts[action] || 0) + 1;
     });
-    
+
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
     doc.text(`Total Entries: ${auditLogs.length}`, 14, 52);
     doc.text(`Generated: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}`, 14, 58);
-    
+
     // Action breakdown
     let xPos = 120;
     const topActions = Object.entries(actionCounts).slice(0, 4);
@@ -1942,7 +1942,7 @@ function generateAuditTrailPDF(auditLogs, dateFrom, dateTo) {
         doc.text(`${action}: ${count}`, xPos, 52);
         xPos += 45;
     });
-    
+
     // Table
     const tableData = auditLogs.map((log, index) => [
         index + 1,
@@ -1953,7 +1953,7 @@ function generateAuditTrailPDF(auditLogs, dateFrom, dateTo) {
         (log.description || '-').substring(0, 50),
         log.ip_address || '-'
     ]);
-    
+
     doc.autoTable({
         startY: 65,
         head: [['#', 'Date/Time', 'User', 'Action', 'Object Type', 'Description', 'IP Address']],
@@ -1978,14 +1978,14 @@ function generateAuditTrailPDF(auditLogs, dateFrom, dateTo) {
         },
         alternateRowStyles: { fillColor: lightGray },
         margin: { left: 14, right: 14 },
-        didDrawPage: function(data) {
+        didDrawPage: function (data) {
             doc.setFontSize(8);
             doc.setTextColor(128, 128, 128);
             doc.text(`Page ${data.pageNumber}`, 297 / 2, doc.internal.pageSize.height - 10, { align: 'center' });
             doc.text('© 2025 Evergreen Accounting & Finance System', 14, doc.internal.pageSize.height - 10);
         }
     });
-    
+
     // Footer summary
     const finalY = doc.lastAutoTable.finalY + 5;
     doc.setFillColor(...primaryColor);
@@ -1995,7 +1995,7 @@ function generateAuditTrailPDF(auditLogs, dateFrom, dateTo) {
     doc.setFont('helvetica', 'bold');
     doc.text(`TOTAL AUDIT ENTRIES: ${auditLogs.length}`, 20, finalY + 7);
     doc.text(`Report Generated: ${new Date().toLocaleString()}`, 269, finalY + 7, { align: 'right' });
-    
+
     const filename = `Audit_Trail_${new Date().toISOString().split('T')[0]}.pdf`;
     doc.save(filename);
     showNotification('PDF exported successfully!', 'success');
@@ -2008,27 +2008,27 @@ function generateAuditTrailPDF(auditLogs, dateFrom, dateTo) {
 function generateTrialBalance() {
     const dateFrom = document.getElementById('trial-balance-from')?.value || '';
     const dateTo = document.getElementById('trial-balance-to')?.value || '';
-    
+
     if (!dateFrom || !dateTo) {
         showNotification('Please select both start and end dates', 'error');
         return;
     }
-    
+
     if (new Date(dateFrom) > new Date(dateTo)) {
         showNotification('Start date cannot be after end date', 'error');
         return;
     }
-    
+
     const params = new URLSearchParams();
     params.append('action', 'get_trial_balance');
     params.append('date_from', dateFrom);
     params.append('date_to', dateTo);
     params.append('limit', paginationState.trialBalance.perPage);
     params.append('offset', (paginationState.trialBalance.currentPage - 1) * paginationState.trialBalance.perPage);
-    
+
     const tbody = document.querySelector('#trial-balance-table tbody');
     tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4"><div class="loading-spinner"></div><p>Generating trial balance...</p></td></tr>';
-    
+
     fetch(`../modules/api/general-ledger-data.php?${params.toString()}`)
         .then(response => response.json())
         .then(data => {
@@ -2053,7 +2053,7 @@ function displayTrialBalance(data, responseData = {}) {
     const exportBtn = document.getElementById('exportTrialBalanceBtn');
     const printBtn = document.getElementById('printTrialBalanceBtn');
     const paginationControls = document.getElementById('trial-balance-pagination');
-    
+
     if (data.accounts.length === 0) {
         tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4">No transactions found for the selected period</td></tr>';
         footer.style.display = 'none';
@@ -2063,20 +2063,20 @@ function displayTrialBalance(data, responseData = {}) {
         hint.textContent = 'No data for selected period';
         return;
     }
-    
+
     // Show pagination controls and export/print buttons
     if (paginationControls) paginationControls.style.display = 'inline-block';
     exportBtn.style.display = 'inline-block';
     printBtn.style.display = 'inline-block';
-    
+
     let html = '';
     data.accounts.forEach(account => {
         const netBalance = account.net_balance;
         const netBalanceClass = netBalance >= 0 ? 'text-success' : 'text-danger';
-        const netBalanceDisplay = netBalance >= 0 ? 
-            `₱${formatCurrency(Math.abs(netBalance))}` : 
+        const netBalanceDisplay = netBalance >= 0 ?
+            `₱${formatCurrency(Math.abs(netBalance))}` :
             `(₱${formatCurrency(Math.abs(netBalance))})`;
-        
+
         html += `
             <tr>
                 <td>${account.code}</td>
@@ -2088,17 +2088,17 @@ function displayTrialBalance(data, responseData = {}) {
             </tr>
         `;
     });
-    
+
     tbody.innerHTML = html;
-    
+
     // Display totals in footer
     const totals = data.totals;
     const difference = totals.difference;
     const differenceClass = difference > 0.01 ? 'text-danger' : 'text-success';
-    const differenceDisplay = difference > 0.01 ? 
-        `Difference: ₱${formatCurrency(difference)}` : 
+    const differenceDisplay = difference > 0.01 ?
+        `Difference: ₱${formatCurrency(difference)}` :
         'Balanced';
-    
+
     footer.innerHTML = `
         <tr class="table-light">
             <th colspan="3" class="text-end">TOTALS:</th>
@@ -2108,7 +2108,7 @@ function displayTrialBalance(data, responseData = {}) {
         </tr>
     `;
     footer.style.display = '';
-    
+
     // Update hint and show export/print buttons
     const fromDate = new Date(data.date_from).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
     const toDate = new Date(data.date_to).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
@@ -2118,7 +2118,7 @@ function displayTrialBalance(data, responseData = {}) {
     hint.textContent = `Showing ${start}-${end} of ${total} account${total !== 1 ? 's' : ''} - ${fromDate} to ${toDate}`;
     exportBtn.style.display = 'inline-block';
     printBtn.style.display = 'inline-block';
-    
+
     // Store data for export/print
     window.currentTrialBalanceData = data;
 }
@@ -2140,22 +2140,22 @@ function exportTrialBalance() {
         showNotification('No trial balance data to export', 'error');
         return;
     }
-    
+
     const data = window.currentTrialBalanceData;
     const fromDate = data.date_from.replace(/-/g, '');
     const toDate = data.date_to.replace(/-/g, '');
-    
+
     // Create CSV content
     let csv = 'Trial Balance Report\n';
     csv += `Period: ${data.date_from} to ${data.date_to}\n\n`;
     csv += 'Account Code,Account Name,Type,Debit Balance,Credit Balance,Net Balance\n';
-    
+
     data.accounts.forEach(account => {
         csv += `"${account.code}","${account.name}","${account.account_type}",${account.debit_balance},${account.credit_balance},${account.net_balance}\n`;
     });
-    
+
     csv += `\nTotal,${data.totals.total_debit},${data.totals.total_credit},${data.totals.total_debit - data.totals.total_credit}\n`;
-    
+
     // Download CSV
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
@@ -2166,7 +2166,7 @@ function exportTrialBalance() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    
+
     showNotification('Trial balance exported successfully', 'success');
 }
 
@@ -2175,11 +2175,11 @@ function printTrialBalance() {
         showNotification('No trial balance data to print', 'error');
         return;
     }
-    
+
     const data = window.currentTrialBalanceData;
     const fromDate = new Date(data.date_from).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
     const toDate = new Date(data.date_to).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-    
+
     // Create print-friendly HTML
     let printContent = `
         <!DOCTYPE html>
@@ -2215,14 +2215,14 @@ function printTrialBalance() {
                 </thead>
                 <tbody>
     `;
-    
+
     data.accounts.forEach(account => {
         const netBalance = account.net_balance;
         const netBalanceClass = netBalance >= 0 ? 'text-success' : 'text-danger';
-        const netBalanceDisplay = netBalance >= 0 ? 
-            `₱${formatCurrency(Math.abs(netBalance))}` : 
+        const netBalanceDisplay = netBalance >= 0 ?
+            `₱${formatCurrency(Math.abs(netBalance))}` :
             `(₱${formatCurrency(Math.abs(netBalance))})`;
-        
+
         printContent += `
             <tr>
                 <td>${account.code}</td>
@@ -2234,13 +2234,13 @@ function printTrialBalance() {
             </tr>
         `;
     });
-    
+
     const difference = data.totals.difference;
     const differenceClass = difference > 0.01 ? 'text-danger' : 'text-success';
-    const differenceDisplay = difference > 0.01 ? 
-        `Difference: ₱${formatCurrency(difference)}` : 
+    const differenceDisplay = difference > 0.01 ?
+        `Difference: ₱${formatCurrency(difference)}` :
         'Balanced';
-    
+
     printContent += `
                 </tbody>
                 <tfoot>
@@ -2256,7 +2256,7 @@ function printTrialBalance() {
         </body>
         </html>
     `;
-    
+
     // Open print window
     const printWindow = window.open('', '_blank');
     printWindow.document.write(printContent);
@@ -2274,15 +2274,15 @@ function printTrialBalance() {
 function exportAccounts() {
     const search = document.getElementById('account-search')?.value || '';
     const accountType = document.getElementById('account-type-filter')?.value || '';
-    
+
     showNotification('Generating PDF report...', 'info');
-    
+
     const params = new URLSearchParams();
     params.append('action', 'get_accounts');
     params.append('limit', '1000'); // Get all accounts for export
     if (search) params.append('search', search);
     if (accountType) params.append('account_type', accountType);
-    
+
     fetch(`../modules/api/general-ledger-data.php?${params.toString()}`)
         .then(response => response.json())
         .then(data => {
@@ -2301,16 +2301,16 @@ function exportAccounts() {
 function generateAccountsPDF(accounts) {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF('landscape', 'mm', 'a4');
-    
+
     // Colors
     const primaryColor = [0, 128, 128]; // Teal
     const headerBg = [0, 128, 128];
     const lightGray = [248, 249, 250];
-    
+
     // Header
     doc.setFillColor(...primaryColor);
     doc.rect(0, 0, 297, 35, 'F');
-    
+
     // Logo placeholder and title
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(24);
@@ -2319,7 +2319,7 @@ function generateAccountsPDF(accounts) {
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
     doc.text('Secure. Invest. Achieve', 14, 25);
-    
+
     // Report title
     doc.setFontSize(16);
     doc.setFont('helvetica', 'bold');
@@ -2327,13 +2327,13 @@ function generateAccountsPDF(accounts) {
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
     doc.text(`Generated: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`, 297 - 14, 25, { align: 'right' });
-    
+
     // Summary section
     doc.setTextColor(0, 0, 0);
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
     doc.text('Summary', 14, 45);
-    
+
     // Calculate totals
     const totalBalance = accounts.reduce((sum, acc) => sum + (parseFloat(acc.available_balance) || 0), 0);
     const accountTypes = {};
@@ -2341,19 +2341,19 @@ function generateAccountsPDF(accounts) {
         const type = acc.account_type || 'Unknown';
         accountTypes[type] = (accountTypes[type] || 0) + 1;
     });
-    
+
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
     doc.text(`Total Accounts: ${accounts.length}`, 14, 52);
     doc.text(`Total Balance: ₱${totalBalance.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 14, 58);
-    
+
     // Account type breakdown
     let xPos = 100;
     Object.entries(accountTypes).forEach(([type, count]) => {
         doc.text(`${type}: ${count}`, xPos, 52);
         xPos += 50;
     });
-    
+
     // Table
     const tableData = accounts.map((acc, index) => [
         index + 1,
@@ -2362,7 +2362,7 @@ function generateAccountsPDF(accounts) {
         acc.account_type || '-',
         `₱${(parseFloat(acc.available_balance) || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
     ]);
-    
+
     doc.autoTable({
         startY: 65,
         head: [['#', 'Account Number', 'Account Name', 'Account Type', 'Available Balance']],
@@ -2390,7 +2390,7 @@ function generateAccountsPDF(accounts) {
             fillColor: lightGray
         },
         margin: { left: 14, right: 14 },
-        didDrawPage: function(data) {
+        didDrawPage: function (data) {
             // Footer on each page
             doc.setFontSize(8);
             doc.setTextColor(128, 128, 128);
@@ -2407,7 +2407,7 @@ function generateAccountsPDF(accounts) {
             );
         }
     });
-    
+
     // Total row at the end
     const finalY = doc.lastAutoTable.finalY + 5;
     doc.setFillColor(...primaryColor);
@@ -2417,26 +2417,26 @@ function generateAccountsPDF(accounts) {
     doc.setFont('helvetica', 'bold');
     doc.text('TOTAL', 20, finalY + 7);
     doc.text(`₱${totalBalance.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 269, finalY + 7, { align: 'right' });
-    
+
     // Save PDF
     const filename = `Accounts_Report_${new Date().toISOString().split('T')[0]}.pdf`;
     doc.save(filename);
-    
+
     showNotification('PDF exported successfully!', 'success');
 }
 
 function exportTransactions() {
     const dateFrom = document.getElementById('transaction-from')?.value || '';
     const dateTo = document.getElementById('transaction-to')?.value || '';
-    
+
     showNotification('Generating PDF report...', 'info');
-    
+
     const params = new URLSearchParams();
     params.append('action', 'get_transactions');
     params.append('limit', '1000');
     if (dateFrom) params.append('date_from', dateFrom);
     if (dateTo) params.append('date_to', dateTo);
-    
+
     fetch(`../modules/api/general-ledger-data.php?${params.toString()}`)
         .then(response => response.json())
         .then(data => {
@@ -2455,16 +2455,16 @@ function exportTransactions() {
 function generateTransactionsPDF(transactions, dateFrom, dateTo) {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF('landscape', 'mm', 'a4');
-    
+
     // Colors
     const primaryColor = [0, 128, 128];
     const headerBg = [0, 128, 128];
     const lightGray = [248, 249, 250];
-    
+
     // Header
     doc.setFillColor(...primaryColor);
     doc.rect(0, 0, 297, 35, 'F');
-    
+
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(24);
     doc.setFont('helvetica', 'bold');
@@ -2472,7 +2472,7 @@ function generateTransactionsPDF(transactions, dateFrom, dateTo) {
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
     doc.text('Secure. Invest. Achieve', 14, 25);
-    
+
     doc.setFontSize(16);
     doc.setFont('helvetica', 'bold');
     doc.text('Transaction Records', 297 - 14, 18, { align: 'right' });
@@ -2480,22 +2480,22 @@ function generateTransactionsPDF(transactions, dateFrom, dateTo) {
     doc.setFont('helvetica', 'normal');
     const dateRange = dateFrom && dateTo ? `${dateFrom} to ${dateTo}` : 'All Records';
     doc.text(`Period: ${dateRange}`, 297 - 14, 25, { align: 'right' });
-    
+
     // Summary
     doc.setTextColor(0, 0, 0);
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
     doc.text('Summary', 14, 45);
-    
+
     const totalDebit = transactions.reduce((sum, t) => sum + (parseFloat(t.total_debit) || 0), 0);
     const totalCredit = transactions.reduce((sum, t) => sum + (parseFloat(t.total_credit) || 0), 0);
-    
+
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
     doc.text(`Total Transactions: ${transactions.length}`, 14, 52);
     doc.text(`Total Debit: ₱${totalDebit.toLocaleString('en-PH', { minimumFractionDigits: 2 })}`, 80, 52);
     doc.text(`Total Credit: ₱${totalCredit.toLocaleString('en-PH', { minimumFractionDigits: 2 })}`, 160, 52);
-    
+
     // Table
     const tableData = transactions.map((txn, index) => [
         index + 1,
@@ -2506,7 +2506,7 @@ function generateTransactionsPDF(transactions, dateFrom, dateTo) {
         `₱${(parseFloat(txn.total_credit) || 0).toLocaleString('en-PH', { minimumFractionDigits: 2 })}`,
         txn.status || '-'
     ]);
-    
+
     doc.autoTable({
         startY: 60,
         head: [['#', 'Transaction ID', 'Date', 'Description', 'Debit', 'Credit', 'Status']],
@@ -2531,14 +2531,14 @@ function generateTransactionsPDF(transactions, dateFrom, dateTo) {
         },
         alternateRowStyles: { fillColor: lightGray },
         margin: { left: 14, right: 14 },
-        didDrawPage: function(data) {
+        didDrawPage: function (data) {
             doc.setFontSize(8);
             doc.setTextColor(128, 128, 128);
             doc.text(`Page ${data.pageNumber}`, 297 / 2, doc.internal.pageSize.height - 10, { align: 'center' });
             doc.text('© 2025 Evergreen Accounting & Finance System', 14, doc.internal.pageSize.height - 10);
         }
     });
-    
+
     // Totals row
     const finalY = doc.lastAutoTable.finalY + 5;
     doc.setFillColor(...primaryColor);
@@ -2549,7 +2549,7 @@ function generateTransactionsPDF(transactions, dateFrom, dateTo) {
     doc.text('TOTAL', 20, finalY + 7);
     doc.text(`₱${totalDebit.toLocaleString('en-PH', { minimumFractionDigits: 2 })}`, 180, finalY + 7, { align: 'right' });
     doc.text(`₱${totalCredit.toLocaleString('en-PH', { minimumFractionDigits: 2 })}`, 230, finalY + 7, { align: 'right' });
-    
+
     const filename = `Transaction_Records_${new Date().toISOString().split('T')[0]}.pdf`;
     doc.save(filename);
     showNotification('PDF exported successfully!', 'success');
@@ -2564,7 +2564,7 @@ function exportAccountTransactions() {
         showNotification('No transaction data to export', 'error');
         return;
     }
-    
+
     // Create CSV from table
     let csv = 'Date,Reference,Description,Debit,Credit,Balance\n';
     const rows = table.querySelectorAll('tbody tr');
@@ -2579,7 +2579,7 @@ function exportAccountTransactions() {
             csv += rowData + '\n';
         }
     });
-    
+
     // Download
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
@@ -2590,7 +2590,7 @@ function exportAccountTransactions() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    
+
     showNotification('Account transactions exported successfully', 'success');
 }
 
@@ -2650,10 +2650,10 @@ let applicationPaginationState = {
 function loadPendingApplications(statusFilter = 'pending', searchTerm = '') {
     const tbody = document.querySelector('#pending-applications-table tbody');
     if (!tbody) return;
-    
+
     // Show loading state
     tbody.innerHTML = '<tr><td colspan="6" class="text-center"><div class="loading-spinner"></div><p>Loading applications...</p></td></tr>';
-    
+
     const params = new URLSearchParams();
     params.append('action', 'get_pending_applications');
     params.append('status_filter', statusFilter);
@@ -2662,7 +2662,7 @@ function loadPendingApplications(statusFilter = 'pending', searchTerm = '') {
     }
     params.append('limit', applicationPaginationState.perPage);
     params.append('offset', (applicationPaginationState.currentPage - 1) * applicationPaginationState.perPage);
-    
+
     fetch(`../modules/api/general-ledger-data.php?${params.toString()}`)
         .then(response => response.json())
         .then(data => {
@@ -2683,7 +2683,7 @@ function loadPendingApplications(statusFilter = 'pending', searchTerm = '') {
 function displayPendingApplicationsTable(applications, responseData = {}) {
     const tbody = document.querySelector('#pending-applications-table tbody');
     if (!tbody) return;
-    
+
     if (applications.length === 0) {
         tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-muted">No applications found</td></tr>';
         const hintElement = document.getElementById('applications-hint');
@@ -2692,7 +2692,7 @@ function displayPendingApplicationsTable(applications, responseData = {}) {
         }
         return;
     }
-    
+
     let html = '';
     applications.forEach((app, index) => {
         const statusBadge = getStatusBadge(app.status);
@@ -2701,7 +2701,7 @@ function displayPendingApplicationsTable(applications, responseData = {}) {
             month: 'short',
             day: 'numeric'
         });
-        
+
         html += `
             <tr style="animation-delay: ${index * 0.1}s">
                 <td><strong class="application-number">${escapeHtml(app.application_number)}</strong></td>
@@ -2725,9 +2725,9 @@ function displayPendingApplicationsTable(applications, responseData = {}) {
             </tr>
         `;
     });
-    
+
     tbody.innerHTML = html;
-    
+
     // Update hint
     const hintElement = document.getElementById('applications-hint');
     if (hintElement) {
@@ -2736,7 +2736,7 @@ function displayPendingApplicationsTable(applications, responseData = {}) {
         const end = Math.min(start + applications.length - 1, total);
         hintElement.textContent = `Showing ${start}-${end} of ${total} application${total !== 1 ? 's' : ''}`;
     }
-    
+
     // Add fade-in animation
     const rows = tbody.querySelectorAll('tr');
     rows.forEach((row, index) => {
@@ -2763,13 +2763,13 @@ function getStatusBadge(status) {
 
 function viewApplicationDetails(applicationId) {
     currentApplicationId = applicationId;
-    
+
     const modal = new bootstrap.Modal(document.getElementById('applicationDetailModal'));
     const modalBody = document.getElementById('applicationDetailBody');
-    
+
     modalBody.innerHTML = '<div class="text-center"><div class="spinner-border" role="status"></div><p class="mt-2">Loading application details...</p></div>';
     modal.show();
-    
+
     fetch(`../modules/api/general-ledger-data.php?action=get_application_details&application_id=${applicationId}`)
         .then(response => response.json())
         .then(data => {
@@ -2787,7 +2787,7 @@ function viewApplicationDetails(applicationId) {
 
 function displayApplicationDetails(app) {
     const modalBody = document.getElementById('applicationDetailBody');
-    
+
     // Format selected cards
     let cardsHtml = '<p class="text-muted">No cards requested</p>';
     if (app.selected_cards && app.selected_cards.length > 0) {
@@ -2797,7 +2797,7 @@ function displayApplicationDetails(app) {
         });
         cardsHtml += '</ul>';
     }
-    
+
     // Format additional services
     let servicesHtml = '<p class="text-muted">None</p>';
     if (app.additional_services && app.additional_services.length > 0) {
@@ -2808,7 +2808,7 @@ function displayApplicationDetails(app) {
         });
         servicesHtml += '</ul>';
     }
-    
+
     const submissionDate = new Date(app.submitted_at).toLocaleString('en-US', {
         year: 'numeric',
         month: 'long',
@@ -2816,7 +2816,7 @@ function displayApplicationDetails(app) {
         hour: '2-digit',
         minute: '2-digit'
     });
-    
+
     modalBody.innerHTML = `
         <div class="row">
             <div class="col-md-6">
@@ -2952,7 +2952,7 @@ function displayApplicationDetails(app) {
             </div>
         </div>
     `;
-    
+
     // Update approve/decline buttons
     const approveBtn = document.getElementById('approveApplicationBtn');
     const declineBtn = document.getElementById('declineApplicationBtn');
@@ -2969,10 +2969,10 @@ function displayApplicationDetails(app) {
 function confirmApproveApplication(applicationId = null) {
     const appId = applicationId || currentApplicationId;
     if (!appId) return;
-    
+
     // Set the application ID in the hidden field
     document.getElementById('approveApplicationId').value = appId;
-    
+
     // Show the custom confirmation modal
     const approveModal = new bootstrap.Modal(document.getElementById('approveConfirmModal'));
     approveModal.show();
@@ -2981,7 +2981,7 @@ function confirmApproveApplication(applicationId = null) {
 function executeApproveApplication() {
     const appId = document.getElementById('approveApplicationId').value;
     if (!appId) return;
-    
+
     // Update button to loading state
     const confirmBtn = document.getElementById('confirmApproveBtn');
     if (confirmBtn) {
@@ -2989,15 +2989,15 @@ function executeApproveApplication() {
         confirmBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Processing...';
         confirmBtn.classList.add('loading');
     }
-    
+
     // Call the approve function
     approveApplication(appId);
-    
+
     // Close the confirmation modal after a short delay
     setTimeout(() => {
         const approveModal = bootstrap.Modal.getInstance(document.getElementById('approveConfirmModal'));
         if (approveModal) approveModal.hide();
-        
+
         // Reset button state
         if (confirmBtn) {
             confirmBtn.disabled = false;
@@ -3011,129 +3011,129 @@ function approveApplication(applicationId) {
     const formData = new FormData();
     formData.append('action', 'approve_application');
     formData.append('application_id', applicationId);
-    
+
     // Show loading state
     const approveBtn = document.getElementById('approveApplicationBtn');
     if (approveBtn) {
         approveBtn.disabled = true;
         approveBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Processing...';
     }
-    
+
     fetch('../modules/api/general-ledger-data.php', {
         method: 'POST',
         body: formData
     })
-    .then(async response => {
-        const text = await response.text();
-        try {
-            return JSON.parse(text);
-        } catch (e) {
-            console.error('Non-JSON response from approve:', text);
-            throw new Error('Server returned invalid response. Check console for details.');
-        }
-    })
-    .then(data => {
-        if (data.success) {
-            showNotification('Application approved successfully! Customer account created.', 'success');
-            // Close modal
-            const modal = bootstrap.Modal.getInstance(document.getElementById('applicationDetailModal'));
-            if (modal) modal.hide();
-            // Reload applications list
-            loadPendingApplications();
-            // Reload accounts table to show new account
-            loadAccountsTable();
-        } else {
-            showNotification('Error approving application: ' + (data.message || 'Unknown error'), 'error');
+        .then(async response => {
+            const text = await response.text();
+            try {
+                return JSON.parse(text);
+            } catch (e) {
+                console.error('Non-JSON response from approve:', text);
+                throw new Error('Server returned invalid response. Check console for details.');
+            }
+        })
+        .then(data => {
+            if (data.success) {
+                showNotification('Application approved successfully! Customer account created.', 'success');
+                // Close modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('applicationDetailModal'));
+                if (modal) modal.hide();
+                // Reload applications list
+                loadPendingApplications();
+                // Reload accounts table to show new account
+                loadAccountsTable();
+            } else {
+                showNotification('Error approving application: ' + (data.message || 'Unknown error'), 'error');
+                if (approveBtn) {
+                    approveBtn.disabled = false;
+                    approveBtn.innerHTML = '<i class="fas fa-check me-1"></i>Approve';
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Error approving application:', error);
+            showNotification('Error approving application. Please try again.', 'error');
             if (approveBtn) {
                 approveBtn.disabled = false;
                 approveBtn.innerHTML = '<i class="fas fa-check me-1"></i>Approve';
             }
-        }
-    })
-    .catch(error => {
-        console.error('Error approving application:', error);
-        showNotification('Error approving application. Please try again.', 'error');
-        if (approveBtn) {
-            approveBtn.disabled = false;
-            approveBtn.innerHTML = '<i class="fas fa-check me-1"></i>Approve';
-        }
-    });
+        });
 }
 
 function showDeclineReasonModal(applicationId = null) {
     const appId = applicationId || currentApplicationId;
     if (!appId) return;
-    
+
     currentApplicationId = appId;
     document.getElementById('rejectionReason').value = '';
-    
+
     const modal = new bootstrap.Modal(document.getElementById('declineReasonModal'));
     modal.show();
 }
 
 function submitDeclineApplication() {
     const reason = document.getElementById('rejectionReason').value.trim();
-    
+
     if (!reason) {
         showNotification('Please provide a rejection reason', 'warning');
         return;
     }
-    
+
     if (!currentApplicationId) {
         showNotification('Application ID not found', 'error');
         return;
     }
-    
+
     const formData = new FormData();
     formData.append('action', 'decline_application');
     formData.append('application_id', currentApplicationId);
     formData.append('rejection_reason', reason);
-    
+
     const declineBtn = document.querySelector('#declineReasonModal .btn-danger');
     if (declineBtn) {
         declineBtn.disabled = true;
         declineBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Processing...';
     }
-    
+
     fetch('../modules/api/general-ledger-data.php', {
         method: 'POST',
         body: formData
     })
-    .then(async response => {
-        const text = await response.text();
-        try {
-            return JSON.parse(text);
-        } catch (e) {
-            console.error('Non-JSON response:', text);
-            throw new Error('Server returned invalid response. Check console for details.');
-        }
-    })
-    .then(data => {
-        if (data.success) {
-            showNotification('Application declined successfully', 'success');
-            // Close modals
-            const declineModal = bootstrap.Modal.getInstance(document.getElementById('declineReasonModal'));
-            if (declineModal) declineModal.hide();
-            const detailModal = bootstrap.Modal.getInstance(document.getElementById('applicationDetailModal'));
-            if (detailModal) detailModal.hide();
-            // Reload applications list
-            loadPendingApplications();
-        } else {
-            showNotification('Error declining application: ' + (data.message || 'Unknown error'), 'error');
+        .then(async response => {
+            const text = await response.text();
+            try {
+                return JSON.parse(text);
+            } catch (e) {
+                console.error('Non-JSON response:', text);
+                throw new Error('Server returned invalid response. Check console for details.');
+            }
+        })
+        .then(data => {
+            if (data.success) {
+                showNotification('Application declined successfully', 'success');
+                // Close modals
+                const declineModal = bootstrap.Modal.getInstance(document.getElementById('declineReasonModal'));
+                if (declineModal) declineModal.hide();
+                const detailModal = bootstrap.Modal.getInstance(document.getElementById('applicationDetailModal'));
+                if (detailModal) detailModal.hide();
+                // Reload applications list
+                loadPendingApplications();
+            } else {
+                showNotification('Error declining application: ' + (data.message || 'Unknown error'), 'error');
+                if (declineBtn) {
+                    declineBtn.disabled = false;
+                    declineBtn.innerHTML = '<i class="fas fa-times me-1"></i>Decline Application';
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Error declining application:', error);
+            showNotification('Error declining application. Please try again.', 'error');
             if (declineBtn) {
                 declineBtn.disabled = false;
                 declineBtn.innerHTML = '<i class="fas fa-times me-1"></i>Decline Application';
             }
-        }
-    })
-    .catch(error => {
-        console.error('Error declining application:', error);
-        showNotification('Error declining application. Please try again.', 'error');
-        if (declineBtn) {
-            declineBtn.disabled = false;
-            declineBtn.innerHTML = '<i class="fas fa-times me-1"></i>Decline Application';
-        }
-    });
+        });
 }
 
 function applyApplicationFilter() {
@@ -3162,7 +3162,7 @@ function changeApplicationsPerPage() {
 }
 
 // Load pending applications on page load
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     // Load pending applications after a short delay to ensure page is ready
     setTimeout(() => {
         loadPendingApplications();

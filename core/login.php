@@ -108,9 +108,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         <div class="login-left">
             <div class="login-left-content">
                 <div class="brand-section">
-                    <div class="brand-logo-container">
-                        <img src="../assets/image/LOGO.png" alt="Evergreen Logo" class="brand-logo">
-                    </div>
+                    <img src="../assets/image/LOGO.png" alt="Evergreen Logo" class="brand-logo">
                     <div class="brand-text">
                         <h1>EVERGREEN</h1>
                         <p>SECURE • INVEST • ACHIEVE</p>

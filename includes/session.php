@@ -5,16 +5,41 @@ if (session_status() == PHP_SESSION_NONE) {
 }
 
 // Function to check if user is logged in
-function isLoggedIn() {
-    return isset($_SESSION['user_id']) && isset($_SESSION['username']);
+function isLoggedIn()
+{
+    if (isset($_SESSION['user_id']) && isset($_SESSION['username'])) {
+        return true;
+    }
+
+    // Check for remember me cookie
+    if (isset($_COOKIE['remember_me'])) {
+        $token = $_COOKIE['remember_me'];
+        $conn = getDBConnection();
+        if ($conn) {
+            $hashed_token = hash('sha256', $token);
+            $stmt = $conn->prepare("SELECT id, username, email, full_name FROM users WHERE remember_token = ? AND is_active = 1");
+            $stmt->bind_param("s", $hashed_token);
+            $stmt->execute();
+            $result = $stmt->get_result();
+
+            if ($result->num_rows == 1) {
+                $user = $result->fetch_assoc();
+                setUserSession($user);
+                return true;
+            }
+        }
+    }
+
+    return false;
 }
 
 // Function to require login
-function requireLogin() {
+function requireLogin()
+{
     if (!isLoggedIn()) {
         // Calculate the correct path to login.php based on current script location
         $script_path = $_SERVER['SCRIPT_NAME'] ?? '';
-        
+
         // Determine the correct relative path based on where the script is located
         if (strpos($script_path, '/core/') !== false) {
             // If we're in the core directory, login.php is in the same directory
@@ -26,14 +51,15 @@ function requireLogin() {
             // Default: assume we're at root level or in includes
             $login_path = '../core/login.php';
         }
-        
+
         header("Location: " . $login_path);
         exit();
     }
 }
 
 // Function to get current user data
-function getCurrentUser() {
+function getCurrentUser()
+{
     if (isLoggedIn()) {
         return [
             'id' => $_SESSION['user_id'],
@@ -46,7 +72,8 @@ function getCurrentUser() {
 }
 
 // Function to set user session
-function setUserSession($user_data) {
+function setUserSession($user_data)
+{
     $_SESSION['user_id'] = $user_data['id'];
     $_SESSION['username'] = $user_data['username'];
     $_SESSION['email'] = $user_data['email'];
@@ -54,7 +81,24 @@ function setUserSession($user_data) {
 }
 
 // Function to destroy session
-function destroyUserSession() {
+function destroyUserSession()
+{
+    // Clear remember me token from DB
+    if (isset($_SESSION['user_id'])) {
+        $user_id = $_SESSION['user_id'];
+        $conn = getDBConnection();
+        if ($conn) {
+            $stmt = $conn->prepare("UPDATE users SET remember_token = NULL WHERE id = ?");
+            $stmt->bind_param("i", $user_id);
+            $stmt->execute();
+        }
+    }
+
+    // Clear cookie
+    if (isset($_COOKIE['remember_me'])) {
+        setcookie("remember_me", "", time() - 3600, "/");
+    }
+
     session_unset();
     session_destroy();
 }
@@ -67,9 +111,10 @@ function destroyUserSession() {
  * @param mysqli $conn - Database connection (optional, will use global if not provided)
  * @return bool - True if logged successfully, false otherwise
  */
-function logActivity($action, $module, $details = '', $conn = null) {
+function logActivity($action, $module, $details = '', $conn = null)
+{
     global $conn;
-    
+
     // If no connection provided, try to get it
     if (!$conn) {
         // Try to include database config if not already included
@@ -83,20 +128,20 @@ function logActivity($action, $module, $details = '', $conn = null) {
             $conn = getDBConnection();
         }
     }
-    
+
     if (!$conn) {
         return false;
     }
-    
+
     // Get current user
     $user_id = $_SESSION['user_id'] ?? null;
     if (!$user_id) {
         return false;
     }
-    
+
     // Get IP address
     $ip_address = $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1';
-    
+
     try {
         // Check if table exists, create if not
         $table_check = $conn->query("SHOW TABLES LIKE 'activity_logs'");
@@ -115,24 +160,24 @@ function logActivity($action, $module, $details = '', $conn = null) {
                 INDEX idx_created_at (created_at),
                 FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci";
-            
+
             if (!$conn->query($create_table_sql)) {
                 error_log("Failed to create activity_logs table: " . $conn->error);
                 return false;
             }
         }
-        
+
         // Insert activity log
         $stmt = $conn->prepare("INSERT INTO activity_logs (user_id, action, module, details, ip_address) VALUES (?, ?, ?, ?, ?)");
         if (!$stmt) {
             error_log("Failed to prepare activity log statement: " . $conn->error);
             return false;
         }
-        
+
         $stmt->bind_param('issss', $user_id, $action, $module, $details, $ip_address);
         $result = $stmt->execute();
         $stmt->close();
-        
+
         return $result;
     } catch (Exception $e) {
         error_log("Failed to log activity: " . $e->getMessage());
@@ -152,9 +197,10 @@ function logActivity($action, $module, $details = '', $conn = null) {
  * @param mysqli $conn - Database connection (optional)
  * @return bool - True if created successfully, false otherwise
  */
-function createSystemNotification($type, $title, $message, $priority = 'medium', $related_module = null, $related_id = null, $metadata = null, $conn = null) {
+function createSystemNotification($type, $title, $message, $priority = 'medium', $related_module = null, $related_id = null, $metadata = null, $conn = null)
+{
     global $conn;
-    
+
     // If no connection provided, try to get it
     if (!$conn) {
         $db_config_path = __DIR__ . '/../config/database.php';
@@ -163,11 +209,11 @@ function createSystemNotification($type, $title, $message, $priority = 'medium',
             $conn = $GLOBALS['conn'] ?? null;
         }
     }
-    
+
     if (!$conn) {
         return false;
     }
-    
+
     try {
         // Check if table exists, create if not
         $table_check = $conn->query("SHOW TABLES LIKE 'system_notifications'");
@@ -190,42 +236,42 @@ function createSystemNotification($type, $title, $message, $priority = 'medium',
                 INDEX idx_created_at (created_at),
                 INDEX idx_related (related_module, related_id)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci";
-            
+
             if (!$conn->query($create_table_sql)) {
                 error_log("Failed to create system_notifications table: " . $conn->error);
                 return false;
             }
         }
-        
+
         // Validate type
         $valid_types = ['banking', 'payment', 'reconciliation', 'alert', 'system', 'transaction'];
         if (!in_array($type, $valid_types)) {
             $type = 'system';
         }
-        
+
         // Validate priority
         $valid_priorities = ['low', 'medium', 'high', 'urgent'];
         if (!in_array($priority, $valid_priorities)) {
             $priority = 'medium';
         }
-        
+
         // Prepare metadata JSON
         $metadata_json = null;
         if ($metadata !== null && is_array($metadata)) {
             $metadata_json = json_encode($metadata);
         }
-        
+
         // Insert notification
         $stmt = $conn->prepare("INSERT INTO system_notifications (notification_type, title, message, priority, related_module, related_id, metadata) VALUES (?, ?, ?, ?, ?, ?, ?)");
         if (!$stmt) {
             error_log("Failed to prepare system notification statement: " . $conn->error);
             return false;
         }
-        
+
         $stmt->bind_param('sssssss', $type, $title, $message, $priority, $related_module, $related_id, $metadata_json);
         $result = $stmt->execute();
         $stmt->close();
-        
+
         return $result;
     } catch (Exception $e) {
         error_log("Failed to create system notification: " . $e->getMessage());

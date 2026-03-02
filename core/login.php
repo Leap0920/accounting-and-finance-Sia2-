@@ -44,6 +44,19 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                         // Set session
                         setUserSession($user);
 
+                        // Handle Remember Me
+                        if (isset($_POST['remember'])) {
+                            $token = bin2hex(random_bytes(32));
+                            $hashed_token = hash('sha256', $token);
+                            $update_stmt = $conn->prepare("UPDATE users SET remember_token = ? WHERE id = ?");
+                            $update_stmt->bind_param("si", $hashed_token, $user['id']);
+                            $update_stmt->execute();
+                            $update_stmt->close();
+
+                            // Set cookie for 30 days
+                            setcookie("remember_me", $token, time() + (30 * 24 * 60 * 60), "/");
+                        }
+
                         // Update last login
                         $update_stmt = $conn->prepare("UPDATE users SET last_login = NOW() WHERE id = ?");
                         $update_stmt->bind_param("i", $user['id']);
@@ -103,20 +116,29 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                         <p>SECURE • INVEST • ACHIEVE</p>
                     </div>
                 </div>
-                
+
                 <h2 class="hero-text">Empowering your financial <br>future.</h2>
-                <p class="hero-desc">Access your professional accounting dashboard with enterprise-grade security and precision analytics.</p>
-                
+                <p class="hero-desc">Access your professional accounting dashboard with enterprise-grade security and
+                    precision analytics.</p>
+
                 <div class="feature-badges">
                     <div class="feature-badge">
                         <div class="badge-icon-yellow">
-                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor"
+                                stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
                         </div>
                         <span>SSL Encrypted</span>
                     </div>
                     <div class="feature-badge">
                         <div class="badge-icon-yellow">
-                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor"
+                                stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="18" y1="20" x2="18" y2="10"></line>
+                                <line x1="12" y1="20" x2="12" y2="4"></line>
+                                <line x1="6" y1="20" x2="6" y2="14"></line>
+                            </svg>
                         </div>
                         <span>Real-time Data</span>
                     </div>

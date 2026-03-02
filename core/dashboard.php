@@ -9,6 +9,7 @@ $current_user = getCurrentUser();
 ?>
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -24,6 +25,7 @@ $current_user = getCurrentUser();
     <link rel="stylesheet" href="../assets/css/style.css">
     <link rel="stylesheet" href="../assets/css/dashboard.css">
 </head>
+
 <body>
     <!-- Navigation -->
     <nav class="navbar navbar-expand-lg navbar-custom">
@@ -37,11 +39,11 @@ $current_user = getCurrentUser();
                     <p>Secure. Invest. Achieve</p>
                 </div>
             </div>
-            
+
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
-            
+
             <div class="collapse navbar-collapse justify-content-center" id="navbarNav">
                 <ul class="navbar-nav">
                     <li class="nav-item">
@@ -50,64 +52,92 @@ $current_user = getCurrentUser();
                         </a>
                     </li>
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="modulesDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <a class="nav-link dropdown-toggle" href="#" id="modulesDropdown" role="button"
+                            data-bs-toggle="dropdown" aria-expanded="false">
                             <i class="fas fa-th-large me-1"></i>Modules
                         </a>
                         <ul class="dropdown-menu dropdown-menu-custom" aria-labelledby="modulesDropdown">
-                            <li><a class="dropdown-item" href="../modules/general-ledger.php"><i class="fas fa-book me-2"></i>General Ledger</a></li>
-                            <li><a class="dropdown-item" href="../modules/financial-reporting.php"><i class="fas fa-chart-line me-2"></i>Financial Reporting</a></li>
-                            <li><a class="dropdown-item" href="../modules/loan-accounting.php"><i class="fas fa-hand-holding-usd me-2"></i>Loan Accounting</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="../modules/transaction-reading.php"><i class="fas fa-exchange-alt me-2"></i>Transaction Reading</a></li>
-                            <li><a class="dropdown-item" href="../modules/expense-tracking.php"><i class="fas fa-receipt me-2"></i>Expense Tracking</a></li>
-                            <li><a class="dropdown-item" href="../modules/payroll-management.php"><i class="fas fa-users me-2"></i>Payroll Management</a></li>
+                            <li><a class="dropdown-item" href="../modules/general-ledger.php"><i
+                                        class="fas fa-book me-2"></i>General Ledger</a></li>
+                            <li><a class="dropdown-item" href="../modules/financial-reporting.php"><i
+                                        class="fas fa-chart-line me-2"></i>Financial Reporting</a></li>
+                            <li><a class="dropdown-item" href="../modules/loan-accounting.php"><i
+                                        class="fas fa-hand-holding-usd me-2"></i>Loan Accounting</a></li>
+                            <li>
+                                <hr class="dropdown-divider">
+                            </li>
+                            <li><a class="dropdown-item" href="../modules/transaction-reading.php"><i
+                                        class="fas fa-exchange-alt me-2"></i>Transaction Reading</a></li>
+                            <li><a class="dropdown-item" href="../modules/expense-tracking.php"><i
+                                        class="fas fa-receipt me-2"></i>Expense Tracking</a></li>
+                            <li><a class="dropdown-item" href="../modules/payroll-management.php"><i
+                                        class="fas fa-users me-2"></i>Payroll Management</a></li>
                         </ul>
                     </li>
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="reportsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <a class="nav-link dropdown-toggle" href="#" id="reportsDropdown" role="button"
+                            data-bs-toggle="dropdown" aria-expanded="false">
                             <i class="fas fa-file-alt me-1"></i>Reports
                         </a>
                         <ul class="dropdown-menu dropdown-menu-custom" aria-labelledby="reportsDropdown">
-                            <li><a class="dropdown-item" href="../modules/financial-reporting.php"><i class="fas fa-chart-bar me-2"></i>Financial Statements</a></li>
-                            <li><a class="dropdown-item" href="../modules/financial-reporting.php"><i class="fas fa-money-bill-wave me-2"></i>Cash Flow Report</a></li>
-                            <li><a class="dropdown-item" href="../modules/expense-tracking.php"><i class="fas fa-clipboard-list me-2"></i>Expense Summary</a></li>
-                            <li><a class="dropdown-item" href="../modules/payroll-management.php"><i class="fas fa-wallet me-2"></i>Payroll Report</a></li>
+                            <li><a class="dropdown-item" href="../modules/financial-reporting.php"><i
+                                        class="fas fa-chart-bar me-2"></i>Financial Statements</a></li>
+                            <li><a class="dropdown-item" href="../modules/financial-reporting.php"><i
+                                        class="fas fa-money-bill-wave me-2"></i>Cash Flow Report</a></li>
+                            <li><a class="dropdown-item" href="../modules/expense-tracking.php"><i
+                                        class="fas fa-clipboard-list me-2"></i>Expense Summary</a></li>
+                            <li><a class="dropdown-item" href="../modules/payroll-management.php"><i
+                                        class="fas fa-wallet me-2"></i>Payroll Report</a></li>
                         </ul>
                     </li>
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="settingsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <a class="nav-link dropdown-toggle" href="#" id="settingsDropdown" role="button"
+                            data-bs-toggle="dropdown" aria-expanded="false">
                             <i class="fas fa-cog me-1"></i>Settings
                         </a>
                         <ul class="dropdown-menu dropdown-menu-custom" aria-labelledby="settingsDropdown">
-                            <li><a class="dropdown-item" href="../modules/bin-station.php"><i class="fas fa-trash-alt me-2"></i>Bin Station</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="../modules/database-settings.php"><i class="fas fa-database me-2"></i>Database Settings</a></li>
+                            <li><a class="dropdown-item" href="../modules/bin-station.php"><i
+                                        class="fas fa-trash-alt me-2"></i>Bin Station</a></li>
+                            <li>
+                                <hr class="dropdown-divider">
+                            </li>
+                            <li><a class="dropdown-item" href="../modules/database-settings.php"><i
+                                        class="fas fa-database me-2"></i>Database Settings</a></li>
                         </ul>
                     </li>
                 </ul>
             </div>
-            
+
             <div class="d-flex align-items-center gap-3">
                 <!-- Notifications -->
                 <div class="dropdown d-none d-md-block">
-                    <a class="nav-icon-btn" href="#" id="notificationsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <a class="nav-icon-btn" href="#" id="notificationsDropdown" role="button" data-bs-toggle="dropdown"
+                        aria-expanded="false">
                         <i class="fas fa-bell"></i>
                         <span class="notification-badge">3</span>
                     </a>
-                    <ul class="dropdown-menu dropdown-menu-end dropdown-menu-custom notifications-dropdown" aria-labelledby="notificationsDropdown">
+                    <ul class="dropdown-menu dropdown-menu-end dropdown-menu-custom notifications-dropdown"
+                        aria-labelledby="notificationsDropdown">
                         <li class="dropdown-header">Notifications</li>
-                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                            <hr class="dropdown-divider">
+                        </li>
                         <li class="dropdown-item text-center text-muted"><small>Loading notifications...</small></li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item text-center small" href="../modules/activity-log.php">View All Notifications</a></li>
+                        <li>
+                            <hr class="dropdown-divider">
+                        </li>
+                        <li><a class="dropdown-item text-center small" href="../modules/activity-log.php">View All
+                                Notifications</a></li>
                     </ul>
                 </div>
-                
+
                 <!-- User Profile Dropdown -->
                 <div class="dropdown">
-                    <a class="user-profile-btn" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <a class="user-profile-btn" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown"
+                        aria-expanded="false">
                         <i class="fas fa-user-circle me-2"></i>
-                        <span class="d-none d-lg-inline"><?php echo htmlspecialchars($current_user['full_name']); ?></span>
+                        <span
+                            class="d-none d-lg-inline"><?php echo htmlspecialchars($current_user['full_name']); ?></span>
                         <i class="fas fa-chevron-down ms-2 d-none d-lg-inline"></i>
                     </a>
                     <ul class="dropdown-menu dropdown-menu-end dropdown-menu-custom" aria-labelledby="userDropdown">
@@ -120,23 +150,29 @@ $current_user = getCurrentUser();
                                 </div>
                             </div>
                         </li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item" href="../modules/activity-log.php"><i class="fas fa-history me-2"></i>Activity Log</a></li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item text-danger" href="logout.php"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
+                        <li>
+                            <hr class="dropdown-divider">
+                        </li>
+                        <li><a class="dropdown-item" href="../modules/activity-log.php"><i
+                                    class="fas fa-history me-2"></i>Activity Log</a></li>
+                        <li>
+                            <hr class="dropdown-divider">
+                        </li>
+                        <li><a class="dropdown-item text-danger" href="logout.php"><i
+                                    class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
                     </ul>
                 </div>
             </div>
         </div>
     </nav>
-    
+
     <!-- Page Header -->
     <div class="page-header">
         <div class="container">
             <h2>ACCOUNTING AND FINANCE</h2>
         </div>
     </div>
-    
+
     <!-- Main Content -->
     <main class="container py-4" id="modules">
         <div class="row g-4">
@@ -151,7 +187,7 @@ $current_user = getCurrentUser();
                     <a href="../modules/general-ledger.php" class="module-link">Access Module</a>
                 </div>
             </div>
-            
+
             <!-- Financial Reporting -->
             <div class="col-lg-4 col-md-6">
                 <div class="module-card">
@@ -163,7 +199,7 @@ $current_user = getCurrentUser();
                     <a href="../modules/financial-reporting.php" class="module-link">Access Module</a>
                 </div>
             </div>
-            
+
             <!-- Loan Accounting -->
             <div class="col-lg-4 col-md-6">
                 <div class="module-card">
@@ -175,7 +211,7 @@ $current_user = getCurrentUser();
                     <a href="../modules/loan-accounting.php" class="module-link">Access Module</a>
                 </div>
             </div>
-            
+
             <!-- Transaction Reading -->
             <div class="col-lg-4 col-md-6">
                 <div class="module-card">
@@ -187,7 +223,7 @@ $current_user = getCurrentUser();
                     <a href="../modules/transaction-reading.php" class="module-link">Access Module</a>
                 </div>
             </div>
-            
+
             <!-- Expense Tracking -->
             <div class="col-lg-4 col-md-6">
                 <div class="module-card">
@@ -199,7 +235,7 @@ $current_user = getCurrentUser();
                     <a href="../modules/expense-tracking.php" class="module-link">Access Module</a>
                 </div>
             </div>
-            
+
             <!-- Payroll Management -->
             <div class="col-lg-4 col-md-6">
                 <div class="module-card">
@@ -213,14 +249,41 @@ $current_user = getCurrentUser();
             </div>
         </div>
     </main>
-    
+
     <!-- Footer -->
     <footer>
         <div class="container">
             <p class="mb-0">&copy; <?php echo date('Y'); ?> Evergreen Accounting & Finance. All rights reserved.</p>
         </div>
     </footer>
-    
+
+    <!-- Logout Confirmation Modal -->
+    <div class="modal fade" id="logoutModal" tabindex="-1" aria-labelledby="logoutModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg" style="border-radius: 15px; overflow: hidden;">
+                <div class="modal-header border-0 pb-0" style="background-color: #0A3D3D; color: white;">
+                    <h5 class="modal-title px-3 py-2" id="logoutModalLabel">
+                        <i class="fas fa-sign-out-alt me-2"></i> Confirm Logout
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white me-2" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-5 text-center">
+                    <div class="mb-4">
+                        <div class="d-inline-flex align-items-center justify-content-center bg-light rounded-circle" style="width: 80px; height: 80px;">
+                            <i class="fas fa-sign-out-alt fa-3x" style="color: #0A3D3D;"></i>
+                        </div>
+                    </div>
+                    <h4 class="mb-2 fw-bold" style="color: #0A3D3D;">Ready to Leave?</h4>
+                    <p class="text-muted mb-0">You are about to securely log out of your session. Make sure all your accounting work is saved.</p>
+                </div>
+                <div class="modal-footer border-0 justify-content-center pb-4 px-4">
+                    <button type="button" class="btn btn-outline-secondary px-5 py-2 rounded-pill fw-semibold me-2" data-bs-dismiss="modal">Go Back</button>
+                    <a href="logout.php" id="confirmLogout" class="btn px-5 py-2 rounded-pill fw-semibold shadow-sm text-white" style="background-color: #0A3D3D;">Yes, Logout</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <!-- jQuery -->
@@ -229,4 +292,5 @@ $current_user = getCurrentUser();
     <script src="../assets/js/dashboard.js"></script>
     <script src="../assets/js/notifications.js"></script>
 </body>
+
 </html>

@@ -208,7 +208,7 @@ if ($selected_employee) {
     if (preg_match('/EMP(\d+)/i', $selected_employee, $matches)) {
         $employee_id_from_external = intval($matches[1]);
     }
-    
+
     $employee_query = "SELECT 
                         COALESCE(er.id, NULL) as ref_id,
                         CONCAT('EMP', LPAD(e.employee_id, 3, '0')) as external_employee_no,
@@ -344,7 +344,7 @@ $total_employer_contrib = 0;
 // Calculate earnings total
 if ($earnings_result) {
     $earnings_result->data_seek(0);
-    while($earning = $earnings_result->fetch_assoc()) {
+    while ($earning = $earnings_result->fetch_assoc()) {
         $total_earnings += $earning['value'];
     }
 }
@@ -352,7 +352,7 @@ if ($earnings_result) {
 // Calculate deductions total
 if ($deductions_result) {
     $deductions_result->data_seek(0);
-    while($deduction = $deductions_result->fetch_assoc()) {
+    while ($deduction = $deductions_result->fetch_assoc()) {
         $total_deductions += $deduction['value'];
     }
 }
@@ -360,7 +360,7 @@ if ($deductions_result) {
 // Calculate employer contributions total
 if ($employer_contrib_result) {
     $employer_contrib_result->data_seek(0);
-    while($contrib = $employer_contrib_result->fetch_assoc()) {
+    while ($contrib = $employer_contrib_result->fetch_assoc()) {
         $total_employer_contrib += $contrib['value'];
     }
 }
@@ -388,7 +388,7 @@ if ($selected_employee && $period_start && $period_end) {
         $has_saved_payslip_for_period = ($payslip_data !== null);
         $payslip_stmt->close();
     }
-    
+
     // If no payslip found for exact period, get most recent for reference
     if (!$payslip_data) {
         $payslip_query = "SELECT ps.*, pr.run_at, pr.status as payroll_status 
@@ -436,11 +436,11 @@ $attendance_summary = [
 if ($selected_employee) {
     // Use the payroll_month for attendance display - this ensures proper month filtering
     $display_month = $payroll_month;
-    
+
     // Get employee_id from external_employee_no (format: EMP001 -> 1, EMP002 -> 2, etc.)
     // Extract numeric part from external_employee_no
     $employee_id_from_external = null;
-    
+
     // First, try to extract from external_employee_no format (EMP001, EMP002, etc.)
     if (preg_match('/EMP(\d+)/i', $selected_employee, $matches)) {
         $employee_id_from_external = intval($matches[1]);
@@ -470,7 +470,7 @@ if ($selected_employee) {
             }
         }
     }
-    
+
     // Final validation: ensure we have a valid employee_id
     if (!$employee_id_from_external || $employee_id_from_external <= 0) {
         error_log("ERROR: Could not extract valid employee_id from selected_employee=$selected_employee");
@@ -491,7 +491,7 @@ if ($selected_employee) {
             $lookup_stmt->close();
         }
     }
-    
+
     // Build attendance query to read from BOTH HRIS attendance AND employee_attendance tables
     // This combines data from both sources using UNION ALL
     if ($payroll_period === 'first' || $payroll_period === 'second') {
@@ -623,10 +623,10 @@ if ($selected_employee) {
                             ) combined_attendance
                             ORDER BY date DESC";
     }
-    
+
     if ($employee_id_from_external) {
         $attendance_stmt = $conn->prepare($attendance_query);
-        
+
         if (!$attendance_stmt) {
             error_log("PREPARE FAILED: " . $conn->error);
             error_log("Query: " . substr($attendance_query, 0, 500));
@@ -639,26 +639,34 @@ if ($selected_employee) {
                 // 3. ea.employee_external_no = ? (string)
                 // 4. ea.attendance_date BETWEEN ? AND ? (2 strings: period_start, period_end)
                 // Total: 1 integer + 5 strings = "isssss"
-                $attendance_stmt->bind_param("isssss", 
-                    $employee_id_from_external, $period_start, $period_end,  // For HRIS attendance table (i, s, s)
-                    $selected_employee, $period_start, $period_end           // For employee_attendance table (s, s, s)
+                $attendance_stmt->bind_param(
+                    "isssss",
+                    $employee_id_from_external,
+                    $period_start,
+                    $period_end,  // For HRIS attendance table (i, s, s)
+                    $selected_employee,
+                    $period_start,
+                    $period_end           // For employee_attendance table (s, s, s)
                 );
                 error_log("Fetching attendance for employee_id=$employee_id_from_external / external_no=$selected_employee, period=$period_start to $period_end");
             } else {
                 // Bind parameters: employee_id (for HRIS), month, employee_external_no (for accounting), month
-                $attendance_stmt->bind_param("isss", 
-                    $employee_id_from_external, $display_month,  // For HRIS attendance table
-                    $selected_employee, $display_month          // For employee_attendance table
+                $attendance_stmt->bind_param(
+                    "isss",
+                    $employee_id_from_external,
+                    $display_month,  // For HRIS attendance table
+                    $selected_employee,
+                    $display_month          // For employee_attendance table
                 );
                 error_log("Fetching attendance for employee_id=$employee_id_from_external / external_no=$selected_employee, month=$display_month");
             }
-            
+
             if (!$attendance_stmt->execute()) {
                 error_log("EXECUTE FAILED: " . $attendance_stmt->error);
             }
-            
+
             $attendance_result = $attendance_stmt->get_result();
-            
+
             if (!$attendance_result) {
                 error_log("GET_RESULT FAILED: " . $attendance_stmt->error);
             } else {
@@ -675,10 +683,10 @@ if ($selected_employee) {
                 error_log("Found $record_count attendance records from both sources (HRIS + Accounting)");
             }
         }
-            } else {
+    } else {
         error_log("Could not extract employee_id from: $selected_employee");
     }
-    
+
     // Fetch leave requests from HRIS and merge with attendance data
     // FIXED: Now properly fetches approved leaves from HRIS
     if ($employee_id_from_external && $employee_id_from_external > 0) {
@@ -696,12 +704,12 @@ if ($selected_employee) {
                         LEFT JOIN leave_type lt ON lr.leave_type_id = lt.leave_type_id
                         WHERE lr.employee_id = ?
                         AND (UPPER(TRIM(lr.status)) = 'APPROVED' OR LOWER(TRIM(lr.status)) = 'approved')";
-        
+
         error_log("Fetching leave requests for employee_id=$employee_id_from_external (external_no=$selected_employee)");
-        
+
         $leave_params = [];
         $leave_types = "";
-        
+
         if ($payroll_period === 'first' || $payroll_period === 'second') {
             // For period-based: check if leave overlaps with period
             // Improved overlap logic: leave overlaps if it starts before period ends AND ends after period starts
@@ -721,7 +729,7 @@ if ($selected_employee) {
             $leave_params = [$employee_id_from_external, $month_end, $month_start];
             $leave_types = "iss";
         }
-        
+
         $leave_stmt = $conn->prepare($leave_query);
         if ($leave_stmt) {
             // Log the query parameters for debugging
@@ -730,7 +738,7 @@ if ($selected_employee) {
             } else {
                 error_log("Leave query - Month: $display_month, Employee ID: $employee_id_from_external");
             }
-            
+
             $leave_stmt->bind_param($leave_types, ...$leave_params);
             if (!$leave_stmt->execute()) {
                 error_log("Leave query execution failed: " . $leave_stmt->error);
@@ -738,13 +746,13 @@ if ($selected_employee) {
                 error_log("Leave params: " . print_r($leave_params, true));
             }
             $leave_result = $leave_stmt->get_result();
-            
+
             if (!$leave_result) {
                 error_log("Leave query get_result failed: " . $leave_stmt->error);
             } else {
                 $leave_count = $leave_result->num_rows;
                 error_log("Found $leave_count leave request(s) for employee_id=$employee_id_from_external");
-                
+
                 // Log each leave found for debugging
                 if ($leave_count > 0) {
                     $leave_result->data_seek(0);
@@ -754,25 +762,25 @@ if ($selected_employee) {
                     $leave_result->data_seek(0); // Reset pointer
                 }
             }
-            
+
             // Create a map of attendance dates to avoid duplicates
             $attendance_dates = [];
             foreach ($attendance_data as $att_record) {
                 $attendance_dates[date('Y-m-d', strtotime($att_record['date']))] = true;
             }
-            
+
             // Add leave days to attendance data
             while ($leave = $leave_result->fetch_assoc()) {
                 $start_date = new DateTime($leave['start_date']);
                 $end_date = new DateTime($leave['end_date']);
                 $leave_name = $leave['leave_name'] ?? 'Approved Leave';
                 $leave_reason = $leave['reason'] ?? '';
-                
+
                 // Generate all dates in the leave range
                 $current_date = clone $start_date;
                 while ($current_date <= $end_date) {
                     $date_str = $current_date->format('Y-m-d');
-                    
+
                     // Check if this date is within the selected period
                     $include_date = false;
                     if ($payroll_period === 'first' || $payroll_period === 'second') {
@@ -786,7 +794,7 @@ if ($selected_employee) {
                             $include_date = true;
                         }
                     }
-                    
+
                     // Only add if date is in period and not already in attendance data
                     if ($include_date && !isset($attendance_dates[$date_str])) {
                         $attendance_data[] = [
@@ -802,26 +810,26 @@ if ($selected_employee) {
                         ];
                         $attendance_dates[$date_str] = true;
                     }
-                    
+
                     $current_date->modify('+1 day');
                 }
             }
-            
+
             // Sort attendance data by date DESC (newest first)
-            usort($attendance_data, function($a, $b) {
+            usort($attendance_data, function ($a, $b) {
                 return strtotime($b['date']) - strtotime($a['date']);
             });
-            
+
             $leave_stmt->close();
         }
     }
-    
+
     // Calculate summary from attendance data for display (will be overridden by API if available)
     foreach ($attendance_data as $row) {
         $attendance_summary['total_days']++;
         $attendance_summary['total_hours'] += $row['hours_worked'];
         $attendance_summary['overtime_hours'] += $row['overtime_hours'];
-        
+
         switch ($row['status']) {
             case 'present':
                 $attendance_summary['present_days']++;
@@ -852,28 +860,28 @@ if ($selected_employee) {
     // Use period dates if available, otherwise use current month
     $calc_period_start = $period_start ? $period_start : date('Y-m-01');
     $calc_period_end = $period_end ? $period_end : date('Y-m-t');
-    
+
     // Get base salary components
     $base_components = [];
     if ($earnings_result) {
         $earnings_result->data_seek(0);
-        while($earning = $earnings_result->fetch_assoc()) {
+        while ($earning = $earnings_result->fetch_assoc()) {
             $base_components[] = $earning;
         }
         // Reset pointer for later use
         $earnings_result->data_seek(0);
     }
-    
+
     // Calculate payroll based on attendance for the selected period
     // For bi-monthly periods, we need to prorate the monthly salary
     $attendance_payroll_adjustments = calculatePayrollFromAttendance(
-        $conn, 
-        $selected_employee, 
-        $calc_period_start, 
+        $conn,
+        $selected_employee,
+        $calc_period_start,
         $calc_period_end,
         $base_components
     );
-    
+
     // If it's a bi-monthly period, adjust the base salary calculation
     if ($payroll_period && ($payroll_period === 'first' || $payroll_period === 'second')) {
         // For bi-monthly periods, the base salary should be half of monthly salary
@@ -884,7 +892,7 @@ if ($selected_employee) {
             // We just need to ensure the base is correct for the period
         }
     }
-    
+
     // Use attendance summary from API calculation as single source of truth
     if ($attendance_payroll_adjustments && isset($attendance_payroll_adjustments['attendance_summary'])) {
         $attendance_summary = $attendance_payroll_adjustments['attendance_summary'];
@@ -901,6 +909,7 @@ if ($attendance_payroll_adjustments && isset($attendance_payroll_adjustments['at
 ?>
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -918,112 +927,11 @@ if ($attendance_payroll_adjustments && isset($attendance_payroll_adjustments['at
     <link rel="stylesheet" href="../assets/css/financial-reporting.css">
     <link rel="stylesheet" href="../assets/css/payroll-management.css">
 </head>
+
 <body>
     <!-- Navigation -->
-    <nav class="navbar navbar-expand-lg navbar-custom">
-        <div class="container-fluid px-4">
-            <div class="logo-section">
-                <div class="logo-circle">
-                    <img src="../assets/image/LOGO.png" alt="Evergreen Logo" class="logo-img">
-                </div>
-                <div class="logo-text">
-                    <h1>EVERGREEN</h1>
-                    <p>Secure. Invest. Achieve</p>
-                </div>
-            </div>
-            
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            
-            <div class="collapse navbar-collapse justify-content-center" id="navbarNav">
-                <ul class="navbar-nav">
-                    <li class="nav-item">
-                        <a class="nav-link" href="../core/dashboard.php">
-                            <i class="fas fa-home me-1"></i>Home
-                        </a>
-                    </li>
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle active" href="#" id="modulesDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="fas fa-th-large me-1"></i>Modules
-                        </a>
-                        <ul class="dropdown-menu dropdown-menu-custom" aria-labelledby="modulesDropdown">
-                            <li><a class="dropdown-item" href="general-ledger.php"><i class="fas fa-book me-2"></i>General Ledger</a></li>
-                            <li><a class="dropdown-item" href="financial-reporting.php"><i class="fas fa-chart-line me-2"></i>Financial Reporting</a></li>
-                            <li><a class="dropdown-item" href="loan-accounting.php"><i class="fas fa-hand-holding-usd me-2"></i>Loan Accounting</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="transaction-reading.php"><i class="fas fa-exchange-alt me-2"></i>Transaction Reading</a></li>
-                            <li><a class="dropdown-item" href="expense-tracking.php"><i class="fas fa-receipt me-2"></i>Expense Tracking</a></li>
-                            <li><a class="dropdown-item active" href="payroll-management.php"><i class="fas fa-users me-2"></i>Payroll Management</a></li>
-                        </ul>
-                    </li>
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="reportsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="fas fa-file-alt me-1"></i>Reports
-                        </a>
-                        <ul class="dropdown-menu dropdown-menu-custom" aria-labelledby="reportsDropdown">
-                            <li><a class="dropdown-item" href="financial-reporting.php"><i class="fas fa-chart-bar me-2"></i>Financial Statements</a></li>
-                            <li><a class="dropdown-item" href="financial-reporting.php"><i class="fas fa-money-bill-wave me-2"></i>Cash Flow Report</a></li>
-                            <li><a class="dropdown-item" href="expense-tracking.php"><i class="fas fa-clipboard-list me-2"></i>Expense Summary</a></li>
-                            <li><a class="dropdown-item" href="payroll-management.php"><i class="fas fa-wallet me-2"></i>Payroll Report</a></li>
-                        </ul>
-                    </li>
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="settingsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="fas fa-cog me-1"></i>Settings
-                        </a>
-                        <ul class="dropdown-menu dropdown-menu-custom" aria-labelledby="settingsDropdown">
-                            <li><a class="dropdown-item" href="bin-station.php"><i class="fas fa-trash-alt me-2"></i>Bin Station</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="database-settings.php"><i class="fas fa-database me-2"></i>Database Settings</a></li>
-                        </ul>
-                    </li>
-                </ul>
-            </div>
-            
-            <div class="d-flex align-items-center gap-3">
-                <!-- Notifications -->
-                <div class="dropdown d-none d-md-block">
-                    <a class="nav-icon-btn" href="#" id="notificationsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                        <i class="fas fa-bell"></i>
-                        <span class="notification-badge">3</span>
-                    </a>
-                    <ul class="dropdown-menu dropdown-menu-end dropdown-menu-custom notifications-dropdown" aria-labelledby="notificationsDropdown">
-                        <li class="dropdown-header">Notifications</li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li class="dropdown-item text-center text-muted"><small>Loading notifications...</small></li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item text-center small" href="activity-log.php">View All Notifications</a></li>
-                    </ul>
-                </div>
-                
-                <!-- User Profile Dropdown -->
-                <div class="dropdown">
-                    <a class="user-profile-btn" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                        <i class="fas fa-user-circle me-2"></i>
-                        <span class="d-none d-lg-inline"><?php echo htmlspecialchars($current_user['full_name']); ?></span>
-                        <i class="fas fa-chevron-down ms-2 d-none d-lg-inline"></i>
-                    </a>
-                    <ul class="dropdown-menu dropdown-menu-end dropdown-menu-custom" aria-labelledby="userDropdown">
-                        <li class="dropdown-header">
-                            <div class="user-dropdown-header">
-                                <i class="fas fa-user-circle fa-2x"></i>
-                                <div>
-                                    <strong><?php echo htmlspecialchars($current_user['full_name']); ?></strong>
-                                    <small><?php echo htmlspecialchars($current_user['username']); ?></small>
-                                </div>
-                            </div>
-                        </li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item" href="activity-log.php"><i class="fas fa-history me-2"></i>Activity Log</a></li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item text-danger" href="../core/logout.php"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-    </nav>
-    
+    <?php include '../includes/navbar.php'; ?>
+
     <!-- Main Content -->
     <main class="container-fluid py-3">
         <!-- Beautiful Page Header -->
@@ -1073,14 +981,15 @@ if ($attendance_payroll_adjustments && isset($attendance_payroll_adjustments['at
                                     <label for="employee-select" class="selection-label">
                                         <i class="fas fa-user me-2"></i>Select Employee
                                     </label>
-                                    <select class="form-select form-select-lg" id="employee-select" onchange="changeEmployee()">
-                                    <option value="">Choose an employee...</option>
-                                    <?php 
-                                    $employees_result->data_seek(0);
-                                    while($emp = $employees_result->fetch_assoc()): 
-                                        // Use HRIS full name if available, otherwise use employee_refs name
-                                        $display_name = !empty($emp['hris_full_name']) ? trim($emp['hris_full_name']) : ($emp['name'] ?? 'Unknown');
-                                            
+                                    <select class="form-select form-select-lg" id="employee-select"
+                                        onchange="changeEmployee()">
+                                        <option value="">Choose an employee...</option>
+                                        <?php
+                                        $employees_result->data_seek(0);
+                                        while ($emp = $employees_result->fetch_assoc()):
+                                            // Use HRIS full name if available, otherwise use employee_refs name
+                                            $display_name = !empty($emp['hris_full_name']) ? trim($emp['hris_full_name']) : ($emp['name'] ?? 'Unknown');
+
                                             // Ensure external_employee_no is in correct format (EMP001, EMP002, etc.)
                                             // Use employee_id to generate consistent format
                                             $employee_id = intval($emp['hris_employee_id'] ?? 0);
@@ -1094,23 +1003,23 @@ if ($attendance_payroll_adjustments && isset($attendance_payroll_adjustments['at
                                                     $employee_number = 'EMP' . str_pad(intval($matches[1]), 3, '0', STR_PAD_LEFT);
                                                 }
                                             }
-                                        ?>
-                                            <option value="<?php echo htmlspecialchars($employee_number); ?>" 
-                                                <?php echo ($employee_number == $selected_employee) ? 'selected' : ''; ?>>
-                                            <?php echo htmlspecialchars($display_name . ' (' . $employee_number . ')'); ?>
-                                        </option>
-                                    <?php endwhile; ?>
-                                </select>
+                                            ?>
+                                            <option value="<?php echo htmlspecialchars($employee_number); ?>" <?php echo ($employee_number == $selected_employee) ? 'selected' : ''; ?>>
+                                                <?php echo htmlspecialchars($display_name . ' (' . $employee_number . ')'); ?>
+                                            </option>
+                                        <?php endwhile; ?>
+                                    </select>
+                                </div>
                             </div>
-                        </div>
                             <div class="col-lg-7">
                                 <div class="selection-group">
                                     <label for="payroll-period-select" class="selection-label">
                                         <i class="fas fa-calendar-alt me-2"></i>Payroll Period
                                     </label>
                                     <div class="period-selectors">
-                                        <select class="form-select form-select-lg" id="payroll-month-select" onchange="changePayrollPeriod()">
-                                        <?php
+                                        <select class="form-select form-select-lg" id="payroll-month-select"
+                                            onchange="changePayrollPeriod()">
+                                            <?php
                                             // Query database for months with attendance or leave data from HRIS
                                             // This dynamically shows months that have actual data
                                             $months_query = "SELECT DISTINCT DATE_FORMAT(a.date, '%Y-%m') as month
@@ -1127,64 +1036,66 @@ if ($attendance_payroll_adjustments && isset($attendance_payroll_adjustments['at
                                                             SELECT DISTINCT DATE_FORMAT(ea.attendance_date, '%Y-%m') as month
                                                             FROM employee_attendance ea
                                                             ORDER BY month DESC";
-                                            
+
                                             $months_result = $conn->query($months_query);
                                             $available_months = [];
-                                            
+
                                             if ($months_result && $months_result->num_rows > 0) {
                                                 while ($month_row = $months_result->fetch_assoc()) {
                                                     $available_months[] = $month_row['month'];
                                                 }
                                             }
-                                            
+
                                             // Always include current month even if no data yet
-                                        $current_month = date('Y-m');
+                                            $current_month = date('Y-m');
                                             if (!in_array($current_month, $available_months)) {
                                                 array_unshift($available_months, $current_month);
                                             }
-                                            
+
                                             // Remove duplicates and sort descending
                                             $available_months = array_unique($available_months);
                                             rsort($available_months);
-                                            
+
                                             // If no months found, at least show current month
                                             if (empty($available_months)) {
                                                 $available_months = [$current_month];
                                             }
-                                            
+
                                             // Build dropdown options
                                             foreach ($available_months as $month_date) {
                                                 $month_label = date('F Y', strtotime($month_date . '-01'));
                                                 $selected = ($payroll_month == $month_date || (empty($payroll_month) && $month_date == $current_month)) ? 'selected' : '';
-                                            echo "<option value=\"$month_date\" $selected>$month_label</option>";
-                                        }
-                                        ?>
-                                    </select>
-                                        <select class="form-select form-select-lg" id="payroll-period-select" onchange="changePayrollPeriod()">
-                                        <?php
-                                        // Use current month if no month is selected
-                                        $display_month = !empty($payroll_month) ? $payroll_month : date('Y-m');
-                                        $last_day = date('t', strtotime($display_month . '-01'));
-                                        ?>
-                                        <option value="">Full Month</option>
-                                        <option value="first" <?php echo ($payroll_period === 'first') ? 'selected' : ''; ?>>1-15</option>
-                                        <option value="second" <?php echo ($payroll_period === 'second') ? 'selected' : ''; ?>>16-<?php echo $last_day; ?></option>
-                                    </select>
+                                                echo "<option value=\"$month_date\" $selected>$month_label</option>";
+                                            }
+                                            ?>
+                                        </select>
+                                        <select class="form-select form-select-lg" id="payroll-period-select"
+                                            onchange="changePayrollPeriod()">
+                                            <?php
+                                            // Use current month if no month is selected
+                                            $display_month = !empty($payroll_month) ? $payroll_month : date('Y-m');
+                                            $last_day = date('t', strtotime($display_month . '-01'));
+                                            ?>
+                                            <option value="">Full Month</option>
+                                            <option value="first" <?php echo ($payroll_period === 'first') ? 'selected' : ''; ?>>1-15</option>
+                                            <option value="second" <?php echo ($payroll_period === 'second') ? 'selected' : ''; ?>>16-<?php echo $last_day; ?></option>
+                                        </select>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                    <?php if ($payroll_period && $period_label): ?>
-                        <div class="selected-period-badge mt-2">
+                        <?php if ($payroll_period && $period_label): ?>
+                            <div class="selected-period-badge mt-2">
                                 <i class="fas fa-calendar-check me-2"></i>
-                            <span><strong>Selected Period:</strong> <?php echo htmlspecialchars($period_label); ?></span>
-                    </div>
-                    <?php endif; ?>
+                                <span><strong>Selected Period:</strong>
+                                    <?php echo htmlspecialchars($period_label); ?></span>
+                            </div>
+                        <?php endif; ?>
                     </div>
                 </div>
             </div>
         </div>
-        
+
         <!-- Employee Search and Filters -->
         <div class="search-filters-section mb-3">
             <div class="search-filters-card">
@@ -1195,7 +1106,8 @@ if ($attendance_payroll_adjustments && isset($attendance_payroll_adjustments['at
                         <div class="results-counter">
                             <span class="badge-employee-count">
                                 <i class="fas fa-user-check me-1"></i>
-                                <?php echo $employees_result->num_rows; ?> employee<?php echo $employees_result->num_rows != 1 ? 's' : ''; ?> available
+                                <?php echo $employees_result->num_rows; ?>
+                                employee<?php echo $employees_result->num_rows != 1 ? 's' : ''; ?> available
                             </span>
                         </div>
                     </div>
@@ -1204,117 +1116,121 @@ if ($attendance_payroll_adjustments && isset($attendance_payroll_adjustments['at
                         <i class="fas fa-chevron-down ms-1" id="filter-chevron"></i>
                     </button>
                 </div>
-                        
-                        <div class="filters-content" id="filters-content">
+
+                <div class="filters-content" id="filters-content">
                     <form method="GET" class="filters-form" id="employee-filter-form">
-                                <input type="hidden" name="employee" value="<?php echo htmlspecialchars($selected_employee); ?>">
-                        <input type="hidden" name="payroll_month" value="<?php echo htmlspecialchars($payroll_month); ?>">
-                        <input type="hidden" name="payroll_period" value="<?php echo htmlspecialchars($payroll_period); ?>">
-                                <div class="row g-3">
-                                    <!-- Search Bar -->
-                                    <div class="col-md-4">
+                        <input type="hidden" name="employee"
+                            value="<?php echo htmlspecialchars($selected_employee); ?>">
+                        <input type="hidden" name="payroll_month"
+                            value="<?php echo htmlspecialchars($payroll_month); ?>">
+                        <input type="hidden" name="payroll_period"
+                            value="<?php echo htmlspecialchars($payroll_period); ?>">
+                        <div class="row g-3">
+                            <!-- Search Bar -->
+                            <div class="col-md-4">
                                 <label for="search" class="form-label">
                                     <i class="fas fa-search me-1"></i>Search Employee
                                 </label>
-                                        <div class="input-group">
-                                            <span class="input-group-text">
-                                                <i class="fas fa-search"></i>
-                                            </span>
-                                            <input type="text" class="form-control" id="search" name="search" 
-                                           placeholder="Name, employee number, or ID..." 
-                                                   value="<?php echo htmlspecialchars($search_term); ?>">
-                                        </div>
-                                    </div>
-                                    
-                                    <!-- Position Filter -->
-                                    <div class="col-md-2">
+                                <div class="input-group">
+                                    <span class="input-group-text">
+                                        <i class="fas fa-search"></i>
+                                    </span>
+                                    <input type="text" class="form-control" id="search" name="search"
+                                        placeholder="Name, employee number, or ID..."
+                                        value="<?php echo htmlspecialchars($search_term); ?>">
+                                </div>
+                            </div>
+
+                            <!-- Position Filter -->
+                            <div class="col-md-2">
                                 <label for="position" class="form-label">
                                     <i class="fas fa-briefcase me-1"></i>Position
                                 </label>
-                                        <select class="form-select" id="position" name="position">
-                                            <option value="">All Positions</option>
-                                            <?php 
-                                            $positions_result->data_seek(0);
-                                            while($pos = $positions_result->fetch_assoc()): 
-                                            ?>
-                                                <option value="<?php echo htmlspecialchars($pos['position']); ?>" 
-                                                        <?php echo ($pos['position'] == $filter_position) ? 'selected' : ''; ?>>
-                                                    <?php echo htmlspecialchars($pos['position']); ?>
-                                                </option>
-                                            <?php endwhile; ?>
-                                        </select>
-                                    </div>
-                                    
-                                    <!-- Department Filter -->
-                                    <div class="col-md-2">
+                                <select class="form-select" id="position" name="position">
+                                    <option value="">All Positions</option>
+                                    <?php
+                                    $positions_result->data_seek(0);
+                                    while ($pos = $positions_result->fetch_assoc()):
+                                        ?>
+                                        <option value="<?php echo htmlspecialchars($pos['position']); ?>" <?php echo ($pos['position'] == $filter_position) ? 'selected' : ''; ?>>
+                                            <?php echo htmlspecialchars($pos['position']); ?>
+                                        </option>
+                                    <?php endwhile; ?>
+                                </select>
+                            </div>
+
+                            <!-- Department Filter -->
+                            <div class="col-md-2">
                                 <label for="department" class="form-label">
                                     <i class="fas fa-building me-1"></i>Department
                                 </label>
-                                        <select class="form-select" id="department" name="department">
-                                            <option value="">All Departments</option>
-                                            <?php 
-                                            $departments_result->data_seek(0);
-                                            while($dept = $departments_result->fetch_assoc()): 
-                                            ?>
-                                                <option value="<?php echo htmlspecialchars($dept['department']); ?>" 
-                                                        <?php echo ($dept['department'] == $filter_department) ? 'selected' : ''; ?>>
-                                                    <?php echo htmlspecialchars($dept['department']); ?>
-                                                </option>
-                                            <?php endwhile; ?>
-                                        </select>
-                                    </div>
-                                    
-                                    <!-- Employment Type Filter -->
-                                    <div class="col-md-2">
+                                <select class="form-select" id="department" name="department">
+                                    <option value="">All Departments</option>
+                                    <?php
+                                    $departments_result->data_seek(0);
+                                    while ($dept = $departments_result->fetch_assoc()):
+                                        ?>
+                                        <option value="<?php echo htmlspecialchars($dept['department']); ?>" <?php echo ($dept['department'] == $filter_department) ? 'selected' : ''; ?>>
+                                            <?php echo htmlspecialchars($dept['department']); ?>
+                                        </option>
+                                    <?php endwhile; ?>
+                                </select>
+                            </div>
+
+                            <!-- Employment Type Filter -->
+                            <div class="col-md-2">
                                 <label for="type" class="form-label">
                                     <i class="fas fa-user-tag me-1"></i>Employment Type
                                 </label>
-                                        <select class="form-select" id="type" name="type">
-                                            <option value="">All Types</option>
-                                            <?php 
-                                            $types_result->data_seek(0);
-                                            while($type = $types_result->fetch_assoc()): 
-                                            ?>
-                                                <option value="<?php echo htmlspecialchars($type['employment_type']); ?>" 
-                                                        <?php echo ($type['employment_type'] == $filter_type) ? 'selected' : ''; ?>>
-                                                    <?php echo ucfirst($type['employment_type']); ?>
-                                                </option>
-                                            <?php endwhile; ?>
-                                        </select>
-                                    </div>
-                                    
-                                    <!-- Action Buttons -->
-                                    <div class="col-md-2">
-                                        <label class="form-label">&nbsp;</label>
-                                        <div class="d-flex gap-2">
+                                <select class="form-select" id="type" name="type">
+                                    <option value="">All Types</option>
+                                    <?php
+                                    $types_result->data_seek(0);
+                                    while ($type = $types_result->fetch_assoc()):
+                                        ?>
+                                        <option value="<?php echo htmlspecialchars($type['employment_type']); ?>" <?php echo ($type['employment_type'] == $filter_type) ? 'selected' : ''; ?>>
+                                            <?php echo ucfirst($type['employment_type']); ?>
+                                        </option>
+                                    <?php endwhile; ?>
+                                </select>
+                            </div>
+
+                            <!-- Action Buttons -->
+                            <div class="col-md-2">
+                                <label class="form-label">&nbsp;</label>
+                                <div class="d-flex gap-2">
                                     <button type="submit" class="btn btn-primary w-100">
                                         <i class="fas fa-search me-1"></i>Apply
-                                            </button>
-                                    <a href="?employee=<?php echo htmlspecialchars($selected_employee); ?>&payroll_month=<?php echo htmlspecialchars($payroll_month); ?>&payroll_period=<?php echo htmlspecialchars($payroll_period); ?>" class="btn btn-outline-secondary">
+                                    </button>
+                                    <a href="?employee=<?php echo htmlspecialchars($selected_employee); ?>&payroll_month=<?php echo htmlspecialchars($payroll_month); ?>&payroll_period=<?php echo htmlspecialchars($payroll_period); ?>"
+                                        class="btn btn-outline-secondary">
                                         <i class="fas fa-times"></i>
-                                            </a>
-                                        </div>
-                                    </div>
+                                    </a>
                                 </div>
-                            </form>
+                            </div>
                         </div>
-                    </div>
+                    </form>
                 </div>
+            </div>
+        </div>
         <!-- Tab Navigation -->
         <div class="payroll-tabs-container">
             <ul class="nav nav-pills payroll-nav-tabs" id="payrollTabs" role="tablist">
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link active" id="employee-details-tab" data-bs-toggle="pill" data-bs-target="#employee-details" type="button" role="tab">
+                    <button class="nav-link active" id="employee-details-tab" data-bs-toggle="pill"
+                        data-bs-target="#employee-details" type="button" role="tab">
                         Employee Details
                     </button>
                 </li>
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="tax-mgmt-tab" data-bs-toggle="pill" data-bs-target="#tax-mgmt" type="button" role="tab">
+                    <button class="nav-link" id="tax-mgmt-tab" data-bs-toggle="pill" data-bs-target="#tax-mgmt"
+                        type="button" role="tab">
                         Tax Management
                     </button>
                 </li>
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="overall-tab" data-bs-toggle="pill" data-bs-target="#overall" type="button" role="tab">
+                    <button class="nav-link" id="overall-tab" data-bs-toggle="pill" data-bs-target="#overall"
+                        type="button" role="tab">
                         Overall
                     </button>
                 </li>
@@ -1323,18 +1239,18 @@ if ($attendance_payroll_adjustments && isset($attendance_payroll_adjustments['at
 
         <!-- Tab Content -->
         <div class="tab-content" id="payrollTabsContent">
-            
+
             <!-- EMPLOYEE DETAILS TAB -->
             <div class="tab-pane fade show active" id="employee-details" role="tabpanel">
                 <div class="payroll-content-card">
                     <h3 class="payroll-section-title">Employee Details</h3>
-                    
-                    <?php if ($current_employee): 
+
+                    <?php if ($current_employee):
                         // Calculate salary rates using the same logic as payroll calculation API
                         $base_salary = floatval($current_employee['base_monthly_salary'] ?? 0);
                         $working_days_per_month = 22; // Standard Philippine working days
                         $hours_per_day = 8;
-                        
+
                         // Use period-based calculation if attendance adjustments are available
                         if ($attendance_payroll_adjustments && isset($attendance_payroll_adjustments['salary_adjustments'])) {
                             $adj = $attendance_payroll_adjustments['salary_adjustments'];
@@ -1344,8 +1260,8 @@ if ($attendance_payroll_adjustments && isset($attendance_payroll_adjustments['at
                                 $hourly_rate = isset($adj['hourly_rate']) ? $adj['hourly_rate'] : ($daily_rate / $hours_per_day);
                             } else {
                                 // Fallback to monthly calculation
-                        $daily_rate = $base_salary > 0 ? $base_salary / $working_days_per_month : 0;
-                        $hourly_rate = $daily_rate > 0 ? $daily_rate / $hours_per_day : 0;
+                                $daily_rate = $base_salary > 0 ? $base_salary / $working_days_per_month : 0;
+                                $hourly_rate = $daily_rate > 0 ? $daily_rate / $hours_per_day : 0;
                             }
                         } else {
                             // Calculate based on selected period
@@ -1354,13 +1270,13 @@ if ($attendance_payroll_adjustments && isset($attendance_payroll_adjustments['at
                                 $year = date('Y', strtotime($payroll_month . '-01'));
                                 $month = date('m', strtotime($payroll_month . '-01'));
                                 $last_day = date('t', strtotime($payroll_month . '-01'));
-                                
+
                                 if ($payroll_period === 'first') {
                                     $period_days = 15;
                                 } else {
                                     $period_days = $last_day - 15;
                                 }
-                                
+
                                 $prorated_salary = ($base_salary / $last_day) * $period_days;
                                 $daily_rate = $prorated_salary / $period_days;
                                 $hourly_rate = $daily_rate / $hours_per_day;
@@ -1370,7 +1286,7 @@ if ($attendance_payroll_adjustments && isset($attendance_payroll_adjustments['at
                                 $hourly_rate = $daily_rate > 0 ? $daily_rate / $hours_per_day : 0;
                             }
                         }
-                    ?>
+                        ?>
                         <div class="employee-details-container">
                             <div class="employee-details-main-layout">
                                 <!-- Left Column: Photo + Employee Info -->
@@ -1380,126 +1296,138 @@ if ($attendance_payroll_adjustments && isset($attendance_payroll_adjustments['at
                                             <i class="fas fa-user-circle"></i>
                                         </div>
                                         <div class="employee-status">
-                                            <span class="status-badge status-<?php echo strtolower($current_employee['employment_type']); ?>">
+                                            <span
+                                                class="status-badge status-<?php echo strtolower($current_employee['employment_type']); ?>">
                                                 <?php echo strtoupper($current_employee['employment_type']); ?>
                                             </span>
                                         </div>
                                     </div>
-                                    
+
                                     <div class="employee-info-section">
                                         <table class="employee-info-table">
                                             <tr>
                                                 <td>Employee Number</td>
-                                                <td><?php echo htmlspecialchars($current_employee['external_employee_no']); ?></td>
+                                                <td><?php echo htmlspecialchars($current_employee['external_employee_no']); ?>
+                                                </td>
                                             </tr>
                                             <tr>
                                                 <td>Full Name</td>
                                                 <td><?php echo htmlspecialchars($current_employee['name'] ?? 'N/A'); ?></td>
                                             </tr>
                                             <?php if (!empty($current_employee['first_name'])): ?>
-                                            <tr>
-                                                <td>First Name</td>
-                                                <td><?php echo htmlspecialchars($current_employee['first_name']); ?></td>
-                                            </tr>
+                                                <tr>
+                                                    <td>First Name</td>
+                                                    <td><?php echo htmlspecialchars($current_employee['first_name']); ?></td>
+                                                </tr>
                                             <?php endif; ?>
                                             <?php if (!empty($current_employee['middle_name'])): ?>
-                                            <tr>
-                                                <td>Middle Name</td>
-                                                <td><?php echo htmlspecialchars($current_employee['middle_name']); ?></td>
-                                            </tr>
+                                                <tr>
+                                                    <td>Middle Name</td>
+                                                    <td><?php echo htmlspecialchars($current_employee['middle_name']); ?></td>
+                                                </tr>
                                             <?php endif; ?>
                                             <?php if (!empty($current_employee['last_name'])): ?>
-                                            <tr>
-                                                <td>Last Name</td>
-                                                <td><?php echo htmlspecialchars($current_employee['last_name']); ?></td>
-                                            </tr>
+                                                <tr>
+                                                    <td>Last Name</td>
+                                                    <td><?php echo htmlspecialchars($current_employee['last_name']); ?></td>
+                                                </tr>
                                             <?php endif; ?>
                                             <tr>
                                                 <td>Position</td>
-                                                <td><?php echo htmlspecialchars($current_employee['position'] ?? 'N/A'); ?></td>
+                                                <td><?php echo htmlspecialchars($current_employee['position'] ?? 'N/A'); ?>
+                                                </td>
                                             </tr>
                                             <tr>
                                                 <td>Department</td>
-                                                <td><?php echo htmlspecialchars($current_employee['department'] ?? 'N/A'); ?></td>
+                                                <td><?php echo htmlspecialchars($current_employee['department'] ?? 'N/A'); ?>
+                                                </td>
                                             </tr>
                                             <tr>
                                                 <td>Employment Type</td>
-                                                <td><?php echo ucfirst($current_employee['employment_type'] ?? 'N/A'); ?></td>
+                                                <td><?php echo ucfirst($current_employee['employment_type'] ?? 'N/A'); ?>
+                                                </td>
                                             </tr>
                                             <?php if (!empty($current_employee['employment_status'])): ?>
-                                            <tr>
-                                                <td>Employment Status</td>
-                                                <td><?php echo ucfirst($current_employee['employment_status']); ?></td>
-                                            </tr>
+                                                <tr>
+                                                    <td>Employment Status</td>
+                                                    <td><?php echo ucfirst($current_employee['employment_status']); ?></td>
+                                                </tr>
                                             <?php endif; ?>
                                             <?php if (!empty($current_employee['gender'])): ?>
-                                            <tr>
-                                                <td>Gender</td>
-                                                <td><?php echo ucfirst($current_employee['gender']); ?></td>
-                                            </tr>
+                                                <tr>
+                                                    <td>Gender</td>
+                                                    <td><?php echo ucfirst($current_employee['gender']); ?></td>
+                                                </tr>
                                             <?php endif; ?>
                                             <?php if (!empty($current_employee['birth_date'])): ?>
-                                            <tr>
-                                                <td>Birth Date</td>
-                                                <td><?php echo date('F d, Y', strtotime($current_employee['birth_date'])); ?></td>
-                                            </tr>
+                                                <tr>
+                                                    <td>Birth Date</td>
+                                                    <td><?php echo date('F d, Y', strtotime($current_employee['birth_date'])); ?>
+                                                    </td>
+                                                </tr>
                                             <?php endif; ?>
                                             <?php if (!empty($current_employee['email'])): ?>
-                                            <tr>
-                                                <td>Email</td>
-                                                <td><?php echo htmlspecialchars($current_employee['email']); ?></td>
-                                            </tr>
+                                                <tr>
+                                                    <td>Email</td>
+                                                    <td><?php echo htmlspecialchars($current_employee['email']); ?></td>
+                                                </tr>
                                             <?php endif; ?>
                                             <?php if (!empty($current_employee['contact_number'])): ?>
-                                            <tr>
-                                                <td>Contact Number</td>
-                                                <td><?php echo htmlspecialchars($current_employee['contact_number']); ?></td>
-                                            </tr>
+                                                <tr>
+                                                    <td>Contact Number</td>
+                                                    <td><?php echo htmlspecialchars($current_employee['contact_number']); ?>
+                                                    </td>
+                                                </tr>
                                             <?php endif; ?>
                                             <?php if (!empty($current_employee['address'])): ?>
-                                            <tr>
-                                                <td>Address</td>
-                                                <td><?php echo htmlspecialchars($current_employee['address']); ?></td>
-                                            </tr>
+                                                <tr>
+                                                    <td>Address</td>
+                                                    <td><?php echo htmlspecialchars($current_employee['address']); ?></td>
+                                                </tr>
                                             <?php endif; ?>
                                             <?php if (!empty($current_employee['hire_date'])): ?>
-                                            <tr>
-                                                <td>Hire Date (HRIS)</td>
-                                                <td><?php echo date('F d, Y', strtotime($current_employee['hire_date'])); ?></td>
-                                            </tr>
+                                                <tr>
+                                                    <td>Hire Date (HRIS)</td>
+                                                    <td><?php echo date('F d, Y', strtotime($current_employee['hire_date'])); ?>
+                                                    </td>
+                                                </tr>
                                             <?php endif; ?>
                                             <tr>
                                                 <td>Date of Joining</td>
-                                                <td><?php echo date('F d, Y', strtotime($current_employee['created_at'])); ?></td>
+                                                <td><?php echo date('F d, Y', strtotime($current_employee['created_at'])); ?>
+                                                </td>
                                             </tr>
                                             <?php if (!empty($current_employee['contract_type'])): ?>
-                                            <tr>
-                                                <td>Contract Type</td>
-                                                <td><?php echo htmlspecialchars($current_employee['contract_type']); ?></td>
-                                            </tr>
+                                                <tr>
+                                                    <td>Contract Type</td>
+                                                    <td><?php echo htmlspecialchars($current_employee['contract_type']); ?></td>
+                                                </tr>
                                             <?php endif; ?>
                                             <?php if (!empty($current_employee['contract_start_date'])): ?>
-                                            <tr>
-                                                <td>Contract Start</td>
-                                                <td><?php echo date('F d, Y', strtotime($current_employee['contract_start_date'])); ?></td>
-                                            </tr>
+                                                <tr>
+                                                    <td>Contract Start</td>
+                                                    <td><?php echo date('F d, Y', strtotime($current_employee['contract_start_date'])); ?>
+                                                    </td>
+                                                </tr>
                                             <?php endif; ?>
                                             <?php if (!empty($current_employee['contract_end_date'])): ?>
-                                            <tr>
-                                                <td>Contract End</td>
-                                                <td><?php echo date('F d, Y', strtotime($current_employee['contract_end_date'])); ?></td>
-                                            </tr>
+                                                <tr>
+                                                    <td>Contract End</td>
+                                                    <td><?php echo date('F d, Y', strtotime($current_employee['contract_end_date'])); ?>
+                                                    </td>
+                                                </tr>
                                             <?php endif; ?>
                                             <?php if (!empty($current_employee['contract_benefits'])): ?>
-                                            <tr>
-                                                <td>Contract Benefits</td>
-                                                <td><?php echo htmlspecialchars($current_employee['contract_benefits']); ?></td>
-                                            </tr>
+                                                <tr>
+                                                    <td>Contract Benefits</td>
+                                                    <td><?php echo htmlspecialchars($current_employee['contract_benefits']); ?>
+                                                    </td>
+                                                </tr>
                                             <?php endif; ?>
                                         </table>
                                     </div>
                                 </div>
-                                
+
                                 <!-- Right Column: Salary Cards -->
                                 <div class="employee-right-column">
                                     <!-- Salary Rates Card -->
@@ -1520,77 +1448,84 @@ if ($attendance_payroll_adjustments && isset($attendance_payroll_adjustments['at
                                             </tr>
                                         </table>
                                     </div>
-                                    
+
                                     <!-- Payroll Impact Card -->
-                                    <?php if ($attendance_payroll_adjustments): 
+                                    <?php if ($attendance_payroll_adjustments):
                                         $adj = $attendance_payroll_adjustments['salary_adjustments'];
                                         $att_summary = $attendance_payroll_adjustments['attendance_summary'];
                                         $has_impact = $adj['absent_deduction'] > 0 || $adj['half_day_deduction'] > 0 || $adj['late_penalty'] > 0 || $adj['overtime_pay'] > 0;
-                                    ?>
-                                    <div class="payroll-impact-card">
-                                        <div class="payroll-impact-header">
-                                            <i class="fas fa-info-circle"></i>
-                                            <span>Payroll Impact</span>
+                                        ?>
+                                        <div class="payroll-impact-card">
+                                            <div class="payroll-impact-header">
+                                                <i class="fas fa-info-circle"></i>
+                                                <span>Payroll Impact</span>
+                                            </div>
+                                            <div class="payroll-impact-content">
+                                                <!-- Always show Present Days Pay (Basic Salary earned) -->
+                                                <?php if ($adj['basic_salary'] > 0): ?>
+                                                    <div class="payroll-impact-item">
+                                                        <span class="impact-label text-primary">
+                                                            <i class="fas fa-calendar-check me-1"></i>
+                                                            Present Days Pay (<?php echo $att_summary['present_days']; ?> days)
+                                                        </span>
+                                                        <span
+                                                            class="impact-amount text-primary">₱<?php echo number_format($adj['basic_salary'], 2); ?></span>
+                                                    </div>
+                                                <?php endif; ?>
+
+                                                <?php if (!$has_impact && $adj['basic_salary'] > 0): ?>
+                                                    <div class="payroll-impact-item">
+                                                        <i class="fas fa-check-circle text-success"></i>
+                                                        <span class="text-success">Perfect attendance - no deductions</span>
+                                                    </div>
+                                                <?php elseif ($adj['basic_salary'] == 0 && !$has_impact): ?>
+                                                    <div class="payroll-impact-item">
+                                                        <i class="fas fa-info-circle text-muted"></i>
+                                                        <span class="text-muted">No attendance records for this period</span>
+                                                    </div>
+                                                <?php else: ?>
+                                                    <?php if ($adj['overtime_pay'] > 0): ?>
+                                                        <div class="payroll-impact-item">
+                                                            <span class="impact-label text-success">Overtime Pay</span>
+                                                            <span
+                                                                class="impact-amount text-success">+₱<?php echo number_format($adj['overtime_pay'], 2); ?></span>
+                                                        </div>
+                                                    <?php endif; ?>
+                                                    <?php if ($adj['absent_deduction'] > 0): ?>
+                                                        <div class="payroll-impact-item">
+                                                            <span class="impact-label text-danger">Absent Deduction</span>
+                                                            <span
+                                                                class="impact-amount text-danger">-₱<?php echo number_format($adj['absent_deduction'], 2); ?></span>
+                                                        </div>
+                                                    <?php endif; ?>
+                                                    <?php if ($adj['half_day_deduction'] > 0): ?>
+                                                        <div class="payroll-impact-item">
+                                                            <span class="impact-label text-warning">Half Day Deduction</span>
+                                                            <span
+                                                                class="impact-amount text-warning">-₱<?php echo number_format($adj['half_day_deduction'], 2); ?></span>
+                                                        </div>
+                                                    <?php endif; ?>
+                                                    <?php if ($adj['late_penalty'] > 0): ?>
+                                                        <div class="payroll-impact-item">
+                                                            <span class="impact-label text-danger">Late Penalty</span>
+                                                            <span
+                                                                class="impact-amount text-danger">-₱<?php echo number_format($adj['late_penalty'], 2); ?></span>
+                                                        </div>
+                                                    <?php endif; ?>
+                                                <?php endif; ?>
+                                            </div>
                                         </div>
-                                        <div class="payroll-impact-content">
-                                            <!-- Always show Present Days Pay (Basic Salary earned) -->
-                                            <?php if ($adj['basic_salary'] > 0): ?>
-                                            <div class="payroll-impact-item">
-                                                <span class="impact-label text-primary">
-                                                    <i class="fas fa-calendar-check me-1"></i>
-                                                    Present Days Pay (<?php echo $att_summary['present_days']; ?> days)
-                                                </span>
-                                                <span class="impact-amount text-primary">₱<?php echo number_format($adj['basic_salary'], 2); ?></span>
-                                            </div>
-                                            <?php endif; ?>
-                                            
-                                            <?php if (!$has_impact && $adj['basic_salary'] > 0): ?>
-                                            <div class="payroll-impact-item">
-                                                <i class="fas fa-check-circle text-success"></i>
-                                                <span class="text-success">Perfect attendance - no deductions</span>
-                                            </div>
-                                            <?php elseif ($adj['basic_salary'] == 0 && !$has_impact): ?>
-                                            <div class="payroll-impact-item">
-                                                <i class="fas fa-info-circle text-muted"></i>
-                                                <span class="text-muted">No attendance records for this period</span>
-                                            </div>
-                                            <?php else: ?>
-                                                <?php if ($adj['overtime_pay'] > 0): ?>
-                                                <div class="payroll-impact-item">
-                                                    <span class="impact-label text-success">Overtime Pay</span>
-                                                    <span class="impact-amount text-success">+₱<?php echo number_format($adj['overtime_pay'], 2); ?></span>
-                                                </div>
-                                                <?php endif; ?>
-                                                <?php if ($adj['absent_deduction'] > 0): ?>
-                                                <div class="payroll-impact-item">
-                                                    <span class="impact-label text-danger">Absent Deduction</span>
-                                                    <span class="impact-amount text-danger">-₱<?php echo number_format($adj['absent_deduction'], 2); ?></span>
-                                                </div>
-                                                <?php endif; ?>
-                                                <?php if ($adj['half_day_deduction'] > 0): ?>
-                                                <div class="payroll-impact-item">
-                                                    <span class="impact-label text-warning">Half Day Deduction</span>
-                                                    <span class="impact-amount text-warning">-₱<?php echo number_format($adj['half_day_deduction'], 2); ?></span>
-                                                </div>
-                                                <?php endif; ?>
-                                                <?php if ($adj['late_penalty'] > 0): ?>
-                                                <div class="payroll-impact-item">
-                                                    <span class="impact-label text-danger">Late Penalty</span>
-                                                    <span class="impact-amount text-danger">-₱<?php echo number_format($adj['late_penalty'], 2); ?></span>
-                                                </div>
-                                                <?php endif; ?>
-                                            <?php endif; ?>
-                                        </div>
-                                    </div>
                                     <?php endif; ?>
                                 </div>
                             </div>
                         </div>
-                        
+
                         <!-- Attendance Summary Cards -->
                         <div class="attendance-summary-section">
-                            <h5 class="section-subtitle">Attendance Summary - <?php echo $period_label ? htmlspecialchars($period_label) : date('F Y', strtotime($display_month . '-01')); ?></h5>
-                            
+                            <h5 class="section-subtitle">Attendance Summary -
+                                <?php echo $period_label ? htmlspecialchars($period_label) : date('F Y', strtotime($display_month . '-01')); ?>
+                            </h5>
+
                             <div class="row g-3 mb-4">
                                 <div class="col-md-3">
                                     <div class="attendance-summary-card present">
@@ -1598,7 +1533,8 @@ if ($attendance_payroll_adjustments && isset($attendance_payroll_adjustments['at
                                             <i class="fas fa-check-circle"></i>
                                         </div>
                                         <div class="summary-content">
-                                            <div class="summary-number"><?php echo $attendance_summary['present_days']; ?></div>
+                                            <div class="summary-number"><?php echo $attendance_summary['present_days']; ?>
+                                            </div>
                                             <div class="summary-label">Present Days</div>
                                         </div>
                                     </div>
@@ -1609,7 +1545,8 @@ if ($attendance_payroll_adjustments && isset($attendance_payroll_adjustments['at
                                             <i class="fas fa-times-circle"></i>
                                         </div>
                                         <div class="summary-content">
-                                            <div class="summary-number"><?php echo $attendance_summary['absent_days']; ?></div>
+                                            <div class="summary-number"><?php echo $attendance_summary['absent_days']; ?>
+                                            </div>
                                             <div class="summary-label">Absent Days</div>
                                         </div>
                                     </div>
@@ -1620,7 +1557,8 @@ if ($attendance_payroll_adjustments && isset($attendance_payroll_adjustments['at
                                             <i class="fas fa-clock"></i>
                                         </div>
                                         <div class="summary-content">
-                                            <div class="summary-number"><?php echo $attendance_summary['late_days']; ?></div>
+                                            <div class="summary-number"><?php echo $attendance_summary['late_days']; ?>
+                                            </div>
                                             <div class="summary-label">Late Days</div>
                                         </div>
                                     </div>
@@ -1631,13 +1569,14 @@ if ($attendance_payroll_adjustments && isset($attendance_payroll_adjustments['at
                                             <i class="fas fa-calendar-times"></i>
                                         </div>
                                         <div class="summary-content">
-                                            <div class="summary-number"><?php echo $attendance_summary['leave_days']; ?></div>
+                                            <div class="summary-number"><?php echo $attendance_summary['leave_days']; ?>
+                                            </div>
                                             <div class="summary-label">Leave Days</div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                            
+
                             <!-- Hours Summary -->
                             <div class="row g-3 mb-4">
                                 <div class="col-md-4">
@@ -1646,7 +1585,8 @@ if ($attendance_payroll_adjustments && isset($attendance_payroll_adjustments['at
                                             <i class="fas fa-clock"></i>
                                         </div>
                                         <div class="hours-content">
-                                            <div class="hours-number"><?php echo number_format($attendance_summary['total_hours'], 1); ?></div>
+                                            <div class="hours-number">
+                                                <?php echo number_format($attendance_summary['total_hours'], 1); ?></div>
                                             <div class="hours-label">Total Hours</div>
                                         </div>
                                     </div>
@@ -1657,7 +1597,8 @@ if ($attendance_payroll_adjustments && isset($attendance_payroll_adjustments['at
                                             <i class="fas fa-business-time"></i>
                                         </div>
                                         <div class="hours-content">
-                                            <div class="hours-number"><?php echo number_format($attendance_summary['regular_hours'], 1); ?></div>
+                                            <div class="hours-number">
+                                                <?php echo number_format($attendance_summary['regular_hours'], 1); ?></div>
                                             <div class="hours-label">Regular Hours</div>
                                         </div>
                                     </div>
@@ -1668,14 +1609,15 @@ if ($attendance_payroll_adjustments && isset($attendance_payroll_adjustments['at
                                             <i class="fas fa-plus-circle"></i>
                                         </div>
                                         <div class="hours-content">
-                                            <div class="hours-number"><?php echo number_format($attendance_summary['overtime_hours'], 1); ?></div>
+                                            <div class="hours-number">
+                                                <?php echo number_format($attendance_summary['overtime_hours'], 1); ?></div>
                                             <div class="hours-label">Overtime Hours</div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                        
+
                         <!-- Attendance Records Table -->
                         <div class="attendance-records-section">
                             <div class="section-header">
@@ -1683,12 +1625,14 @@ if ($attendance_payroll_adjustments && isset($attendance_payroll_adjustments['at
                                 <div class="attendance-filters">
                                     <select class="form-select form-select-sm" id="attendance-month-filter">
                                         <option value="<?php echo date('Y-m'); ?>" <?php echo ($display_month == date('Y-m')) ? 'selected' : ''; ?>><?php echo date('F Y'); ?></option>
-                                        <option value="<?php echo date('Y-m', strtotime('-1 month')); ?>" <?php echo ($display_month == date('Y-m', strtotime('-1 month'))) ? 'selected' : ''; ?>><?php echo date('F Y', strtotime('-1 month')); ?></option>
-                                        <option value="<?php echo date('Y-m', strtotime('-2 months')); ?>" <?php echo ($display_month == date('Y-m', strtotime('-2 months'))) ? 'selected' : ''; ?>><?php echo date('F Y', strtotime('-2 months')); ?></option>
+                                        <option value="<?php echo date('Y-m', strtotime('-1 month')); ?>" <?php echo ($display_month == date('Y-m', strtotime('-1 month'))) ? 'selected' : ''; ?>>
+                                            <?php echo date('F Y', strtotime('-1 month')); ?></option>
+                                        <option value="<?php echo date('Y-m', strtotime('-2 months')); ?>" <?php echo ($display_month == date('Y-m', strtotime('-2 months'))) ? 'selected' : ''; ?>>
+                                            <?php echo date('F Y', strtotime('-2 months')); ?></option>
                                     </select>
                                 </div>
                             </div>
-                            
+
                             <div class="table-container">
                                 <table class="attendance-table">
                                     <thead>
@@ -1712,14 +1656,16 @@ if ($attendance_payroll_adjustments && isset($attendance_payroll_adjustments['at
                                                     <td><?php echo date('D', strtotime($record['date'])); ?></td>
                                                     <td>
                                                         <?php if ($record['time_in']): ?>
-                                                            <span class="time-badge"><?php echo date('H:i', strtotime($record['time_in'])); ?></span>
+                                                            <span
+                                                                class="time-badge"><?php echo date('H:i', strtotime($record['time_in'])); ?></span>
                                                         <?php else: ?>
                                                             <span class="time-badge absent">--:--</span>
                                                         <?php endif; ?>
                                                     </td>
                                                     <td>
                                                         <?php if ($record['time_out']): ?>
-                                                            <span class="time-badge"><?php echo date('H:i', strtotime($record['time_out'])); ?></span>
+                                                            <span
+                                                                class="time-badge"><?php echo date('H:i', strtotime($record['time_out'])); ?></span>
                                                         <?php else: ?>
                                                             <span class="time-badge absent">--:--</span>
                                                         <?php endif; ?>
@@ -1730,11 +1676,13 @@ if ($attendance_payroll_adjustments && isset($attendance_payroll_adjustments['at
                                                         </span>
                                                     </td>
                                                     <td class="text-center">
-                                                        <span class="hours-badge"><?php echo number_format($record['hours_worked'], 1); ?>h</span>
+                                                        <span
+                                                            class="hours-badge"><?php echo number_format($record['hours_worked'], 1); ?>h</span>
                                                     </td>
                                                     <td class="text-center">
                                                         <?php if ($record['overtime_hours'] > 0): ?>
-                                                            <span class="overtime-badge"><?php echo number_format($record['overtime_hours'], 1); ?>h</span>
+                                                            <span
+                                                                class="overtime-badge"><?php echo number_format($record['overtime_hours'], 1); ?>h</span>
                                                         <?php else: ?>
                                                             <span class="text-muted">--</span>
                                                         <?php endif; ?>
@@ -1763,7 +1711,7 @@ if ($attendance_payroll_adjustments && isset($attendance_payroll_adjustments['at
                                 </table>
                             </div>
                         </div>
-                        
+
                         <!-- Attendance Statistics -->
                         <div class="attendance-statistics">
                             <h5 class="section-subtitle">Attendance Statistics</h5>
@@ -1775,11 +1723,11 @@ if ($attendance_payroll_adjustments && isset($attendance_payroll_adjustments['at
                                         </div>
                                         <div class="stat-content">
                                             <div class="stat-number">
-                                                <?php 
-                                                $attendance_rate = $attendance_summary['total_days'] > 0 
-                                                    ? round(($attendance_summary['present_days'] / $attendance_summary['total_days']) * 100, 1) 
-                                                    : 0; 
-                                                echo $attendance_rate; 
+                                                <?php
+                                                $attendance_rate = $attendance_summary['total_days'] > 0
+                                                    ? round(($attendance_summary['present_days'] / $attendance_summary['total_days']) * 100, 1)
+                                                    : 0;
+                                                echo $attendance_rate;
                                                 ?>%
                                             </div>
                                             <div class="stat-label">Attendance Rate</div>
@@ -1827,7 +1775,7 @@ if ($attendance_payroll_adjustments && isset($attendance_payroll_adjustments['at
                         $tax_total_contributions = 0;
                         $tax_total_deductions = 0;
                         $tax_net_pay_after_deductions = 0;
-                        
+
                         // Only compute tax values if there's actual attendance data
                         if ($has_attendance_data) {
                             // Calculate monthly income (GROSS salary = basic_salary + overtime_pay)
@@ -1841,12 +1789,12 @@ if ($attendance_payroll_adjustments && isset($attendance_payroll_adjustments['at
                                     $tax_monthly_income = $adj['basic_salary'] + $adj['overtime_pay'];
                                 }
                             }
-                            
+
                             // Fallback to base salary if no attendance adjustments but has attendance data
                             if ($tax_monthly_income == 0) {
                                 if ($earnings_result && $earnings_result->num_rows > 0) {
                                     $earnings_result->data_seek(0);
-                                    while($earning = $earnings_result->fetch_assoc()) {
+                                    while ($earning = $earnings_result->fetch_assoc()) {
                                         if ($earning['code'] === 'BASIC') {
                                             $tax_monthly_income = floatval($earning['value']);
                                             break;
@@ -1854,23 +1802,23 @@ if ($attendance_payroll_adjustments && isset($attendance_payroll_adjustments['at
                                     }
                                     $earnings_result->data_seek(0);
                                 }
-                                
+
                                 // If still no basic salary found, use position salary
                                 if ($tax_monthly_income == 0) {
                                     $tax_monthly_income = $position_salary > 0 ? $position_salary : 0;
                                 }
                             }
-                            
+
                             // For tax calculations:
                             // - Monthly Income (display) = GROSS salary (basic + overtime)
                             // - Contributions (SSS, PhilHealth, Pag-IBIG) are calculated on BASE monthly salary
                             // - Withholding Tax is calculated on (GROSS salary - contributions)
-                            
+                        
                             // Get base monthly salary for contribution calculations
                             $tax_basic_salary = $position_salary > 0 ? $position_salary : 0;
                             if ($tax_basic_salary == 0 && $earnings_result) {
                                 $earnings_result->data_seek(0);
-                                while($earning = $earnings_result->fetch_assoc()) {
+                                while ($earning = $earnings_result->fetch_assoc()) {
                                     if ($earning['code'] === 'BASIC') {
                                         $tax_basic_salary = floatval($earning['value']);
                                         break;
@@ -1878,21 +1826,21 @@ if ($attendance_payroll_adjustments && isset($attendance_payroll_adjustments['at
                                 }
                                 $earnings_result->data_seek(0);
                             }
-                            
+
                             // If we have attendance adjustments, get the base salary from there
                             if ($attendance_payroll_adjustments && isset($attendance_payroll_adjustments['salary_adjustments']['prorated_base_salary'])) {
                                 $tax_basic_salary = $attendance_payroll_adjustments['salary_adjustments']['prorated_base_salary'];
                             }
-                            
+
                             // Calculate mandatory contributions using 2025 rates (based on BASE salary)
                             $tax_sss_contrib = calculateSSSContribution($tax_basic_salary);
                             $tax_philhealth_contrib = calculatePhilHealthContribution($tax_basic_salary);
                             $tax_pagibig_contrib = calculatePagIBIGContribution($tax_basic_salary);
-                            
+
                             // Calculate taxable income and withholding tax (based on GROSS salary minus contributions)
                             $tax_taxable_income = $tax_monthly_income - $tax_sss_contrib['employee'] - $tax_philhealth_contrib['employee'] - $tax_pagibig_contrib['employee'];
                             $tax_income_tax = calculateBIRWithholdingTax($tax_taxable_income);
-                            
+
                             // Calculate totals
                             $tax_net_pay_after_tax = $tax_monthly_income - $tax_income_tax;
                             $tax_total_contributions = $tax_sss_contrib['employee'] + $tax_philhealth_contrib['employee'] + $tax_pagibig_contrib['employee'];
@@ -1900,174 +1848,198 @@ if ($attendance_payroll_adjustments && isset($attendance_payroll_adjustments['at
                             $tax_net_pay_after_deductions = $tax_monthly_income - $tax_total_deductions;
                         }
                         ?>
-                        
+
                         <?php if ($has_attendance_data): ?>
-                        <!-- Tax Computation Breakdown - Step by Step -->
-                        <h4 class="mb-4"><i class="fas fa-calculator me-2"></i>Tax & Contributions Breakdown</h4>
-                        
-                        <!-- Step 1: Gross Income -->
-                        <div class="card mb-3 border-primary">
-                            <div class="card-header bg-primary text-white">
-                                <strong><i class="fas fa-1 me-2"></i>Step 1: Gross Income (Earnings)</strong>
+                            <!-- Tax Computation Breakdown - Step by Step -->
+                            <h4 class="mb-4"><i class="fas fa-calculator me-2"></i>Tax & Contributions Breakdown</h4>
+
+                            <!-- Step 1: Gross Income -->
+                            <div class="card mb-3 border-primary">
+                                <div class="card-header bg-primary text-white">
+                                    <strong><i class="fas fa-1 me-2"></i>Step 1: Gross Income (Earnings)</strong>
+                                </div>
+                                <div class="card-body">
+                                    <table class="table table-sm mb-0">
+                                        <tr>
+                                            <td>Basic Salary (from
+                                                <?php echo $attendance_payroll_adjustments['attendance_summary']['present_days']; ?>
+                                                present days)</td>
+                                            <td class="text-end">
+                                                ₱<?php echo number_format($attendance_payroll_adjustments['salary_adjustments']['basic_salary'] ?? 0, 2); ?>
+                                            </td>
+                                        </tr>
+                                        <?php if (($attendance_payroll_adjustments['salary_adjustments']['overtime_pay'] ?? 0) > 0): ?>
+                                            <tr>
+                                                <td>Overtime Pay</td>
+                                                <td class="text-end">
+                                                    ₱<?php echo number_format($attendance_payroll_adjustments['salary_adjustments']['overtime_pay'], 2); ?>
+                                                </td>
+                                            </tr>
+                                        <?php endif; ?>
+                                        <tr class="table-primary fw-bold">
+                                            <td>Gross Income</td>
+                                            <td class="text-end">₱<?php echo number_format($tax_monthly_income, 2); ?></td>
+                                        </tr>
+                                    </table>
+                                </div>
                             </div>
-                            <div class="card-body">
-                                <table class="table table-sm mb-0">
-                                    <tr>
-                                        <td>Basic Salary (from <?php echo $attendance_payroll_adjustments['attendance_summary']['present_days']; ?> present days)</td>
-                                        <td class="text-end">₱<?php echo number_format($attendance_payroll_adjustments['salary_adjustments']['basic_salary'] ?? 0, 2); ?></td>
-                                    </tr>
-                                    <?php if (($attendance_payroll_adjustments['salary_adjustments']['overtime_pay'] ?? 0) > 0): ?>
-                                    <tr>
-                                        <td>Overtime Pay</td>
-                                        <td class="text-end">₱<?php echo number_format($attendance_payroll_adjustments['salary_adjustments']['overtime_pay'], 2); ?></td>
-                                    </tr>
-                                    <?php endif; ?>
-                                    <tr class="table-primary fw-bold">
-                                        <td>Gross Income</td>
-                                        <td class="text-end">₱<?php echo number_format($tax_monthly_income, 2); ?></td>
-                                    </tr>
-                                </table>
+
+                            <!-- Step 2: Government Contributions -->
+                            <div class="card mb-3 border-info">
+                                <div class="card-header bg-info text-white">
+                                    <strong><i class="fas fa-2 me-2"></i>Step 2: Government Contributions (Employee
+                                        Share)</strong>
+                                </div>
+                                <div class="card-body">
+                                    <p class="text-muted small mb-3">
+                                        <i class="fas fa-info-circle me-1"></i>
+                                        Contributions are calculated based on your base monthly salary of
+                                        ₱<?php echo number_format($tax_basic_salary, 2); ?>
+                                    </p>
+                                    <table class="table table-sm mb-0">
+                                        <tr>
+                                            <td>
+                                                <strong>SSS</strong>
+                                                <small class="text-muted d-block">5.5% of salary (max MSC: ₱35,000)</small>
+                                            </td>
+                                            <td class="text-end text-danger">
+                                                -₱<?php echo number_format($tax_sss_contrib['employee'], 2); ?></td>
+                                        </tr>
+                                        <tr>
+                                            <td>
+                                                <strong>PhilHealth</strong>
+                                                <small class="text-muted d-block">2.5% of salary (ceiling: ₱100,000)</small>
+                                            </td>
+                                            <td class="text-end text-danger">
+                                                -₱<?php echo number_format($tax_philhealth_contrib['employee'], 2); ?></td>
+                                        </tr>
+                                        <tr>
+                                            <td>
+                                                <strong>Pag-IBIG</strong>
+                                                <small class="text-muted d-block">2% of salary (max base: ₱5,000)</small>
+                                            </td>
+                                            <td class="text-end text-danger">
+                                                -₱<?php echo number_format($tax_pagibig_contrib['employee'], 2); ?></td>
+                                        </tr>
+                                        <tr class="table-info fw-bold">
+                                            <td>Total Contributions</td>
+                                            <td class="text-end text-danger">
+                                                -₱<?php echo number_format($tax_total_contributions, 2); ?></td>
+                                        </tr>
+                                    </table>
+                                </div>
                             </div>
-                        </div>
-                        
-                        <!-- Step 2: Government Contributions -->
-                        <div class="card mb-3 border-info">
-                            <div class="card-header bg-info text-white">
-                                <strong><i class="fas fa-2 me-2"></i>Step 2: Government Contributions (Employee Share)</strong>
+
+                            <!-- Step 3: Taxable Income & Withholding Tax -->
+                            <div class="card mb-3 border-warning">
+                                <div class="card-header bg-warning text-dark">
+                                    <strong><i class="fas fa-3 me-2"></i>Step 3: Withholding Tax (BIR)</strong>
+                                </div>
+                                <div class="card-body">
+                                    <table class="table table-sm mb-0">
+                                        <tr>
+                                            <td>Gross Income</td>
+                                            <td class="text-end">₱<?php echo number_format($tax_monthly_income, 2); ?></td>
+                                        </tr>
+                                        <tr>
+                                            <td>Less: Government Contributions</td>
+                                            <td class="text-end text-danger">
+                                                -₱<?php echo number_format($tax_total_contributions, 2); ?></td>
+                                        </tr>
+                                        <tr class="table-light">
+                                            <td><strong>Taxable Income</strong></td>
+                                            <td class="text-end">
+                                                <strong>₱<?php echo number_format($tax_taxable_income, 2); ?></strong></td>
+                                        </tr>
+                                        <tr>
+                                            <td colspan="2" class="pt-3">
+                                                <small class="text-muted">
+                                                    <i class="fas fa-info-circle me-1"></i>
+                                                    BIR Tax Bracket:
+                                                    <?php
+                                                    if ($tax_taxable_income <= 20833) {
+                                                        echo "₱0 - ₱20,833 (0% tax)";
+                                                    } elseif ($tax_taxable_income <= 33332) {
+                                                        echo "₱20,833 - ₱33,332 (15% over ₱20,833)";
+                                                    } elseif ($tax_taxable_income <= 66666) {
+                                                        echo "₱33,333 - ₱66,666 (₱2,500 + 20% over ₱33,333)";
+                                                    } elseif ($tax_taxable_income <= 166666) {
+                                                        echo "₱66,667 - ₱166,666 (₱10,833 + 25% over ₱66,667)";
+                                                    } elseif ($tax_taxable_income <= 666666) {
+                                                        echo "₱166,667 - ₱666,666 (₱40,833 + 30% over ₱166,667)";
+                                                    } else {
+                                                        echo "Above ₱666,666 (₱200,833 + 35% over ₱666,667)";
+                                                    }
+                                                    ?>
+                                                </small>
+                                            </td>
+                                        </tr>
+                                        <tr class="table-warning fw-bold">
+                                            <td>Withholding Tax</td>
+                                            <td class="text-end text-danger">
+                                                -₱<?php echo number_format($tax_income_tax, 2); ?></td>
+                                        </tr>
+                                    </table>
+                                </div>
                             </div>
-                            <div class="card-body">
-                                <p class="text-muted small mb-3">
-                                    <i class="fas fa-info-circle me-1"></i>
-                                    Contributions are calculated based on your base monthly salary of ₱<?php echo number_format($tax_basic_salary, 2); ?>
-                                </p>
-                                <table class="table table-sm mb-0">
-                                    <tr>
-                                        <td>
-                                            <strong>SSS</strong>
-                                            <small class="text-muted d-block">5.5% of salary (max MSC: ₱35,000)</small>
-                                        </td>
-                                        <td class="text-end text-danger">-₱<?php echo number_format($tax_sss_contrib['employee'], 2); ?></td>
-                                    </tr>
-                                    <tr>
-                                        <td>
-                                            <strong>PhilHealth</strong>
-                                            <small class="text-muted d-block">2.5% of salary (ceiling: ₱100,000)</small>
-                                        </td>
-                                        <td class="text-end text-danger">-₱<?php echo number_format($tax_philhealth_contrib['employee'], 2); ?></td>
-                                    </tr>
-                                    <tr>
-                                        <td>
-                                            <strong>Pag-IBIG</strong>
-                                            <small class="text-muted d-block">2% of salary (max base: ₱5,000)</small>
-                                        </td>
-                                        <td class="text-end text-danger">-₱<?php echo number_format($tax_pagibig_contrib['employee'], 2); ?></td>
-                                    </tr>
-                                    <tr class="table-info fw-bold">
-                                        <td>Total Contributions</td>
-                                        <td class="text-end text-danger">-₱<?php echo number_format($tax_total_contributions, 2); ?></td>
-                                    </tr>
-                                </table>
+
+                            <!-- Step 4: Net Pay Summary -->
+                            <div class="card border-success">
+                                <div class="card-header bg-success text-white">
+                                    <strong><i class="fas fa-4 me-2"></i>Step 4: Net Pay Calculation</strong>
+                                </div>
+                                <div class="card-body">
+                                    <table class="table table-sm mb-0">
+                                        <tr>
+                                            <td>Gross Income</td>
+                                            <td class="text-end">₱<?php echo number_format($tax_monthly_income, 2); ?></td>
+                                        </tr>
+                                        <tr>
+                                            <td>Less: SSS Contribution</td>
+                                            <td class="text-end text-danger">
+                                                -₱<?php echo number_format($tax_sss_contrib['employee'], 2); ?></td>
+                                        </tr>
+                                        <tr>
+                                            <td>Less: PhilHealth Contribution</td>
+                                            <td class="text-end text-danger">
+                                                -₱<?php echo number_format($tax_philhealth_contrib['employee'], 2); ?></td>
+                                        </tr>
+                                        <tr>
+                                            <td>Less: Pag-IBIG Contribution</td>
+                                            <td class="text-end text-danger">
+                                                -₱<?php echo number_format($tax_pagibig_contrib['employee'], 2); ?></td>
+                                        </tr>
+                                        <tr>
+                                            <td>Less: Withholding Tax</td>
+                                            <td class="text-end text-danger">
+                                                -₱<?php echo number_format($tax_income_tax, 2); ?></td>
+                                        </tr>
+                                        <tr class="table-light">
+                                            <td><strong>Total Deductions</strong></td>
+                                            <td class="text-end text-danger">
+                                                <strong>-₱<?php echo number_format($tax_total_deductions, 2); ?></strong>
+                                            </td>
+                                        </tr>
+                                        <tr class="table-success">
+                                            <td><strong class="fs-5">NET PAY (Take Home)</strong></td>
+                                            <td class="text-end"><strong
+                                                    class="fs-5 text-success">₱<?php echo number_format(max(0, $tax_net_pay_after_deductions), 2); ?></strong>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </div>
                             </div>
-                        </div>
-                        
-                        <!-- Step 3: Taxable Income & Withholding Tax -->
-                        <div class="card mb-3 border-warning">
-                            <div class="card-header bg-warning text-dark">
-                                <strong><i class="fas fa-3 me-2"></i>Step 3: Withholding Tax (BIR)</strong>
-                            </div>
-                            <div class="card-body">
-                                <table class="table table-sm mb-0">
-                                    <tr>
-                                        <td>Gross Income</td>
-                                        <td class="text-end">₱<?php echo number_format($tax_monthly_income, 2); ?></td>
-                                    </tr>
-                                    <tr>
-                                        <td>Less: Government Contributions</td>
-                                        <td class="text-end text-danger">-₱<?php echo number_format($tax_total_contributions, 2); ?></td>
-                                    </tr>
-                                    <tr class="table-light">
-                                        <td><strong>Taxable Income</strong></td>
-                                        <td class="text-end"><strong>₱<?php echo number_format($tax_taxable_income, 2); ?></strong></td>
-                                    </tr>
-                                    <tr>
-                                        <td colspan="2" class="pt-3">
-                                            <small class="text-muted">
-                                                <i class="fas fa-info-circle me-1"></i>
-                                                BIR Tax Bracket: 
-                                                <?php
-                                                if ($tax_taxable_income <= 20833) {
-                                                    echo "₱0 - ₱20,833 (0% tax)";
-                                                } elseif ($tax_taxable_income <= 33332) {
-                                                    echo "₱20,833 - ₱33,332 (15% over ₱20,833)";
-                                                } elseif ($tax_taxable_income <= 66666) {
-                                                    echo "₱33,333 - ₱66,666 (₱2,500 + 20% over ₱33,333)";
-                                                } elseif ($tax_taxable_income <= 166666) {
-                                                    echo "₱66,667 - ₱166,666 (₱10,833 + 25% over ₱66,667)";
-                                                } elseif ($tax_taxable_income <= 666666) {
-                                                    echo "₱166,667 - ₱666,666 (₱40,833 + 30% over ₱166,667)";
-                                                } else {
-                                                    echo "Above ₱666,666 (₱200,833 + 35% over ₱666,667)";
-                                                }
-                                                ?>
-                                            </small>
-                                        </td>
-                                    </tr>
-                                    <tr class="table-warning fw-bold">
-                                        <td>Withholding Tax</td>
-                                        <td class="text-end text-danger">-₱<?php echo number_format($tax_income_tax, 2); ?></td>
-                                    </tr>
-                                </table>
-                            </div>
-                        </div>
-                        
-                        <!-- Step 4: Net Pay Summary -->
-                        <div class="card border-success">
-                            <div class="card-header bg-success text-white">
-                                <strong><i class="fas fa-4 me-2"></i>Step 4: Net Pay Calculation</strong>
-                            </div>
-                            <div class="card-body">
-                                <table class="table table-sm mb-0">
-                                    <tr>
-                                        <td>Gross Income</td>
-                                        <td class="text-end">₱<?php echo number_format($tax_monthly_income, 2); ?></td>
-                                    </tr>
-                                    <tr>
-                                        <td>Less: SSS Contribution</td>
-                                        <td class="text-end text-danger">-₱<?php echo number_format($tax_sss_contrib['employee'], 2); ?></td>
-                                    </tr>
-                                    <tr>
-                                        <td>Less: PhilHealth Contribution</td>
-                                        <td class="text-end text-danger">-₱<?php echo number_format($tax_philhealth_contrib['employee'], 2); ?></td>
-                                    </tr>
-                                    <tr>
-                                        <td>Less: Pag-IBIG Contribution</td>
-                                        <td class="text-end text-danger">-₱<?php echo number_format($tax_pagibig_contrib['employee'], 2); ?></td>
-                                    </tr>
-                                    <tr>
-                                        <td>Less: Withholding Tax</td>
-                                        <td class="text-end text-danger">-₱<?php echo number_format($tax_income_tax, 2); ?></td>
-                                    </tr>
-                                    <tr class="table-light">
-                                        <td><strong>Total Deductions</strong></td>
-                                        <td class="text-end text-danger"><strong>-₱<?php echo number_format($tax_total_deductions, 2); ?></strong></td>
-                                    </tr>
-                                    <tr class="table-success">
-                                        <td><strong class="fs-5">NET PAY (Take Home)</strong></td>
-                                        <td class="text-end"><strong class="fs-5 text-success">₱<?php echo number_format(max(0, $tax_net_pay_after_deductions), 2); ?></strong></td>
-                                    </tr>
-                                </table>
-                            </div>
-                        </div>
                         <?php else: ?>
-                        <!-- No attendance data message -->
-                        <div class="alert alert-info text-center py-5">
-                            <i class="fas fa-info-circle fa-3x mb-3 text-muted"></i>
-                            <h5 class="mb-2">No Payroll Data Available</h5>
-                            <p class="text-muted mb-0">
-                                This employee has no attendance records for the selected period (<?php echo htmlspecialchars($period_label); ?>).<br>
-                                Tax computations will be displayed once attendance data is available.
-                            </p>
-                        </div>
+                            <!-- No attendance data message -->
+                            <div class="alert alert-info text-center py-5">
+                                <i class="fas fa-info-circle fa-3x mb-3 text-muted"></i>
+                                <h5 class="mb-2">No Payroll Data Available</h5>
+                                <p class="text-muted mb-0">
+                                    This employee has no attendance records for the selected period
+                                    (<?php echo htmlspecialchars($period_label); ?>).<br>
+                                    Tax computations will be displayed once attendance data is available.
+                                </p>
+                            </div>
                         <?php endif; ?>
                     </div>
                 </div>
@@ -2078,25 +2050,25 @@ if ($attendance_payroll_adjustments && isset($attendance_payroll_adjustments['at
             <div class="tab-pane fade" id="overall" role="tabpanel">
                 <div class="payroll-content-card">
                     <h3 class="payroll-section-title">Payslip</h3>
-                    
+
                     <!-- Company Header (only if real data exists) -->
                     <?php if (!empty($company_bank['bank_name']) && $company_bank['bank_name'] !== 'BANK NAME'): ?>
-                    <div class="overall-header">
-                        <div class="bank-name"><?php echo htmlspecialchars($company_bank['bank_name']); ?></div>
-                        <?php if (!empty($company_bank['name']) && $company_bank['name'] !== 'Company Name'): ?>
-                        <div class="company-name">(<?php echo htmlspecialchars($company_bank['name']); ?>)</div>
-                        <?php endif; ?>
-                    </div>
+                        <div class="overall-header">
+                            <div class="bank-name"><?php echo htmlspecialchars($company_bank['bank_name']); ?></div>
+                            <?php if (!empty($company_bank['name']) && $company_bank['name'] !== 'Company Name'): ?>
+                                <div class="company-name">(<?php echo htmlspecialchars($company_bank['name']); ?>)</div>
+                            <?php endif; ?>
+                        </div>
                     <?php endif; ?>
 
                     <!-- Employee Details Section -->
                     <div class="overall-section">
                         <div class="overall-section-title">Employee Information</div>
-                        <?php 
+                        <?php
                         $employees_result->data_seek(0); // Reset pointer
-                        if ($employees_result && $employees_result->num_rows > 0): 
+                        if ($employees_result && $employees_result->num_rows > 0):
                             $employee = $employees_result->fetch_assoc();
-                        ?>
+                            ?>
                             <table class="employee-info-table">
                                 <tr>
                                     <td>Employee Code</td>
@@ -2107,71 +2079,75 @@ if ($attendance_payroll_adjustments && isset($attendance_payroll_adjustments['at
                                     <td><?php echo htmlspecialchars($employee['name'] ?? 'N/A'); ?></td>
                                 </tr>
                                 <?php if (!empty($current_employee['position']) || !empty($current_employee['hris_position_title'])): ?>
-                                <tr>
-                                    <td>Position</td>
-                                    <td><?php echo htmlspecialchars($current_employee['position'] ?? $current_employee['hris_position_title'] ?? 'N/A'); ?></td>
-                                </tr>
+                                    <tr>
+                                        <td>Position</td>
+                                        <td><?php echo htmlspecialchars($current_employee['position'] ?? $current_employee['hris_position_title'] ?? 'N/A'); ?>
+                                        </td>
+                                    </tr>
                                 <?php endif; ?>
                                 <?php if (!empty($current_employee['department']) || !empty($current_employee['hris_department_name'])): ?>
-                                <tr>
-                                    <td>Department</td>
-                                    <td><?php echo htmlspecialchars($current_employee['department'] ?? $current_employee['hris_department_name'] ?? 'N/A'); ?></td>
-                                </tr>
+                                    <tr>
+                                        <td>Department</td>
+                                        <td><?php echo htmlspecialchars($current_employee['department'] ?? $current_employee['hris_department_name'] ?? 'N/A'); ?>
+                                        </td>
+                                    </tr>
                                 <?php endif; ?>
                                 <?php if (!empty($current_employee['employment_type'])): ?>
-                                <tr>
-                                    <td>Employment Type</td>
-                                    <td><?php echo ucfirst(htmlspecialchars($current_employee['employment_type'])); ?></td>
-                                </tr>
+                                    <tr>
+                                        <td>Employment Type</td>
+                                        <td><?php echo ucfirst(htmlspecialchars($current_employee['employment_type'])); ?></td>
+                                    </tr>
                                 <?php endif; ?>
                                 <?php if ($position_salary > 0): ?>
-                                <tr>
-                                    <td>Base Monthly Salary</td>
-                                    <td>₱<?php echo number_format($position_salary, 2); ?></td>
-                                </tr>
+                                    <tr>
+                                        <td>Base Monthly Salary</td>
+                                        <td>₱<?php echo number_format($position_salary, 2); ?></td>
+                                    </tr>
                                 <?php endif; ?>
                                 <tr>
                                     <td>Pay Period</td>
-                                    <td><?php echo $period_label ? htmlspecialchars($period_label) : date('F Y', strtotime($display_month . '-01')); ?></td>
+                                    <td><?php echo $period_label ? htmlspecialchars($period_label) : date('F Y', strtotime($display_month . '-01')); ?>
+                                    </td>
                                 </tr>
                             </table>
                         <?php endif; ?>
                     </div>
 
-                    <?php if ($has_attendance_data && $attendance_payroll_adjustments): 
+                    <?php if ($has_attendance_data && $attendance_payroll_adjustments):
                         $ps_adj = $attendance_payroll_adjustments['salary_adjustments'];
                         $ps_att = $attendance_payroll_adjustments['attendance_summary'];
-                    ?>
-                    <!-- Attendance Summary for Payslip - Hidden in Print -->
-                    <div class="overall-section attendance-summary-print-hide no-print">
-                        <div class="overall-section-title"><i class="fas fa-calendar-check me-2"></i>Attendance Summary</div>
-                        <div class="row text-center mb-3">
-                            <div class="col-3">
-                                <div class="border rounded p-2 bg-success bg-opacity-10">
-                                    <div class="fs-4 fw-bold text-success"><?php echo $ps_att['present_days']; ?></div>
-                                    <small class="text-muted">Present</small>
-                                </div>
+                        ?>
+                        <!-- Attendance Summary for Payslip - Hidden in Print -->
+                        <div class="overall-section attendance-summary-print-hide no-print">
+                            <div class="overall-section-title"><i class="fas fa-calendar-check me-2"></i>Attendance Summary
                             </div>
-                            <div class="col-3">
-                                <div class="border rounded p-2 bg-danger bg-opacity-10">
-                                    <div class="fs-4 fw-bold text-danger"><?php echo $ps_att['absent_days']; ?></div>
-                                    <small class="text-muted">Absent</small>
+                            <div class="row text-center mb-3">
+                                <div class="col-3">
+                                    <div class="border rounded p-2 bg-success bg-opacity-10">
+                                        <div class="fs-4 fw-bold text-success"><?php echo $ps_att['present_days']; ?></div>
+                                        <small class="text-muted">Present</small>
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="col-3">
-                                <div class="border rounded p-2 bg-warning bg-opacity-10">
-                                    <div class="fs-4 fw-bold text-warning"><?php echo $ps_att['late_days']; ?></div>
-                                    <small class="text-muted">Late</small>
+                                <div class="col-3">
+                                    <div class="border rounded p-2 bg-danger bg-opacity-10">
+                                        <div class="fs-4 fw-bold text-danger"><?php echo $ps_att['absent_days']; ?></div>
+                                        <small class="text-muted">Absent</small>
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="col-3">
-                                <div class="border rounded p-2 bg-info bg-opacity-10">
-                                    <div class="fs-4 fw-bold text-info"><?php echo $ps_att['leave_days']; ?></div>
-                                    <small class="text-muted">Leave</small>
+                                <div class="col-3">
+                                    <div class="border rounded p-2 bg-warning bg-opacity-10">
+                                        <div class="fs-4 fw-bold text-warning"><?php echo $ps_att['late_days']; ?></div>
+                                        <small class="text-muted">Late</small>
+                                    </div>
+                                </div>
+                                <div class="col-3">
+                                    <div class="border rounded p-2 bg-info bg-opacity-10">
+                                        <div class="fs-4 fw-bold text-info"><?php echo $ps_att['leave_days']; ?></div>
+                                        <small class="text-muted">Leave</small>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
                     <?php endif; ?>
 
                     <!-- Earnings and Deductions -->
@@ -2179,7 +2155,8 @@ if ($attendance_payroll_adjustments && isset($attendance_payroll_adjustments['at
                         <div class="payroll-two-column">
                             <!-- Earnings -->
                             <div>
-                                <div class="overall-section-title"><i class="fas fa-plus-circle text-success me-2"></i>Earnings</div>
+                                <div class="overall-section-title"><i
+                                        class="fas fa-plus-circle text-success me-2"></i>Earnings</div>
                                 <table class="payroll-items-table">
                                     <thead>
                                         <tr>
@@ -2188,37 +2165,41 @@ if ($attendance_payroll_adjustments && isset($attendance_payroll_adjustments['at
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        <?php 
+                                        <?php
                                         // Use attendance_payroll_adjustments as primary source (same as Employee Details and Tax Management)
                                         $total_earnings_overall = 0;
-                                        
+
                                         if ($attendance_payroll_adjustments && isset($attendance_payroll_adjustments['salary_adjustments'])) {
                                             $adj = $attendance_payroll_adjustments['salary_adjustments'];
                                             $att_sum = $attendance_payroll_adjustments['attendance_summary'];
-                                            
+
                                             // Basic Salary (from attendance - earned from present days)
                                             if (isset($adj['basic_salary']) && $adj['basic_salary'] > 0) {
                                                 $total_earnings_overall += $adj['basic_salary'];
-                                        ?>
-                                            <tr>
-                                                <td>Basic Salary <small class="text-muted">(<?php echo $att_sum['present_days']; ?> days)</small></td>
-                                                <td class="amount-cell text-success">₱<?php echo number_format($adj['basic_salary'], 2); ?></td>
-                                            </tr>
-                                        <?php 
+                                                ?>
+                                                <tr>
+                                                    <td>Basic Salary <small
+                                                            class="text-muted">(<?php echo $att_sum['present_days']; ?>
+                                                            days)</small></td>
+                                                    <td class="amount-cell text-success">
+                                                        ₱<?php echo number_format($adj['basic_salary'], 2); ?></td>
+                                                </tr>
+                                            <?php
                                             }
-                                            
+
                                             // Overtime Pay (from attendance)
                                             if (isset($adj['overtime_pay']) && $adj['overtime_pay'] > 0) {
                                                 $total_earnings_overall += $adj['overtime_pay'];
-                                        ?>
-                                            <tr>
-                                                <td>Overtime Pay</td>
-                                                <td class="amount-cell">₱<?php echo number_format($adj['overtime_pay'], 2); ?></td>
-                                            </tr>
-                                        <?php 
+                                                ?>
+                                                <tr>
+                                                    <td>Overtime Pay</td>
+                                                    <td class="amount-cell">
+                                                        ₱<?php echo number_format($adj['overtime_pay'], 2); ?></td>
+                                                </tr>
+                                            <?php
                                             }
                                         }
-                                        
+
                                         // Show message if no earnings found
                                         if ($total_earnings_overall == 0): ?>
                                             <tr>
@@ -2230,19 +2211,22 @@ if ($attendance_payroll_adjustments && isset($attendance_payroll_adjustments['at
                                         <?php endif; ?>
                                     </tbody>
                                     <?php if ($total_earnings_overall > 0): ?>
-                                    <tfoot>
-                                        <tr class="payroll-total-row">
-                                            <td><strong>Total Earnings</strong></td>
-                                            <td class="amount-cell"><strong>₱<?php echo number_format($total_earnings_overall, 2); ?></strong></td>
-                                        </tr>
-                                    </tfoot>
+                                        <tfoot>
+                                            <tr class="payroll-total-row">
+                                                <td><strong>Total Earnings</strong></td>
+                                                <td class="amount-cell">
+                                                    <strong>₱<?php echo number_format($total_earnings_overall, 2); ?></strong>
+                                                </td>
+                                            </tr>
+                                        </tfoot>
                                     <?php endif; ?>
                                 </table>
                             </div>
 
                             <!-- Deductions -->
                             <div>
-                                <div class="overall-section-title"><i class="fas fa-minus-circle text-danger me-2"></i>Deductions</div>
+                                <div class="overall-section-title"><i
+                                        class="fas fa-minus-circle text-danger me-2"></i>Deductions</div>
                                 <table class="payroll-items-table">
                                     <thead>
                                         <tr>
@@ -2251,22 +2235,22 @@ if ($attendance_payroll_adjustments && isset($attendance_payroll_adjustments['at
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        <?php 
+                                        <?php
                                         $deductions_result->data_seek(0); // Reset pointer
                                         $total_deductions_overall = 0;
-                                        
+
                                         // Calculate unpaid leave deduction separately
                                         $unpaid_leave_deduction = 0;
                                         $unpaid_leave_days = 0;
                                         $actual_absent_deduction = 0;
                                         $half_day_deduction_amount = 0;
                                         $late_penalty_amount = 0;
-                                        
+
                                         // MATCHING HRIS LOGIC EXACTLY: Only include attendance-based deductions when there's attendance data AND NO saved payslip exists for this period
                                         // This ensures consistency with HRIS payroll calculations (payslip-data.php logic)
                                         if ($has_attendance_data && $attendance_payroll_adjustments && $employee_id_from_external && !$has_saved_payslip_for_period) {
                                             $adj = $attendance_payroll_adjustments['salary_adjustments'];
-                                            
+
                                             // Get daily rate for calculation
                                             $daily_rate_for_deduction = 0;
                                             if (isset($adj['daily_rate']) && $adj['daily_rate'] > 0) {
@@ -2276,7 +2260,7 @@ if ($attendance_payroll_adjustments && isset($attendance_payroll_adjustments['at
                                                 $working_days = 22; // Standard working days per month
                                                 $daily_rate_for_deduction = $position_salary / $working_days;
                                             }
-                                            
+
                                             // Query unpaid leave days for the period
                                             if ($daily_rate_for_deduction > 0) {
                                                 $unpaid_leave_query = "SELECT 
@@ -2288,10 +2272,10 @@ if ($attendance_payroll_adjustments && isset($attendance_payroll_adjustments['at
                                                         WHERE lr.employee_id = ?
                                                         AND (UPPER(TRIM(lr.status)) = 'APPROVED' OR LOWER(TRIM(lr.status)) = 'approved')
                                                         AND LOWER(TRIM(COALESCE(lt.paid_unpaid, 'unpaid'))) = 'unpaid'";
-                                                
+
                                                 $unpaid_leave_params = [];
                                                 $unpaid_leave_types = "";
-                                                
+
                                                 if ($payroll_period === 'first' || $payroll_period === 'second') {
                                                     $unpaid_leave_query .= " AND (lr.start_date <= ? AND lr.end_date >= ?)";
                                                     $unpaid_leave_params = [$employee_id_from_external, $period_end, $period_start];
@@ -2303,7 +2287,7 @@ if ($attendance_payroll_adjustments && isset($attendance_payroll_adjustments['at
                                                     $unpaid_leave_params = [$employee_id_from_external, $month_end, $month_start];
                                                     $unpaid_leave_types = "iss";
                                                 }
-                                                
+
                                                 $unpaid_leave_stmt = $conn->prepare($unpaid_leave_query);
                                                 if ($unpaid_leave_stmt) {
                                                     $unpaid_leave_stmt->bind_param($unpaid_leave_types, ...$unpaid_leave_params);
@@ -2313,7 +2297,7 @@ if ($attendance_payroll_adjustments && isset($attendance_payroll_adjustments['at
                                                             while ($unpaid_leave = $unpaid_leave_result->fetch_assoc()) {
                                                                 $leave_start = new DateTime($unpaid_leave['start_date']);
                                                                 $leave_end = new DateTime($unpaid_leave['end_date']);
-                                                                
+
                                                                 // Count days within the payroll period
                                                                 $current_date = clone $leave_start;
                                                                 while ($current_date <= $leave_end) {
@@ -2336,10 +2320,10 @@ if ($attendance_payroll_adjustments && isset($attendance_payroll_adjustments['at
                                                         }
                                                     }
                                                 }
-                                                
+
                                                 // Calculate unpaid leave deduction
                                                 $unpaid_leave_deduction = $unpaid_leave_days * $daily_rate_for_deduction;
-                                                
+
                                                 // Calculate actual absent deduction (excluding unpaid leaves)
                                                 // Note: absent_deduction from calculation includes both actual absences AND unpaid leaves
                                                 // So we subtract unpaid_leave_deduction to get actual absent deduction
@@ -2350,11 +2334,11 @@ if ($attendance_payroll_adjustments && isset($attendance_payroll_adjustments['at
                                                 $actual_absent_deduction = $adj['absent_deduction'] ?? 0;
                                                 $unpaid_leave_deduction = 0; // Can't calculate separately without daily rate
                                             }
-                                            
+
                                             // Store other deduction amounts for calculation
                                             $half_day_deduction_amount = $adj['half_day_deduction'] ?? 0;
                                             $late_penalty_amount = $adj['late_penalty'] ?? 0;
-                                            
+
                                             // Add attendance-based deductions to total (matching HRIS logic)
                                             // These are only included when there's NO saved payslip for the period
                                             $total_deductions_overall += $actual_absent_deduction;
@@ -2362,46 +2346,50 @@ if ($attendance_payroll_adjustments && isset($attendance_payroll_adjustments['at
                                             $total_deductions_overall += $half_day_deduction_amount;
                                             $total_deductions_overall += $late_penalty_amount;
                                         }
-                                        
+
                                         // Display attendance-based deductions ONLY when there's attendance data AND NO saved payslip exists (matching HRIS logic)
                                         if ($has_attendance_data && $attendance_payroll_adjustments && $employee_id_from_external && !$has_saved_payslip_for_period) {
                                             // Absent days deduction (actual absences, excluding unpaid leaves)
                                             if ($actual_absent_deduction > 0): ?>
-                                            <tr>
-                                                <td>Absent Days Deduction</td>
-                                                <td class="amount-cell">₱<?php echo number_format($actual_absent_deduction, 2); ?></td>
-                                            </tr>
-                                        <?php 
+                                                <tr>
+                                                    <td>Absent Days Deduction</td>
+                                                    <td class="amount-cell">
+                                                        ₱<?php echo number_format($actual_absent_deduction, 2); ?></td>
+                                                </tr>
+                                            <?php
                                             endif;
-                                            
+
                                             // Unpaid Leave Days Deduction
                                             if ($unpaid_leave_deduction > 0): ?>
-                                            <tr>
-                                                <td>Unpaid Leave Days Deduction</td>
-                                                <td class="amount-cell">₱<?php echo number_format($unpaid_leave_deduction, 2); ?></td>
-                                            </tr>
-                                        <?php 
+                                                <tr>
+                                                    <td>Unpaid Leave Days Deduction</td>
+                                                    <td class="amount-cell">
+                                                        ₱<?php echo number_format($unpaid_leave_deduction, 2); ?></td>
+                                                </tr>
+                                            <?php
                                             endif;
-                                            
+
                                             // Half day deduction
                                             if ($half_day_deduction_amount > 0): ?>
-                                            <tr>
-                                                <td>Half Day Deduction</td>
-                                                <td class="amount-cell">₱<?php echo number_format($half_day_deduction_amount, 2); ?></td>
-                                            </tr>
-                                        <?php 
+                                                <tr>
+                                                    <td>Half Day Deduction</td>
+                                                    <td class="amount-cell">
+                                                        ₱<?php echo number_format($half_day_deduction_amount, 2); ?></td>
+                                                </tr>
+                                            <?php
                                             endif;
-                                            
+
                                             // Late penalty
                                             if ($late_penalty_amount > 0): ?>
-                                            <tr>
-                                                <td>Late Arrival Penalty</td>
-                                                <td class="amount-cell">₱<?php echo number_format($late_penalty_amount, 2); ?></td>
-                                            </tr>
-                                        <?php 
+                                                <tr>
+                                                    <td>Late Arrival Penalty</td>
+                                                    <td class="amount-cell">
+                                                        ₱<?php echo number_format($late_penalty_amount, 2); ?></td>
+                                                </tr>
+                                            <?php
                                             endif;
                                         }
-                                        
+
                                         // Initialize overall variables
                                         $overall_gross_salary = 0;
                                         $overall_basic_salary = 0;
@@ -2410,7 +2398,7 @@ if ($attendance_payroll_adjustments && isset($attendance_payroll_adjustments['at
                                         $overall_pagibig_contrib = ['employee' => 0, 'employer' => 0];
                                         $overall_taxable_income = 0;
                                         $overall_withholding_tax = 0;
-                                        
+
                                         // ONLY calculate mandatory government contributions if there's attendance data
                                         if ($has_attendance_data) {
                                             // Calculate mandatory government contributions using 2025 rates
@@ -2424,20 +2412,20 @@ if ($attendance_payroll_adjustments && isset($attendance_payroll_adjustments['at
                                                     $overall_gross_salary = $adj['basic_salary'] + $adj['overtime_pay'];
                                                 }
                                             }
-                                            
+
                                             // Fallback to total_earnings_overall if no attendance data
                                             if ($overall_gross_salary == 0) {
                                                 $overall_gross_salary = $total_earnings_overall;
                                             }
-                                            
+
                                             // For tax calculations, use the BASE monthly salary (not gross with overtime)
                                             // This is because SSS, PhilHealth, Pag-IBIG are calculated on base salary, not gross
                                             $overall_basic_salary = $position_salary > 0 ? $position_salary : 0;
-                                            
+
                                             // Get basic salary from earnings if not available
                                             if ($overall_basic_salary == 0 && $earnings_result) {
                                                 $earnings_result->data_seek(0);
-                                                while($earning = $earnings_result->fetch_assoc()) {
+                                                while ($earning = $earnings_result->fetch_assoc()) {
                                                     if ($earning['code'] === 'BASIC') {
                                                         // Use the original base salary value, not the gross salary
                                                         $overall_basic_salary = floatval($earning['value']);
@@ -2446,21 +2434,21 @@ if ($attendance_payroll_adjustments && isset($attendance_payroll_adjustments['at
                                                 }
                                                 $earnings_result->data_seek(0); // Reset pointer
                                             }
-                                            
+
                                             // If we have attendance adjustments, get the base salary from there
                                             if ($attendance_payroll_adjustments && isset($attendance_payroll_adjustments['salary_adjustments']['prorated_base_salary'])) {
                                                 $overall_basic_salary = $attendance_payroll_adjustments['salary_adjustments']['prorated_base_salary'];
                                             }
-                                            
+
                                             // Calculate mandatory contributions using 2025 rates
                                             $overall_sss_contrib = calculateSSSContribution($overall_basic_salary);
                                             $overall_philhealth_contrib = calculatePhilHealthContribution($overall_basic_salary);
                                             $overall_pagibig_contrib = calculatePagIBIGContribution($overall_basic_salary);
-                                            
+
                                             // Calculate taxable income and withholding tax
                                             $overall_taxable_income = $overall_gross_salary - $overall_sss_contrib['employee'] - $overall_philhealth_contrib['employee'] - $overall_pagibig_contrib['employee'];
                                             $overall_withholding_tax = calculateBIRWithholdingTax($overall_taxable_income);
-                                            
+
                                             // Add mandatory government deductions
                                             $total_deductions_overall += $overall_sss_contrib['employee'];
                                             $total_deductions_overall += $overall_philhealth_contrib['employee'];
@@ -2468,79 +2456,91 @@ if ($attendance_payroll_adjustments && isset($attendance_payroll_adjustments['at
                                             $total_deductions_overall += $overall_withholding_tax;
                                         }
                                         ?>
-                                        
+
                                         <?php if ($has_attendance_data): ?>
-                                        <!-- Mandatory Government Deductions -->
-                                        <tr>
-                                            <td>SSS Employee Contribution</td>
-                                            <td class="amount-cell">₱<?php echo number_format($overall_sss_contrib['employee'], 2); ?></td>
-                                        </tr>
-                                        <tr>
-                                            <td>PhilHealth Employee Contribution</td>
-                                            <td class="amount-cell">₱<?php echo number_format($overall_philhealth_contrib['employee'], 2); ?></td>
-                                        </tr>
-                                        <tr>
-                                            <td>Pag-IBIG Employee Contribution</td>
-                                            <td class="amount-cell">₱<?php echo number_format($overall_pagibig_contrib['employee'], 2); ?></td>
-                                        </tr>
-                                        <tr>
-                                            <td>Withholding Tax (BIR)</td>
-                                            <td class="amount-cell">₱<?php echo number_format($overall_withholding_tax, 2); ?></td>
-                                        </tr>
+                                            <!-- Mandatory Government Deductions -->
+                                            <tr>
+                                                <td>SSS Employee Contribution</td>
+                                                <td class="amount-cell">
+                                                    ₱<?php echo number_format($overall_sss_contrib['employee'], 2); ?></td>
+                                            </tr>
+                                            <tr>
+                                                <td>PhilHealth Employee Contribution</td>
+                                                <td class="amount-cell">
+                                                    ₱<?php echo number_format($overall_philhealth_contrib['employee'], 2); ?>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td>Pag-IBIG Employee Contribution</td>
+                                                <td class="amount-cell">
+                                                    ₱<?php echo number_format($overall_pagibig_contrib['employee'], 2); ?>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td>Withholding Tax (BIR)</td>
+                                                <td class="amount-cell">
+                                                    ₱<?php echo number_format($overall_withholding_tax, 2); ?></td>
+                                            </tr>
                                         <?php else: ?>
-                                        <tr>
-                                            <td colspan="2" class="text-center text-muted py-3">
-                                                <i class="fas fa-info-circle me-2"></i>
-                                                No deductions - no attendance data for this period
-                                            </td>
-                                        </tr>
+                                            <tr>
+                                                <td colspan="2" class="text-center text-muted py-3">
+                                                    <i class="fas fa-info-circle me-2"></i>
+                                                    No deductions - no attendance data for this period
+                                                </td>
+                                            </tr>
                                         <?php endif; ?>
-                                        
+
                                         <?php
                                         // Optional deductions (only show if they have values and are not unnecessary)
                                         // Only show when there's attendance data
                                         if ($has_attendance_data):
                                             $overall_unnecessary_deductions = ['MEDICAL', 'LATE', 'ABSENT', 'ADVANCE', 'LOAN', 'UNIFORM']; // These are handled by attendance system or not needed
-                                            
-                                            if ($deductions_result && $deductions_result->num_rows > 0): 
+                                        
+                                            if ($deductions_result && $deductions_result->num_rows > 0):
                                                 $deductions_result->data_seek(0);
-                                                while($deduction = $deductions_result->fetch_assoc()): 
+                                                while ($deduction = $deductions_result->fetch_assoc()):
                                                     // Skip unnecessary deductions
                                                     if (in_array($deduction['code'], $overall_unnecessary_deductions)) {
                                                         continue;
                                                     }
-                                                    
+
                                                     // Skip mandatory deductions already shown above
                                                     if (in_array($deduction['code'], ['SSS_EMP', 'PAGIBIG_EMP', 'PHILHEALTH_EMP', 'WHT'])) {
                                                         continue;
                                                     }
-                                                    
+
                                                     // Use payslip JSON data if available
                                                     $amount = 0;
                                                     if ($payslip_data && $payslip_data['payslip_json']) {
                                                         $payslip_json = json_decode($payslip_data['payslip_json'], true);
-                                                        switch($deduction['code']) {
-                                                            case 'LOAN': $amount = $payslip_json['loan_deduction'] ?? $deduction['value']; break;
-                                                            case 'UNIFORM': $amount = $payslip_json['uniform_deduction'] ?? $deduction['value']; break;
-                                                            default: $amount = $deduction['value']; break;
+                                                        switch ($deduction['code']) {
+                                                            case 'LOAN':
+                                                                $amount = $payslip_json['loan_deduction'] ?? $deduction['value'];
+                                                                break;
+                                                            case 'UNIFORM':
+                                                                $amount = $payslip_json['uniform_deduction'] ?? $deduction['value'];
+                                                                break;
+                                                            default:
+                                                                $amount = $deduction['value'];
+                                                                break;
                                                         }
                                                     } else {
                                                         $amount = $deduction['value'];
                                                     }
-                                                    
+
                                                     // Only show if amount is greater than 0
                                                     if ($amount > 0) {
-                                                    $total_deductions_overall += $amount;
-                                            ?>
-                                                <tr>
-                                                    <td><?php echo htmlspecialchars($deduction['name']); ?></td>
-                                                    <td class="amount-cell">₱<?php echo number_format($amount, 2); ?></td>
-                                                </tr>
-                                            <?php 
+                                                        $total_deductions_overall += $amount;
+                                                        ?>
+                                                        <tr>
+                                                            <td><?php echo htmlspecialchars($deduction['name']); ?></td>
+                                                            <td class="amount-cell">₱<?php echo number_format($amount, 2); ?></td>
+                                                        </tr>
+                                                    <?php
                                                     }
-                                                endwhile; 
+                                                endwhile;
                                             endif;
-                                        endif; 
+                                        endif;
                                         ?>
                                     </tbody>
                                 </table>
@@ -2551,69 +2551,85 @@ if ($attendance_payroll_adjustments && isset($attendance_payroll_adjustments['at
                     <!-- Summary -->
                     <div class="overall-summary-box">
                         <?php if ($has_attendance_data): ?>
-                        <div class="overall-section-title mb-3"><i class="fas fa-calculator me-2"></i>Pay Computation Summary</div>
-                        <table class="table table-sm mb-0">
-                            <tr>
-                                <td><i class="fas fa-plus text-success me-2"></i>Gross Earnings</td>
-                                <td class="text-end fw-bold">₱<?php echo number_format($overall_gross_salary > 0 ? $overall_gross_salary : $total_earnings_overall, 2); ?></td>
-                            </tr>
-                            <tr>
-                                <td class="ps-4 text-muted small">Basic Salary (<?php echo $attendance_payroll_adjustments['attendance_summary']['present_days']; ?> present days)</td>
-                                <td class="text-end text-muted small">₱<?php echo number_format($attendance_payroll_adjustments['salary_adjustments']['basic_salary'] ?? 0, 2); ?></td>
-                            </tr>
-                            <?php if (($attendance_payroll_adjustments['salary_adjustments']['overtime_pay'] ?? 0) > 0): ?>
-                            <tr>
-                                <td class="ps-4 text-muted small">Overtime Pay</td>
-                                <td class="text-end text-muted small">₱<?php echo number_format($attendance_payroll_adjustments['salary_adjustments']['overtime_pay'], 2); ?></td>
-                            </tr>
-                            <?php endif; ?>
-                            <tr>
-                                <td><i class="fas fa-minus text-danger me-2"></i>Total Deductions</td>
-                                <td class="text-end fw-bold text-danger">-₱<?php echo number_format($total_deductions_overall, 2); ?></td>
-                            </tr>
-                            <tr>
-                                <td class="ps-4 text-muted small">Government Contributions (SSS, PhilHealth, Pag-IBIG)</td>
-                                <td class="text-end text-muted small">₱<?php echo number_format($overall_sss_contrib['employee'] + $overall_philhealth_contrib['employee'] + $overall_pagibig_contrib['employee'], 2); ?></td>
-                            </tr>
-                            <tr>
-                                <td class="ps-4 text-muted small">Withholding Tax (BIR)</td>
-                                <td class="text-end text-muted small">₱<?php echo number_format($overall_withholding_tax, 2); ?></td>
-                            </tr>
-                            <?php 
-                            $other_deductions = $total_deductions_overall - $overall_sss_contrib['employee'] - $overall_philhealth_contrib['employee'] - $overall_pagibig_contrib['employee'] - $overall_withholding_tax;
-                            if ($other_deductions > 0): ?>
-                            <tr>
-                                <td class="ps-4 text-muted small">Other Deductions (Absences, Late, etc.)</td>
-                                <td class="text-end text-muted small">₱<?php echo number_format($other_deductions, 2); ?></td>
-                            </tr>
-                            <?php endif; ?>
-                            <tr class="table-success">
-                                <td><strong class="fs-5"><i class="fas fa-wallet me-2"></i>NET PAY (Take Home)</strong></td>
-                                <td class="text-end"><strong class="fs-5 text-success">₱<?php 
+                            <div class="overall-section-title mb-3"><i class="fas fa-calculator me-2"></i>Pay Computation
+                                Summary</div>
+                            <table class="table table-sm mb-0">
+                                <tr>
+                                    <td><i class="fas fa-plus text-success me-2"></i>Gross Earnings</td>
+                                    <td class="text-end fw-bold">
+                                        ₱<?php echo number_format($overall_gross_salary > 0 ? $overall_gross_salary : $total_earnings_overall, 2); ?>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="ps-4 text-muted small">Basic Salary
+                                        (<?php echo $attendance_payroll_adjustments['attendance_summary']['present_days']; ?>
+                                        present days)</td>
+                                    <td class="text-end text-muted small">
+                                        ₱<?php echo number_format($attendance_payroll_adjustments['salary_adjustments']['basic_salary'] ?? 0, 2); ?>
+                                    </td>
+                                </tr>
+                                <?php if (($attendance_payroll_adjustments['salary_adjustments']['overtime_pay'] ?? 0) > 0): ?>
+                                    <tr>
+                                        <td class="ps-4 text-muted small">Overtime Pay</td>
+                                        <td class="text-end text-muted small">
+                                            ₱<?php echo number_format($attendance_payroll_adjustments['salary_adjustments']['overtime_pay'], 2); ?>
+                                        </td>
+                                    </tr>
+                                <?php endif; ?>
+                                <tr>
+                                    <td><i class="fas fa-minus text-danger me-2"></i>Total Deductions</td>
+                                    <td class="text-end fw-bold text-danger">
+                                        -₱<?php echo number_format($total_deductions_overall, 2); ?></td>
+                                </tr>
+                                <tr>
+                                    <td class="ps-4 text-muted small">Government Contributions (SSS, PhilHealth, Pag-IBIG)
+                                    </td>
+                                    <td class="text-end text-muted small">
+                                        ₱<?php echo number_format($overall_sss_contrib['employee'] + $overall_philhealth_contrib['employee'] + $overall_pagibig_contrib['employee'], 2); ?>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="ps-4 text-muted small">Withholding Tax (BIR)</td>
+                                    <td class="text-end text-muted small">
+                                        ₱<?php echo number_format($overall_withholding_tax, 2); ?></td>
+                                </tr>
+                                <?php
+                                $other_deductions = $total_deductions_overall - $overall_sss_contrib['employee'] - $overall_philhealth_contrib['employee'] - $overall_pagibig_contrib['employee'] - $overall_withholding_tax;
+                                if ($other_deductions > 0): ?>
+                                    <tr>
+                                        <td class="ps-4 text-muted small">Other Deductions (Absences, Late, etc.)</td>
+                                        <td class="text-end text-muted small">
+                                            ₱<?php echo number_format($other_deductions, 2); ?></td>
+                                    </tr>
+                                <?php endif; ?>
+                                <tr class="table-success">
+                                    <td><strong class="fs-5"><i class="fas fa-wallet me-2"></i>NET PAY (Take Home)</strong>
+                                    </td>
+                                    <td class="text-end"><strong class="fs-5 text-success">₱<?php
                                     $net_salary = ($overall_gross_salary > 0 ? $overall_gross_salary : $total_earnings_overall) - $total_deductions_overall;
                                     // Ensure net salary is never negative - set to 0 if negative
                                     $net_salary = max(0, $net_salary);
-                                    echo number_format($net_salary, 2); 
-                                ?></strong></td>
-                            </tr>
-                        </table>
+                                    echo number_format($net_salary, 2);
+                                    ?></strong></td>
+                                </tr>
+                            </table>
                         <?php else: ?>
-                        <div class="overall-summary-row">
-                            <span class="label">Gross Earnings:</span>
-                            <span class="value">₱0.00</span>
-                        </div>
-                        <div class="overall-summary-row">
-                            <span class="label">Total Deductions:</span>
-                            <span class="value">₱0.00</span>
-                        </div>
-                        <div class="overall-summary-row">
-                            <span class="label">Net Salary:</span>
-                            <span class="value">₱0.00</span>
-                        </div>
-                        <div class="text-center text-muted mt-3">
-                            <i class="fas fa-info-circle me-2"></i>
-                            No payroll data available for this period
-                        </div>
+                            <div class="overall-summary-row">
+                                <span class="label">Gross Earnings:</span>
+                                <span class="value">₱0.00</span>
+                            </div>
+                            <div class="overall-summary-row">
+                                <span class="label">Total Deductions:</span>
+                                <span class="value">₱0.00</span>
+                            </div>
+                            <div class="overall-summary-row">
+                                <span class="label">Net Salary:</span>
+                                <span class="value">₱0.00</span>
+                            </div>
+                            <div class="text-center text-muted mt-3">
+                                <i class="fas fa-info-circle me-2"></i>
+                                No payroll data available for this period
+                            </div>
                         <?php endif; ?>
                     </div>
 
@@ -2627,12 +2643,12 @@ if ($attendance_payroll_adjustments && isset($attendance_payroll_adjustments['at
             </div>
         </div>
     </main>
-    
+
     <!-- Footer -->
     <footer class="main-footer">
         <p>&copy; <?php echo date('Y'); ?> Evergreen Accounting & Finance. All rights reserved.</p>
     </footer>
-    
+
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <!-- jQuery -->
@@ -2641,4 +2657,5 @@ if ($attendance_payroll_adjustments && isset($attendance_payroll_adjustments['at
     <script src="../assets/js/payroll-management.js"></script>
     <script src="../assets/js/notifications.js"></script>
 </body>
+
 </html>

@@ -14,6 +14,7 @@ $current_user = getCurrentUser();
 
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -30,111 +31,10 @@ $current_user = getCurrentUser();
     <link rel="stylesheet" href="../assets/css/dashboard.css">
     <link rel="stylesheet" href="../assets/css/financial-reporting.css">
 </head>
+
 <body>
     <!-- Navigation -->
-    <nav class="navbar navbar-expand-lg navbar-custom">
-        <div class="container-fluid px-4">
-            <div class="logo-section">
-                <div class="logo-circle">
-                    <img src="../assets/image/LOGO.png" alt="Evergreen Logo" class="logo-img">
-                </div>
-                <div class="logo-text">
-                    <h1>EVERGREEN</h1>
-                    <p>Secure. Invest. Achieve</p>
-                </div>
-            </div>
-            
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            
-            <div class="collapse navbar-collapse justify-content-center" id="navbarNav">
-                <ul class="navbar-nav">
-                    <li class="nav-item">
-                        <a class="nav-link" href="../core/dashboard.php">
-                            <i class="fas fa-home me-1"></i>Home
-                        </a>
-                    </li>
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="modulesDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="fas fa-th-large me-1"></i>Modules
-                        </a>
-                        <ul class="dropdown-menu dropdown-menu-custom" aria-labelledby="modulesDropdown">
-                            <li><a class="dropdown-item" href="general-ledger.php"><i class="fas fa-book me-2"></i>General Ledger</a></li>
-                            <li><a class="dropdown-item" href="financial-reporting.php"><i class="fas fa-chart-line me-2"></i>Financial Reporting</a></li>
-                            <li><a class="dropdown-item active" href="loan-accounting.php"><i class="fas fa-hand-holding-usd me-2"></i>Loan Accounting</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="transaction-reading.php"><i class="fas fa-exchange-alt me-2"></i>Transaction Reading</a></li>
-                            <li><a class="dropdown-item" href="expense-tracking.php"><i class="fas fa-receipt me-2"></i>Expense Tracking</a></li>
-                            <li><a class="dropdown-item" href="payroll-management.php"><i class="fas fa-users me-2"></i>Payroll Management</a></li>
-                        </ul>
-                    </li>
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="reportsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="fas fa-file-alt me-1"></i>Reports
-                        </a>
-                        <ul class="dropdown-menu dropdown-menu-custom" aria-labelledby="reportsDropdown">
-                            <li><a class="dropdown-item" href="financial-reporting.php"><i class="fas fa-chart-bar me-2"></i>Financial Statements</a></li>
-                            <li><a class="dropdown-item" href="financial-reporting.php"><i class="fas fa-money-bill-wave me-2"></i>Cash Flow Report</a></li>
-                            <li><a class="dropdown-item" href="expense-tracking.php"><i class="fas fa-clipboard-list me-2"></i>Expense Summary</a></li>
-                            <li><a class="dropdown-item" href="payroll-management.php"><i class="fas fa-wallet me-2"></i>Payroll Report</a></li>
-                        </ul>
-                    </li>
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="settingsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="fas fa-cog me-1"></i>Settings
-                        </a>
-                        <ul class="dropdown-menu dropdown-menu-custom" aria-labelledby="settingsDropdown">
-                            <li><a class="dropdown-item" href="bin-station.php"><i class="fas fa-trash-alt me-2"></i>Bin Station</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="database-settings.php"><i class="fas fa-database me-2"></i>Database Settings</a></li>
-                        </ul>
-                    </li>
-                </ul>
-            </div>
-            
-            <div class="d-flex align-items-center gap-3">
-                <!-- Notifications -->
-                <div class="dropdown d-none d-md-block">
-                    <a class="nav-icon-btn" href="#" id="notificationsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                        <i class="fas fa-bell"></i>
-                        <span class="notification-badge">3</span>
-                    </a>
-                    <ul class="dropdown-menu dropdown-menu-end dropdown-menu-custom notifications-dropdown" aria-labelledby="notificationsDropdown">
-                        <li class="dropdown-header">Notifications</li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li class="dropdown-item text-center text-muted"><small>Loading notifications...</small></li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item text-center small" href="activity-log.php">View All Notifications</a></li>
-                    </ul>
-                </div>
-                
-                <!-- User Profile Dropdown -->
-                <div class="dropdown">
-                    <a class="user-profile-btn" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                        <i class="fas fa-user-circle me-2"></i>
-                        <span class="d-none d-lg-inline"><?php echo htmlspecialchars($current_user['full_name']); ?></span>
-                        <i class="fas fa-chevron-down ms-2 d-none d-lg-inline"></i>
-                    </a>
-                    <ul class="dropdown-menu dropdown-menu-end dropdown-menu-custom" aria-labelledby="userDropdown">
-                        <li class="dropdown-header">
-                            <div class="user-dropdown-header">
-                                <i class="fas fa-user-circle fa-2x"></i>
-                                <div>
-                                    <strong><?php echo htmlspecialchars($current_user['full_name']); ?></strong>
-                                    <small><?php echo htmlspecialchars($current_user['username']); ?></small>
-                                </div>
-                            </div>
-                        </li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item" href="activity-log.php"><i class="fas fa-history me-2"></i>Activity Log</a></li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item text-danger" href="../core/logout.php"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-    </nav>
+    <?php include '../includes/navbar.php'; ?>
 
     <!-- Beautiful Page Header -->
     <div class="beautiful-page-header mb-5">
@@ -147,7 +47,8 @@ $current_user = getCurrentUser();
                             Bin Station
                         </h1>
                         <p class="page-subtitle-beautiful">
-                            Manage all deleted items across the system. Restore accidentally deleted items or permanently remove them.
+                            Manage all deleted items across the system. Restore accidentally deleted items or
+                            permanently remove them.
                         </p>
                     </div>
                 </div>
@@ -258,14 +159,16 @@ $current_user = getCurrentUser();
     </div>
 
     <!-- Confirmation Modal -->
-    <div class="modal fade" id="binConfirmModal" tabindex="-1" aria-labelledby="binConfirmModalLabel" aria-hidden="true">
+    <div class="modal fade" id="binConfirmModal" tabindex="-1" aria-labelledby="binConfirmModalLabel"
+        aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header" id="binConfirmHeader">
                     <h5 class="modal-title" id="binConfirmModalLabel">
                         <i class="fas fa-question-circle me-2"></i>Confirm Action
                     </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                        aria-label="Close"></button>
                 </div>
                 <div class="modal-body" id="binConfirmBody">
                     <p>Are you sure you want to proceed?</p>
@@ -294,35 +197,35 @@ $current_user = getCurrentUser();
             const titleEl = document.getElementById('binConfirmModalLabel');
             const body = document.getElementById('binConfirmBody');
             const confirmBtn = document.getElementById('binConfirmBtn');
-            
+
             // Set header color based on action type
             header.className = 'modal-header text-white ' + (btnClass.includes('danger') ? 'bg-danger' : 'bg-success');
-            
+
             // Set icon based on action
             const icon = btnClass.includes('danger') ? 'fa-exclamation-triangle' : 'fa-undo';
             titleEl.innerHTML = '<i class="fas ' + icon + ' me-2"></i>' + title;
-            
+
             // Set body content
             body.innerHTML = message;
-            
+
             // Set button
             confirmBtn.className = 'btn ' + btnClass;
             confirmBtn.innerHTML = '<i class="fas ' + (btnClass.includes('danger') ? 'fa-trash' : 'fa-check') + ' me-1"></i>' + btnText;
-            
+
             // Remove old event listeners and add new one
             const newConfirmBtn = confirmBtn.cloneNode(true);
             confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
-            
-            newConfirmBtn.addEventListener('click', function() {
+
+            newConfirmBtn.addEventListener('click', function () {
                 modal.hide();
                 onConfirm();
             });
-            
+
             modal.show();
         }
-        
+
         // Load bin data on page load
-        $(document).ready(function() {
+        $(document).ready(function () {
             loadBinData();
         });
 
@@ -332,7 +235,7 @@ $current_user = getCurrentUser();
         function loadBinData() {
             console.log('Loading bin data...');
             const container = document.getElementById('binItems');
-            
+
             // Show loading state
             container.innerHTML = `
                 <div class="text-center py-5">
@@ -342,7 +245,7 @@ $current_user = getCurrentUser();
                     <p class="mt-3 text-muted">Loading deleted items...</p>
                 </div>
             `;
-            
+
             // Load compliance reports, transactions, and loans from bin
             $.when(
                 $.ajax({
@@ -351,12 +254,12 @@ $current_user = getCurrentUser();
                     data: { action: 'get_all_bin_items' },
                     dataType: 'json',
                     timeout: 10000
-                }).then(function(response) {
+                }).then(function (response) {
                     return response;
-                }, function(xhr, status, error) {
+                }, function (xhr, status, error) {
                     console.error('Error loading compliance reports:', error);
                     console.error('Response:', xhr.responseText);
-                    return {success: false, data: []};
+                    return { success: false, data: [] };
                 }),
                 $.ajax({
                     url: 'api/transaction-data.php',
@@ -364,12 +267,12 @@ $current_user = getCurrentUser();
                     data: { action: 'get_bin_items' },
                     dataType: 'json',
                     timeout: 10000
-                }).then(function(response) {
+                }).then(function (response) {
                     return response;
-                }, function(xhr, status, error) {
+                }, function (xhr, status, error) {
                     console.error('Error loading transaction data:', error);
                     console.error('Response:', xhr.responseText);
-                    return {success: false, data: []};
+                    return { success: false, data: [] };
                 }),
                 $.ajax({
                     url: 'api/loan-data.php',
@@ -377,34 +280,34 @@ $current_user = getCurrentUser();
                     data: { action: 'get_bin_items' },
                     dataType: 'json',
                     timeout: 10000
-                }).then(function(response) {
+                }).then(function (response) {
                     return response;
-                }, function(xhr, status, error) {
+                }, function (xhr, status, error) {
                     console.error('Error loading loan data:', error);
                     console.error('Response:', xhr.responseText);
-                    return {success: false, data: []};
+                    return { success: false, data: [] };
                 })
-            ).done(function(complianceResponse, transactionResponse, loanResponse) {
+            ).done(function (complianceResponse, transactionResponse, loanResponse) {
                 console.log('Compliance response:', complianceResponse);
                 console.log('Transaction response:', transactionResponse);
                 console.log('Loan response:', loanResponse);
-                
+
                 const complianceData = (complianceResponse && complianceResponse.success) ? complianceResponse.data : [];
                 const transactionData = (transactionResponse && transactionResponse.success) ? transactionResponse.data : [];
                 const loanData = (loanResponse && loanResponse.success) ? loanResponse.data : [];
-                
+
                 console.log('Compliance data:', complianceData);
                 console.log('Transaction data:', transactionData);
                 console.log('Loan data:', loanData);
-                
+
                 // Combine all bin items
                 const allItems = [...complianceData, ...transactionData, ...loanData];
-                
+
                 console.log('Total bin items:', allItems.length);
-                
+
                 updateBinDisplay(allItems);
                 updateBinStats(allItems);
-            }).fail(function(xhr, status, error) {
+            }).fail(function (xhr, status, error) {
                 console.error('Failed to load bin data:', error);
                 console.error('Status:', status);
                 console.error('Response:', xhr.responseText);
@@ -418,7 +321,7 @@ $current_user = getCurrentUser();
         function updateBinDisplay(items) {
             console.log('updateBinDisplay called with', items);
             const container = document.getElementById('binItems');
-            
+
             if (!items || items.length === 0) {
                 container.innerHTML = `
                     <div class="text-center py-5">
@@ -429,9 +332,9 @@ $current_user = getCurrentUser();
                 `;
                 return;
             }
-            
+
             console.log('Displaying', items.length, 'items');
-            
+
             let html = '';
             items.forEach(item => {
                 const deletedDate = item.deleted_at ? new Date(item.deleted_at).toLocaleString() : 'Unknown';
@@ -440,7 +343,7 @@ $current_user = getCurrentUser();
                 const title = item.title || item.description || item.journal_no || item.loan_number || 'Item';
                 const itemId = item.id || 0;
                 const itemType = item.item_type || 'unknown';
-                
+
                 html += `
                     <div class="bin-item border border-light rounded p-3 mb-3">
                         <div class="row align-items-center">
@@ -460,9 +363,9 @@ $current_user = getCurrentUser();
                             </div>
                             <div class="col-md-2">
                                 <small class="text-muted">
-                                    ${item.score ? item.score + '%' : 
-                                      (item.total_debit ? '₱' + parseFloat(item.total_debit).toFixed(2) : 
-                                      (item.loan_amount ? '₱' + parseFloat(item.loan_amount).toFixed(2) : 'N/A'))}
+                                    ${item.score ? item.score + '%' :
+                        (item.total_debit ? '₱' + parseFloat(item.total_debit).toFixed(2) :
+                            (item.loan_amount ? '₱' + parseFloat(item.loan_amount).toFixed(2) : 'N/A'))}
                                 </small>
                             </div>
                             <div class="col-md-2">
@@ -485,7 +388,7 @@ $current_user = getCurrentUser();
                     </div>
                 `;
             });
-            
+
             container.innerHTML = html;
         }
 
@@ -496,15 +399,15 @@ $current_user = getCurrentUser();
             const totalDeleted = reports.length;
             const today = new Date().toDateString();
             const recentDeleted = reports.filter(r => new Date(r.deleted_at).toDateString() === today).length;
-            
-            const oldestDeleted = reports.length > 0 ? 
-                reports.reduce((oldest, current) => 
+
+            const oldestDeleted = reports.length > 0 ?
+                reports.reduce((oldest, current) =>
                     new Date(current.deleted_at) < new Date(oldest.deleted_at) ? current : oldest
                 ) : null;
-            
+
             document.getElementById('totalDeleted').textContent = totalDeleted;
             document.getElementById('recentDeleted').textContent = recentDeleted;
-            document.getElementById('oldestDeleted').textContent = oldestDeleted ? 
+            document.getElementById('oldestDeleted').textContent = oldestDeleted ?
                 formatDate(oldestDeleted.deleted_at) : '-';
             document.getElementById('spaceSaved').textContent = (totalDeleted * 0.5).toFixed(1) + ' MB';
         }
@@ -518,26 +421,26 @@ $current_user = getCurrentUser();
                 '<p>Are you sure you want to restore this compliance report?</p><p class="text-muted small">It will be moved back to active reports.</p>',
                 'Restore',
                 'btn-success',
-                function() {
+                function () {
                     $.ajax({
                         url: 'api/compliance-reports.php',
                         method: 'POST',
-                        data: { 
+                        data: {
                             action: 'restore_report',
                             report_id: reportId
-                },
-                dataType: 'json',
-                success: function(response) {
-                    if (response.success) {
-                        showNotification('Report restored successfully!', 'success');
-                        loadBinData(); // Refresh bin
-                    } else {
-                        showNotification('Restore failed: ' + response.error, 'error');
-                    }
-                },
-                error: function(xhr, status, error) {
-                    showNotification('Restore failed: ' + error, 'error');
-                }
+                        },
+                        dataType: 'json',
+                        success: function (response) {
+                            if (response.success) {
+                                showNotification('Report restored successfully!', 'success');
+                                loadBinData(); // Refresh bin
+                            } else {
+                                showNotification('Restore failed: ' + response.error, 'error');
+                            }
+                        },
+                        error: function (xhr, status, error) {
+                            showNotification('Restore failed: ' + error, 'error');
+                        }
                     });
                 }
             );
@@ -552,16 +455,16 @@ $current_user = getCurrentUser();
                 '<p>Are you sure you want to permanently delete this compliance report?</p><p class="text-danger small"><i class="fas fa-exclamation-triangle me-1"></i>This action cannot be undone.</p>',
                 'Delete Permanently',
                 'btn-danger',
-                function() {
+                function () {
                     $.ajax({
                         url: 'api/compliance-reports.php',
                         method: 'POST',
-                        data: { 
+                        data: {
                             action: 'permanent_delete_report',
                             report_id: reportId
                         },
                         dataType: 'json',
-                        success: function(response) {
+                        success: function (response) {
                             if (response.success) {
                                 showNotification('Report permanently deleted!', 'success');
                                 loadBinData();
@@ -569,7 +472,7 @@ $current_user = getCurrentUser();
                                 showNotification('Delete failed: ' + response.error, 'error');
                             }
                         },
-                        error: function(xhr, status, error) {
+                        error: function (xhr, status, error) {
                             showNotification('Delete failed: ' + error, 'error');
                         }
                     });
@@ -586,12 +489,12 @@ $current_user = getCurrentUser();
                 '<p>Are you sure you want to restore ALL deleted items?</p><p class="text-muted small">This will move all items back to their active state.</p>',
                 'Restore All',
                 'btn-success',
-                function() {
+                function () {
                     performRestoreAll();
                 }
             );
         }
-        
+
         function performRestoreAll() {
 
             // Show loading state
@@ -607,59 +510,59 @@ $current_user = getCurrentUser();
                     method: 'POST',
                     data: { action: 'restore_all_items' },
                     dataType: 'json'
-                }).catch(function(xhr, status, error) {
+                }).catch(function (xhr, status, error) {
                     console.error('Error restoring compliance reports:', error);
-                    return {success: false, restored_count: 0, errors: []};
+                    return { success: false, restored_count: 0, errors: [] };
                 }),
                 $.ajax({
                     url: 'api/transaction-data.php',
                     method: 'POST',
                     data: { action: 'restore_all_transactions' },
                     dataType: 'json'
-                }).catch(function(xhr, status, error) {
+                }).catch(function (xhr, status, error) {
                     console.error('Error restoring transactions:', error);
-                    return {success: false, restored_count: 0, errors: []};
+                    return { success: false, restored_count: 0, errors: [] };
                 }),
                 $.ajax({
                     url: 'api/loan-data.php',
                     method: 'POST',
                     data: { action: 'restore_all_loans' },
                     dataType: 'json'
-                }).catch(function(xhr, status, error) {
+                }).catch(function (xhr, status, error) {
                     console.error('Error restoring loans:', error);
-                    return {success: false, restored_count: 0, errors: []};
+                    return { success: false, restored_count: 0, errors: [] };
                 })
-            ).done(function(complianceResponse, transactionResponse, loanResponse) {
+            ).done(function (complianceResponse, transactionResponse, loanResponse) {
                 // Handle response structure - $.when() with .catch() returns the resolved value
                 // For successful calls: [data, statusText, jqXHR], for caught errors: the fallback object
                 let complianceData = {};
                 let transactionData = {};
                 let loanData = {};
-                
+
                 // Check if response is an array (successful AJAX) or object (from catch)
                 if (Array.isArray(complianceResponse) && complianceResponse.length > 0) {
                     complianceData = complianceResponse[0] || {};
                 } else if (typeof complianceResponse === 'object') {
                     complianceData = complianceResponse;
                 }
-                
+
                 if (Array.isArray(transactionResponse) && transactionResponse.length > 0) {
                     transactionData = transactionResponse[0] || {};
                 } else if (typeof transactionResponse === 'object') {
                     transactionData = transactionResponse;
                 }
-                
+
                 if (Array.isArray(loanResponse) && loanResponse.length > 0) {
                     loanData = loanResponse[0] || {};
                 } else if (typeof loanResponse === 'object') {
                     loanData = loanResponse;
                 }
-                
+
                 const complianceCount = complianceData.compliance_restored || complianceData.restored_count || 0;
                 const transactionCount = transactionData.restored_count || transactionData.transaction_restored || 0;
                 const loanCount = loanData.restored_count || 0;
                 const totalRestored = complianceCount + transactionCount + loanCount;
-                
+
                 if (totalRestored > 0) {
                     let message = `Successfully restored ${totalRestored} items! (${complianceCount} reports, ${transactionCount} transactions, ${loanCount} loans)`;
                     if (transactionCount > 0 || loanCount > 0) {
@@ -669,11 +572,11 @@ $current_user = getCurrentUser();
                 } else {
                     showNotification('No items to restore or restore failed', 'warning');
                 }
-                
+
                 loadBinData(); // Refresh bin
-            }).fail(function() {
+            }).fail(function () {
                 showNotification('Restore all failed. Please try again.', 'error');
-            }).always(function() {
+            }).always(function () {
                 // Reset button state
                 button.innerHTML = originalContent;
                 button.disabled = false;
@@ -689,12 +592,12 @@ $current_user = getCurrentUser();
                 '<p class="text-danger"><strong><i class="fas fa-exclamation-triangle me-1"></i>WARNING:</strong> You are about to PERMANENTLY DELETE ALL items in the bin.</p><p class="text-danger small">This action cannot be undone and will permanently remove all deleted items.</p>',
                 'Empty Bin Permanently',
                 'btn-danger',
-                function() {
+                function () {
                     performEmptyBin();
                 }
             );
         }
-        
+
         function performEmptyBin() {
             // Show loading state
             const button = document.querySelector('[onclick="emptyBin()"]');
@@ -711,69 +614,69 @@ $current_user = getCurrentUser();
                     method: 'POST',
                     data: { action: 'empty_bin' },
                     dataType: 'json'
-                }).catch(function(xhr, status, error) {
+                }).catch(function (xhr, status, error) {
                     console.error('Error emptying compliance reports bin:', error);
-                    return {success: false, deleted_count: 0};
+                    return { success: false, deleted_count: 0 };
                 }),
                 $.ajax({
                     url: 'api/transaction-data.php',
                     method: 'POST',
                     data: { action: 'empty_bin_transactions' },
                     dataType: 'json'
-                }).catch(function(xhr, status, error) {
+                }).catch(function (xhr, status, error) {
                     console.error('Error emptying transactions bin:', error);
-                    return {success: false, deleted_count: 0};
+                    return { success: false, deleted_count: 0 };
                 }),
                 $.ajax({
                     url: 'api/loan-data.php',
                     method: 'POST',
                     data: { action: 'empty_bin_loans' },
                     dataType: 'json'
-                }).catch(function(xhr, status, error) {
+                }).catch(function (xhr, status, error) {
                     console.error('Error emptying loans bin:', error);
-                    return {success: false, deleted_count: 0};
+                    return { success: false, deleted_count: 0 };
                 })
-            ).done(function(complianceResponse, transactionResponse, loanResponse) {
+            ).done(function (complianceResponse, transactionResponse, loanResponse) {
                 // Handle response structure - $.when() with .catch() returns the resolved value
                 // For successful calls: [data, statusText, jqXHR], for caught errors: the fallback object
                 let complianceData = {};
                 let transactionData = {};
                 let loanData = {};
-                
+
                 // Check if response is an array (successful AJAX) or object (from catch)
                 if (Array.isArray(complianceResponse) && complianceResponse.length > 0) {
                     complianceData = complianceResponse[0] || {};
                 } else if (typeof complianceResponse === 'object') {
                     complianceData = complianceResponse;
                 }
-                
+
                 if (Array.isArray(transactionResponse) && transactionResponse.length > 0) {
                     transactionData = transactionResponse[0] || {};
                 } else if (typeof transactionResponse === 'object') {
                     transactionData = transactionResponse;
                 }
-                
+
                 if (Array.isArray(loanResponse) && loanResponse.length > 0) {
                     loanData = loanResponse[0] || {};
                 } else if (typeof loanResponse === 'object') {
                     loanData = loanResponse;
                 }
-                
+
                 const complianceCount = complianceData.deleted_count || 0;
                 const transactionCount = transactionData.deleted_count || 0;
                 const loanCount = loanData.deleted_count || 0;
                 const totalDeleted = complianceCount + transactionCount + loanCount;
-                
+
                 if (totalDeleted > 0) {
                     showNotification(`Successfully permanently deleted ${totalDeleted} items! (${complianceCount} reports, ${transactionCount} transactions, ${loanCount} loans)`, 'success');
                 } else {
                     showNotification('No items to delete or delete failed', 'warning');
                 }
-                
+
                 loadBinData(); // Refresh bin
-            }).fail(function() {
+            }).fail(function () {
                 showNotification('Empty bin failed. Please try again.', 'error');
-            }).always(function() {
+            }).always(function () {
                 // Reset button state
                 button.innerHTML = originalContent;
                 button.disabled = false;
@@ -808,9 +711,9 @@ $current_user = getCurrentUser();
          * Show notification
          */
         function showNotification(message, type = 'info') {
-            const alertClass = type === 'success' ? 'alert-success' : 
-                              type === 'error' ? 'alert-danger' : 'alert-info';
-            
+            const alertClass = type === 'success' ? 'alert-success' :
+                type === 'error' ? 'alert-danger' : 'alert-info';
+
             const notification = document.createElement('div');
             notification.className = `alert ${alertClass} alert-dismissible fade show position-fixed`;
             notification.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
@@ -818,9 +721,9 @@ $current_user = getCurrentUser();
                 ${message}
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             `;
-            
+
             document.body.appendChild(notification);
-            
+
             // Auto remove after 5 seconds
             setTimeout(() => {
                 if (notification.parentNode) {
@@ -843,7 +746,7 @@ $current_user = getCurrentUser();
             };
             return labels[type] || 'Unknown Item';
         }
-        
+
         function getItemTypeIcon(type) {
             const icons = {
                 'compliance_report': 'fa-chart-line',
@@ -857,13 +760,13 @@ $current_user = getCurrentUser();
             };
             return icons[type] || 'fa-file';
         }
-        
+
         function restoreItem(itemType, itemId) {
             if (!itemId || itemId === 0) {
                 showNotification('Error: Invalid item ID', 'error');
                 return;
             }
-            
+
             if (itemType === 'compliance_report') {
                 restoreReport(itemId);
             } else if (itemType === 'journal_entry' || itemType === 'transaction') {
@@ -878,13 +781,13 @@ $current_user = getCurrentUser();
                 showNotification('Restore functionality for ' + itemType + ' not yet implemented.', 'info');
             }
         }
-        
+
         function permanentDeleteItem(itemType, itemId) {
             if (!itemId || itemId === 0) {
                 showNotification('Error: Invalid item ID', 'error');
                 return;
             }
-            
+
             if (itemType === 'compliance_report') {
                 permanentDeleteReport(itemId);
             } else if (itemType === 'journal_entry' || itemType === 'transaction') {
@@ -899,24 +802,24 @@ $current_user = getCurrentUser();
                 showNotification('Permanent delete functionality for ' + itemType + ' not yet implemented.', 'info');
             }
         }
-        
+
         // Note: restoreReport and permanentDeleteReport are defined above with modal support
-        
+
         function refreshBin() {
             loadBinData();
         }
-        
+
         // Note: showNotification is already defined above, so this is a duplicate
         // Keeping the better version above and removing this
         // function showNotification(message, type = 'info') {
         //     // Simple notification - you can enhance this
         //     alert(message);
         // }
-        
+
         function getReportTypeLabel(type) {
             const labels = {
                 'gaap': 'GAAP Compliance',
-                'sox': 'SOX Compliance', 
+                'sox': 'SOX Compliance',
                 'bir': 'BIR Compliance',
                 'ifrs': 'IFRS Compliance'
             };
@@ -965,18 +868,18 @@ $current_user = getCurrentUser();
                 showNotification('Error: Invalid transaction ID', 'error');
                 return;
             }
-            
+
             showConfirmModal(
                 'Restore Transaction',
                 '<p>Are you sure you want to restore this transaction?</p><p class="text-muted small">It will be moved back to active transactions.</p>',
                 'Restore',
                 'btn-success',
-                function() {
+                function () {
                     performRestoreTransaction(transactionId);
                 }
             );
         }
-        
+
         function performRestoreTransaction(transactionId) {
 
             // Extract numeric ID from prefixed ID if needed (e.g., "JE-123" -> 123)
@@ -998,12 +901,12 @@ $current_user = getCurrentUser();
             $.ajax({
                 url: 'api/transaction-data.php',
                 method: 'POST',
-                data: { 
+                data: {
                     action: 'restore_transaction',
                     transaction_id: numericId
                 },
                 dataType: 'json',
-                success: function(response) {
+                success: function (response) {
                     if (response.success) {
                         showNotification('Transaction restored successfully! Please refresh the transaction history page to see it.', 'success');
                         loadBinData(); // Refresh bin
@@ -1011,7 +914,7 @@ $current_user = getCurrentUser();
                         showNotification('Restore failed: ' + (response.error || 'Unknown error'), 'error');
                     }
                 },
-                error: function(xhr, status, error) {
+                error: function (xhr, status, error) {
                     console.error('Restore transaction error:', error);
                     console.error('Response:', xhr.responseText);
                     let errorMessage = error;
@@ -1037,22 +940,22 @@ $current_user = getCurrentUser();
                 '<p>Are you sure you want to permanently delete this transaction?</p><p class="text-danger small"><i class="fas fa-exclamation-triangle me-1"></i>This action cannot be undone.</p>',
                 'Delete Permanently',
                 'btn-danger',
-                function() {
+                function () {
                     performPermanentDeleteTransaction(transactionId);
                 }
             );
         }
-        
+
         function performPermanentDeleteTransaction(transactionId) {
             $.ajax({
                 url: 'api/transaction-data.php',
                 method: 'POST',
-                data: { 
+                data: {
                     action: 'permanent_delete_transaction',
                     transaction_id: transactionId
                 },
                 dataType: 'json',
-                success: function(response) {
+                success: function (response) {
                     if (response.success) {
                         showNotification('Transaction permanently deleted!', 'success');
                         loadBinData(); // Refresh bin
@@ -1060,7 +963,7 @@ $current_user = getCurrentUser();
                         showNotification('Permanent delete failed: ' + response.error, 'error');
                     }
                 },
-                error: function(xhr, status, error) {
+                error: function (xhr, status, error) {
                     showNotification('Permanent delete failed: ' + error, 'error');
                 }
             });
@@ -1074,28 +977,28 @@ $current_user = getCurrentUser();
                 showNotification('Error: Invalid transaction ID', 'error');
                 return;
             }
-            
+
             showConfirmModal(
                 'Restore Bank Transaction',
                 '<p>Are you sure you want to restore this bank transaction?</p><p class="text-muted small">It will be moved back to active transactions.</p>',
                 'Restore',
                 'btn-success',
-                function() {
+                function () {
                     performRestoreBankTransaction(transactionId);
                 }
             );
         }
-        
+
         function performRestoreBankTransaction(transactionId) {
             $.ajax({
                 url: 'api/transaction-data.php',
                 method: 'POST',
-                data: { 
+                data: {
                     action: 'restore_transaction',
                     transaction_id: 'BT-' + transactionId
                 },
                 dataType: 'json',
-                success: function(response) {
+                success: function (response) {
                     if (response.success) {
                         showNotification('Bank transaction restored successfully!', 'success');
                         loadBinData();
@@ -1103,7 +1006,7 @@ $current_user = getCurrentUser();
                         showNotification('Restore failed: ' + (response.error || 'Unknown error'), 'error');
                     }
                 },
-                error: function(xhr, status, error) {
+                error: function (xhr, status, error) {
                     showNotification('Restore failed: ' + error, 'error');
                 }
             });
@@ -1118,22 +1021,22 @@ $current_user = getCurrentUser();
                 '<p>Are you sure you want to permanently delete this bank transaction?</p><p class="text-danger small"><i class="fas fa-exclamation-triangle me-1"></i>This action cannot be undone.</p>',
                 'Delete Permanently',
                 'btn-danger',
-                function() {
+                function () {
                     performPermanentDeleteBankTransaction(transactionId);
                 }
             );
         }
-        
+
         function performPermanentDeleteBankTransaction(transactionId) {
             $.ajax({
                 url: 'api/transaction-data.php',
                 method: 'POST',
-                data: { 
+                data: {
                     action: 'permanent_delete_bank_transaction',
                     transaction_id: transactionId
                 },
                 dataType: 'json',
-                success: function(response) {
+                success: function (response) {
                     if (response.success) {
                         showNotification('Bank transaction permanently deleted!', 'success');
                         loadBinData();
@@ -1141,7 +1044,7 @@ $current_user = getCurrentUser();
                         showNotification('Permanent delete failed: ' + response.error, 'error');
                     }
                 },
-                error: function(xhr, status, error) {
+                error: function (xhr, status, error) {
                     showNotification('Permanent delete failed: ' + error, 'error');
                 }
             });
@@ -1155,28 +1058,28 @@ $current_user = getCurrentUser();
                 showNotification('Error: Invalid loan ID', 'error');
                 return;
             }
-            
+
             showConfirmModal(
                 'Restore Loan',
                 '<p>Are you sure you want to restore this loan?</p><p class="text-muted small">It will be moved back to active loans.</p>',
                 'Restore',
                 'btn-success',
-                function() {
+                function () {
                     performRestoreLoan(loanId);
                 }
             );
         }
-        
+
         function performRestoreLoan(loanId) {
             $.ajax({
                 url: 'api/loan-data.php',
                 method: 'POST',
-                data: { 
+                data: {
                     action: 'restore_loan',
                     loan_id: loanId
                 },
                 dataType: 'json',
-                success: function(response) {
+                success: function (response) {
                     if (response.success) {
                         showNotification('Loan restored successfully! Please refresh the Loan Accounting page to see the changes.', 'success');
                         loadBinData(); // Refresh bin
@@ -1184,7 +1087,7 @@ $current_user = getCurrentUser();
                         showNotification('Restore failed: ' + (response.error || 'Unknown error'), 'error');
                     }
                 },
-                error: function(xhr, status, error) {
+                error: function (xhr, status, error) {
                     console.error('Restore loan error:', error);
                     console.error('Response:', xhr.responseText);
                     showNotification('Restore failed: ' + error, 'error');
@@ -1201,22 +1104,22 @@ $current_user = getCurrentUser();
                 '<p>Are you sure you want to permanently delete this loan?</p><p class="text-danger small"><i class="fas fa-exclamation-triangle me-1"></i>This action cannot be undone.</p>',
                 'Delete Permanently',
                 'btn-danger',
-                function() {
+                function () {
                     performPermanentDeleteLoan(loanId);
                 }
             );
         }
-        
+
         function performPermanentDeleteLoan(loanId) {
             $.ajax({
                 url: 'api/loan-data.php',
                 method: 'POST',
-                data: { 
+                data: {
                     action: 'permanent_delete_loan',
                     loan_id: loanId
                 },
                 dataType: 'json',
-                success: function(response) {
+                success: function (response) {
                     if (response.success) {
                         showNotification('Loan permanently deleted! Please refresh the Loan Accounting page to see the changes.', 'success');
                         loadBinData(); // Refresh bin
@@ -1224,7 +1127,7 @@ $current_user = getCurrentUser();
                         showNotification('Permanent delete failed: ' + response.error, 'error');
                     }
                 },
-                error: function(xhr, status, error) {
+                error: function (xhr, status, error) {
                     showNotification('Permanent delete failed: ' + error, 'error');
                 }
             });
@@ -1238,28 +1141,28 @@ $current_user = getCurrentUser();
                 showNotification('Error: Invalid application ID', 'error');
                 return;
             }
-            
+
             showConfirmModal(
                 'Restore Loan Application',
                 '<p>Are you sure you want to restore this loan application?</p><p class="text-muted small">It will be moved back to active applications.</p>',
                 'Restore',
                 'btn-success',
-                function() {
+                function () {
                     performRestoreLoanApplication(applicationId);
                 }
             );
         }
-        
+
         function performRestoreLoanApplication(applicationId) {
             $.ajax({
                 url: 'api/loan-data.php',
                 method: 'POST',
-                data: { 
+                data: {
                     action: 'restore_application',
                     application_id: applicationId
                 },
                 dataType: 'json',
-                success: function(response) {
+                success: function (response) {
                     if (response.success) {
                         showNotification('Loan application restored successfully! Please refresh the Loan Accounting page to see the changes.', 'success');
                         loadBinData(); // Refresh bin
@@ -1267,7 +1170,7 @@ $current_user = getCurrentUser();
                         showNotification('Restore failed: ' + (response.error || 'Unknown error'), 'error');
                     }
                 },
-                error: function(xhr, status, error) {
+                error: function (xhr, status, error) {
                     console.error('Restore loan application error:', error);
                     console.error('Response:', xhr.responseText);
                     showNotification('Restore failed: ' + error, 'error');
@@ -1284,22 +1187,22 @@ $current_user = getCurrentUser();
                 '<p>Are you sure you want to permanently delete this loan application?</p><p class="text-danger small"><i class="fas fa-exclamation-triangle me-1"></i>This action cannot be undone.</p>',
                 'Delete Permanently',
                 'btn-danger',
-                function() {
+                function () {
                     performPermanentDeleteLoanApplication(applicationId);
                 }
             );
         }
-        
+
         function performPermanentDeleteLoanApplication(applicationId) {
             $.ajax({
                 url: 'api/loan-data.php',
                 method: 'POST',
-                data: { 
+                data: {
                     action: 'permanent_delete_application',
                     application_id: applicationId
                 },
                 dataType: 'json',
-                success: function(response) {
+                success: function (response) {
                     if (response.success) {
                         showNotification('Loan application permanently deleted! Please refresh the Loan Accounting page to see the changes.', 'success');
                         loadBinData(); // Refresh bin
@@ -1307,11 +1210,12 @@ $current_user = getCurrentUser();
                         showNotification('Permanent delete failed: ' + response.error, 'error');
                     }
                 },
-                error: function(xhr, status, error) {
+                error: function (xhr, status, error) {
                     showNotification('Permanent delete failed: ' + error, 'error');
                 }
             });
         }
     </script>
 </body>
+
 </html>

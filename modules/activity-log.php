@@ -69,19 +69,19 @@ $hasResults = false;
 
 if ($conn) {
     $stmt = $conn->prepare($sql);
-    
+
     if ($stmt !== false) {
         if (!empty($params)) {
             $stmt->bind_param($types, ...$params);
         }
-        
+
         $stmt->execute();
         $result = $stmt->get_result();
-        
+
         while ($row = $result->fetch_assoc()) {
             $activity_logs[] = $row;
         }
-        
+
         $hasResults = count($activity_logs) > 0;
         $stmt->close();
     }
@@ -101,7 +101,7 @@ if ($conn) {
             $modules[] = $row['module'];
         }
     }
-    
+
     // Get actions
     $action_sql = "SELECT DISTINCT action FROM activity_logs WHERE action IS NOT NULL ORDER BY action";
     $result = $conn->query($action_sql);
@@ -110,7 +110,7 @@ if ($conn) {
             $actions[] = $row['action'];
         }
     }
-    
+
     // Get users
     $user_sql = "SELECT DISTINCT u.id, u.full_name, u.username 
                  FROM activity_logs al 
@@ -127,6 +127,7 @@ if ($conn) {
 ?>
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -145,112 +146,11 @@ if ($conn) {
     <link rel="stylesheet" href="../assets/css/dashboard.css">
     <link rel="stylesheet" href="../assets/css/financial-reporting.css">
 </head>
+
 <body>
     <!-- Navigation -->
-    <nav class="navbar navbar-expand-lg navbar-custom">
-        <div class="container-fluid px-4">
-            <div class="logo-section">
-                <div class="logo-circle">
-                    <img src="../assets/image/LOGO.png" alt="Evergreen Logo" class="logo-img">
-                </div>
-                <div class="logo-text">
-                    <h1>EVERGREEN</h1>
-                    <p>Secure. Invest. Achieve</p>
-                </div>
-            </div>
-            
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            
-            <div class="collapse navbar-collapse justify-content-center" id="navbarNav">
-                <ul class="navbar-nav">
-                    <li class="nav-item">
-                        <a class="nav-link" href="../core/dashboard.php">
-                            <i class="fas fa-home me-1"></i>Home
-                        </a>
-                    </li>
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="modulesDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="fas fa-th-large me-1"></i>Modules
-                        </a>
-                        <ul class="dropdown-menu dropdown-menu-custom" aria-labelledby="modulesDropdown">
-                            <li><a class="dropdown-item" href="general-ledger.php"><i class="fas fa-book me-2"></i>General Ledger</a></li>
-                            <li><a class="dropdown-item" href="financial-reporting.php"><i class="fas fa-chart-line me-2"></i>Financial Reporting</a></li>
-                            <li><a class="dropdown-item" href="loan-accounting.php"><i class="fas fa-hand-holding-usd me-2"></i>Loan Accounting</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="transaction-reading.php"><i class="fas fa-exchange-alt me-2"></i>Transaction Reading</a></li>
-                            <li><a class="dropdown-item" href="expense-tracking.php"><i class="fas fa-receipt me-2"></i>Expense Tracking</a></li>
-                            <li><a class="dropdown-item" href="payroll-management.php"><i class="fas fa-users me-2"></i>Payroll Management</a></li>
-                        </ul>
-                    </li>
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="reportsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="fas fa-file-alt me-1"></i>Reports
-                        </a>
-                        <ul class="dropdown-menu dropdown-menu-custom" aria-labelledby="reportsDropdown">
-                            <li><a class="dropdown-item" href="financial-reporting.php"><i class="fas fa-chart-bar me-2"></i>Financial Statements</a></li>
-                            <li><a class="dropdown-item" href="financial-reporting.php"><i class="fas fa-money-bill-wave me-2"></i>Cash Flow Report</a></li>
-                            <li><a class="dropdown-item" href="expense-tracking.php"><i class="fas fa-clipboard-list me-2"></i>Expense Summary</a></li>
-                            <li><a class="dropdown-item" href="payroll-management.php"><i class="fas fa-wallet me-2"></i>Payroll Report</a></li>
-                        </ul>
-                    </li>
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="settingsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="fas fa-cog me-1"></i>Settings
-                        </a>
-                        <ul class="dropdown-menu dropdown-menu-custom" aria-labelledby="settingsDropdown">
-                            <li><a class="dropdown-item" href="bin-station.php"><i class="fas fa-trash-alt me-2"></i>Bin Station</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="database-settings.php"><i class="fas fa-database me-2"></i>Database Settings</a></li>
-                        </ul>
-                    </li>
-                </ul>
-            </div>
-            
-            <div class="d-flex align-items-center gap-3">
-                <!-- Notifications -->
-                <div class="dropdown d-none d-md-block">
-                    <a class="nav-icon-btn" href="#" id="notificationsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                        <i class="fas fa-bell"></i>
-                        <span class="notification-badge">3</span>
-                    </a>
-                    <ul class="dropdown-menu dropdown-menu-end dropdown-menu-custom notifications-dropdown" aria-labelledby="notificationsDropdown">
-                        <li class="dropdown-header">Notifications</li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li class="dropdown-item text-center text-muted"><small>Loading notifications...</small></li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item text-center small" href="activity-log.php">View All Notifications</a></li>
-                    </ul>
-                </div>
-                
-                <!-- User Profile Dropdown -->
-                <div class="dropdown">
-                    <a class="user-profile-btn" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                        <i class="fas fa-user-circle me-2"></i>
-                        <span class="d-none d-lg-inline"><?php echo htmlspecialchars($current_user['full_name']); ?></span>
-                        <i class="fas fa-chevron-down ms-2 d-none d-lg-inline"></i>
-                    </a>
-                    <ul class="dropdown-menu dropdown-menu-end dropdown-menu-custom" aria-labelledby="userDropdown">
-                        <li class="dropdown-header">
-                            <div class="user-dropdown-header">
-                                <i class="fas fa-user-circle fa-2x"></i>
-                                <div>
-                                    <strong><?php echo htmlspecialchars($current_user['full_name']); ?></strong>
-                                    <small><?php echo htmlspecialchars($current_user['username']); ?></small>
-                                </div>
-                            </div>
-                        </li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item active" href="activity-log.php"><i class="fas fa-history me-2"></i>Activity Log</a></li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item text-danger" href="../core/logout.php"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-    </nav>
-    
+    <?php include '../includes/navbar.php'; ?>
+
     <!-- Main Content -->
     <main class="container-fluid py-4">
         <!-- Beautiful Page Header -->
@@ -285,7 +185,9 @@ if ($conn) {
                                 </div>
                                 <div class="info-content">
                                     <div class="info-label">Last Activity</div>
-                                    <div class="info-value"><?php echo !empty($activity_logs) ? date('M d, Y', strtotime($activity_logs[0]['created_at'])) : 'N/A'; ?></div>
+                                    <div class="info-value">
+                                        <?php echo !empty($activity_logs) ? date('M d, Y', strtotime($activity_logs[0]['created_at'])) : 'N/A'; ?>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -311,11 +213,13 @@ if ($conn) {
                 <form method="GET" class="row g-3">
                     <div class="col-md-3">
                         <label for="date_from" class="form-label">From Date</label>
-                        <input type="date" class="form-control" id="date_from" name="date_from" value="<?php echo htmlspecialchars($date_from); ?>">
+                        <input type="date" class="form-control" id="date_from" name="date_from"
+                            value="<?php echo htmlspecialchars($date_from); ?>">
                     </div>
                     <div class="col-md-3">
                         <label for="date_to" class="form-label">To Date</label>
-                        <input type="date" class="form-control" id="date_to" name="date_to" value="<?php echo htmlspecialchars($date_to); ?>">
+                        <input type="date" class="form-control" id="date_to" name="date_to"
+                            value="<?php echo htmlspecialchars($date_to); ?>">
                     </div>
                     <div class="col-md-2">
                         <label for="module" class="form-label">Module</label>
@@ -398,7 +302,8 @@ if ($conn) {
                                         <td>
                                             <div>
                                                 <strong><?php echo htmlspecialchars($log['user_name'] ?? 'Unknown'); ?></strong><br>
-                                                <small class="text-muted"><?php echo htmlspecialchars($log['username'] ?? ''); ?></small>
+                                                <small
+                                                    class="text-muted"><?php echo htmlspecialchars($log['username'] ?? ''); ?></small>
                                             </div>
                                         </td>
                                         <td>
@@ -417,7 +322,8 @@ if ($conn) {
                                             </span>
                                         </td>
                                         <td>
-                                            <code class="small"><?php echo htmlspecialchars($log['ip_address'] ?? 'N/A'); ?></code>
+                                            <code
+                                                class="small"><?php echo htmlspecialchars($log['ip_address'] ?? 'N/A'); ?></code>
                                         </td>
                                     </tr>
                                 <?php endforeach; ?>
@@ -447,11 +353,11 @@ if ($conn) {
     <script src="../assets/js/notifications.js"></script>
 
     <script>
-        $(document).ready(function() {
+        $(document).ready(function () {
             // Initialize DataTable
             $('#activityTable').DataTable({
                 "pageLength": 25,
-                "order": [[ 0, "desc" ]],
+                "order": [[0, "desc"]],
                 "columnDefs": [
                     { "orderable": false, "targets": [4, 5] }
                 ],
@@ -466,4 +372,5 @@ if ($conn) {
         });
     </script>
 </body>
+
 </html>

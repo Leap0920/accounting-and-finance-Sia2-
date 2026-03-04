@@ -6,12 +6,13 @@ requireLogin();
 $current_user = getCurrentUser();
 
 // Ensure soft delete columns exist in loans table
-function ensureSoftDeleteColumnsExist($conn) {
+function ensureSoftDeleteColumnsExist($conn)
+{
     try {
         // Check if deleted_at column exists
         $checkSql = "SHOW COLUMNS FROM loans LIKE 'deleted_at'";
         $result = $conn->query($checkSql);
-        
+
         if (!$result || $result->num_rows === 0) {
             // Add deleted_at column
             $alterSql = "ALTER TABLE loans ADD COLUMN deleted_at DATETIME NULL DEFAULT NULL";
@@ -19,11 +20,11 @@ function ensureSoftDeleteColumnsExist($conn) {
                 error_log("Failed to add deleted_at column: " . $conn->error);
             }
         }
-        
+
         // Check if deleted_by column exists
         $checkSql = "SHOW COLUMNS FROM loans LIKE 'deleted_by'";
         $result = $conn->query($checkSql);
-        
+
         if (!$result || $result->num_rows === 0) {
             // Add deleted_by column
             $alterSql = "ALTER TABLE loans ADD COLUMN deleted_by INT NULL DEFAULT NULL";
@@ -37,12 +38,13 @@ function ensureSoftDeleteColumnsExist($conn) {
 }
 
 // Ensure soft delete columns exist in loan_applications table
-function ensureApplicationSoftDeleteColumnsExist($conn) {
+function ensureApplicationSoftDeleteColumnsExist($conn)
+{
     try {
         // Check if deleted_at column exists
         $checkSql = "SHOW COLUMNS FROM loan_applications LIKE 'deleted_at'";
         $result = $conn->query($checkSql);
-        
+
         if (!$result || $result->num_rows === 0) {
             // Add deleted_at column
             $alterSql = "ALTER TABLE loan_applications ADD COLUMN deleted_at DATETIME NULL DEFAULT NULL";
@@ -50,11 +52,11 @@ function ensureApplicationSoftDeleteColumnsExist($conn) {
                 error_log("Failed to add deleted_at column to loan_applications: " . $conn->error);
             }
         }
-        
+
         // Check if deleted_by column exists
         $checkSql = "SHOW COLUMNS FROM loan_applications LIKE 'deleted_by'";
         $result = $conn->query($checkSql);
-        
+
         if (!$result || $result->num_rows === 0) {
             // Add deleted_by column
             $alterSql = "ALTER TABLE loan_applications ADD COLUMN deleted_by INT NULL DEFAULT NULL";
@@ -99,12 +101,12 @@ if ($showOnlyApplications) {
     $whereConditions = [];
     $params = [];
     $types = '';
-    
+
     // Soft delete filter
     if ($hasAppDeletedAtColumn) {
         $whereConditions[] = "(la.deleted_at IS NULL OR la.deleted_at = '')";
     }
-    
+
     // Apply filters
     if ($applyFilters) {
         if (!empty($dateFrom)) {
@@ -112,13 +114,13 @@ if ($showOnlyApplications) {
             $params[] = $dateFrom;
             $types .= 's';
         }
-        
+
         if (!empty($dateTo)) {
             $whereConditions[] = "la.created_at <= ?";
             $params[] = $dateTo . ' 23:59:59';
             $types .= 's';
         }
-        
+
         if (!empty($status)) {
             if (strtolower($status) === 'pending') {
                 // Handle "Pending" case-insensitively for both applications and loans
@@ -139,7 +141,7 @@ if ($showOnlyApplications) {
                 }
             }
         }
-        
+
         if (!empty($accountNumber)) {
             $whereConditions[] = "(CONCAT('APP-', la.id) LIKE ? OR la.account_number LIKE ? OR la.full_name LIKE ?)";
             $searchTerm = "%{$accountNumber}%";
@@ -149,10 +151,10 @@ if ($showOnlyApplications) {
             $types .= 'sss';
         }
     }
-    
+
     // Build WHERE clause
     $whereClause = !empty($whereConditions) ? "WHERE " . implode(" AND ", $whereConditions) : "";
-    
+
     $sql = "SELECT 
             la.id,
             CONCAT('APP-', la.id) as loan_number,
@@ -204,7 +206,7 @@ if ($showOnlyApplications) {
         $whereClause
         ORDER BY la.id DESC";
 } else {
-$sql = "SELECT 
+    $sql = "SELECT 
             l.id,
             l.loan_no as loan_number,
             l.borrower_external_no as borrower_name,
@@ -315,7 +317,7 @@ if (!$showOnlyApplications) {
 
 // Wrap in subquery for proper ordering (only if using UNION)
 if (!$showOnlyApplications) {
-$sql = "SELECT * FROM ($sql) AS combined_results ORDER BY start_date DESC, loan_number DESC";
+    $sql = "SELECT * FROM ($sql) AS combined_results ORDER BY start_date DESC, loan_number DESC";
 }
 
 // Execute query with fallback
@@ -329,7 +331,7 @@ error_log("Loan Accounting Query: " . $sql);
 if ($conn) {
     // Try the UNION query first
     $stmt = $conn->prepare($sql);
-    
+
     if ($stmt === false) {
         // Query preparation failed - try simple loans query as fallback
         $queryError = $conn->error;
@@ -383,7 +385,7 @@ if ($conn) {
         FROM loan_applications la
         LEFT JOIN loan_types lt ON la.loan_type_id = lt.id
         ORDER BY la.id DESC";
-        
+
         $stmt = $conn->prepare($fallbackSql);
         if ($stmt && $stmt->execute()) {
             $result = $stmt->get_result();
@@ -396,19 +398,20 @@ if ($conn) {
         } else {
             error_log("Fallback query also failed: " . ($stmt ? $stmt->error : $conn->error));
         }
-        if ($stmt) $stmt->close();
+        if ($stmt)
+            $stmt->close();
     } else {
         if (!empty($params)) {
             $stmt->bind_param($types, ...$params);
         }
-        
+
         if ($stmt->execute()) {
             $result = $stmt->get_result();
-            
+
             while ($row = $result->fetch_assoc()) {
                 $loans[] = $row;
             }
-            
+
             $hasResults = count($loans) > 0;
             error_log("Loan Accounting: Found " . count($loans) . " loans/applications");
         } else {
@@ -416,7 +419,7 @@ if ($conn) {
             $queryError = $stmt->error;
             error_log("Query execution failed: " . $queryError);
         }
-        
+
         $stmt->close();
     }
 }
@@ -436,10 +439,10 @@ foreach ($loans as $loan) {
     $loanStatus = strtolower($loan['status'] ?? '');
     $loanAmount = floatval($loan['loan_amount'] ?? 0);
     $outstandingBalance = floatval($loan['outstanding_balance'] ?? 0);
-    
+
     // Add to total amount
     $totalAmount += $loanAmount;
-    
+
     if ($loan['record_type'] === 'loan') {
         // This is an actual loan record
         $actualLoanCount++;
@@ -450,12 +453,12 @@ foreach ($loans as $loan) {
     } else {
         // This is an application
         $totalApplications++;
-        
+
         // Count pending applications
         if ($loanStatus === 'pending') {
             $pendingApplications++;
         }
-        
+
         // Count approved/active applications as active loans
         if (in_array($loanStatus, ['approved', 'active'])) {
             $activeLoans++;
@@ -470,21 +473,21 @@ foreach ($loans as $loan) {
 if ($showOnlyApplications) {
     // All records are applications
     $totalApplications = count($loans);
-    
+
     // Recalculate statistics from filtered results to ensure accuracy
     // This ensures statistics automatically adjust based on active filters
     $pendingApplications = 0;
     $activeLoans = 0;
     $totalOutstanding = 0;
-    
+
     foreach ($loans as $loan) {
         $loanStatus = strtolower($loan['status'] ?? '');
-        
+
         // Count pending applications (from filtered results)
         if ($loanStatus === 'pending') {
             $pendingApplications++;
         }
-        
+
         // Count approved/active applications as active loans (from filtered results)
         if (in_array($loanStatus, ['approved', 'active'])) {
             $activeLoans++;
@@ -547,6 +550,7 @@ if (!empty($status) && $applyFilters) {
 ?>
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -566,112 +570,11 @@ if (!empty($status) && $applyFilters) {
     <link rel="stylesheet" href="../assets/css/financial-reporting.css">
     <link rel="stylesheet" href="../assets/css/loan-accounting.css">
 </head>
+
 <body>
     <!-- Navigation -->
-    <nav class="navbar navbar-expand-lg navbar-custom">
-        <div class="container-fluid px-4">
-            <div class="logo-section">
-                <div class="logo-circle">
-                    <img src="../assets/image/LOGO.png" alt="Evergreen Logo" class="logo-img">
-                </div>
-                <div class="logo-text">
-                    <h1>EVERGREEN</h1>
-                    <p>Secure. Invest. Achieve</p>
-                </div>
-            </div>
-            
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            
-            <div class="collapse navbar-collapse justify-content-center" id="navbarNav">
-                <ul class="navbar-nav">
-                    <li class="nav-item">
-                        <a class="nav-link" href="../core/dashboard.php">
-                            <i class="fas fa-home me-1"></i>Home
-                        </a>
-                    </li>
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="modulesDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="fas fa-th-large me-1"></i>Modules
-                        </a>
-                        <ul class="dropdown-menu dropdown-menu-custom" aria-labelledby="modulesDropdown">
-                            <li><a class="dropdown-item" href="general-ledger.php"><i class="fas fa-book me-2"></i>General Ledger</a></li>
-                            <li><a class="dropdown-item" href="financial-reporting.php"><i class="fas fa-chart-line me-2"></i>Financial Reporting</a></li>
-                            <li><a class="dropdown-item active" href="loan-accounting.php"><i class="fas fa-hand-holding-usd me-2"></i>Loan Accounting</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="transaction-reading.php"><i class="fas fa-exchange-alt me-2"></i>Transaction Reading</a></li>
-                            <li><a class="dropdown-item" href="expense-tracking.php"><i class="fas fa-receipt me-2"></i>Expense Tracking</a></li>
-                            <li><a class="dropdown-item" href="payroll-management.php"><i class="fas fa-users me-2"></i>Payroll Management</a></li>
-                        </ul>
-                    </li>
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="reportsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="fas fa-file-alt me-1"></i>Reports
-                        </a>
-                        <ul class="dropdown-menu dropdown-menu-custom" aria-labelledby="reportsDropdown">
-                            <li><a class="dropdown-item" href="financial-reporting.php"><i class="fas fa-chart-bar me-2"></i>Financial Statements</a></li>
-                            <li><a class="dropdown-item" href="financial-reporting.php"><i class="fas fa-money-bill-wave me-2"></i>Cash Flow Report</a></li>
-                            <li><a class="dropdown-item" href="expense-tracking.php"><i class="fas fa-clipboard-list me-2"></i>Expense Summary</a></li>
-                            <li><a class="dropdown-item" href="payroll-management.php"><i class="fas fa-wallet me-2"></i>Payroll Report</a></li>
-                        </ul>
-                    </li>
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="settingsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="fas fa-cog me-1"></i>Settings
-                        </a>
-                        <ul class="dropdown-menu dropdown-menu-custom" aria-labelledby="settingsDropdown">
-                            <li><a class="dropdown-item" href="bin-station.php"><i class="fas fa-trash-alt me-2"></i>Bin Station</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="database-settings.php"><i class="fas fa-database me-2"></i>Database Settings</a></li>
-                        </ul>
-                    </li>
-                </ul>
-            </div>
-            
-            <div class="d-flex align-items-center gap-3">
-                <!-- Notifications -->
-                <div class="dropdown d-none d-md-block">
-                    <a class="nav-icon-btn" href="#" id="notificationsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                        <i class="fas fa-bell"></i>
-                        <span class="notification-badge">3</span>
-                    </a>
-                    <ul class="dropdown-menu dropdown-menu-end dropdown-menu-custom notifications-dropdown" aria-labelledby="notificationsDropdown">
-                        <li class="dropdown-header">Notifications</li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li class="dropdown-item text-center text-muted"><small>Loading notifications...</small></li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item text-center small" href="activity-log.php">View All Notifications</a></li>
-                    </ul>
-                </div>
-                
-                <!-- User Profile Dropdown -->
-                <div class="dropdown">
-                    <a class="user-profile-btn" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                        <i class="fas fa-user-circle me-2"></i>
-                        <span class="d-none d-lg-inline"><?php echo htmlspecialchars($current_user['full_name']); ?></span>
-                        <i class="fas fa-chevron-down ms-2 d-none d-lg-inline"></i>
-                    </a>
-                    <ul class="dropdown-menu dropdown-menu-end dropdown-menu-custom" aria-labelledby="userDropdown">
-                        <li class="dropdown-header">
-                            <div class="user-dropdown-header">
-                                <i class="fas fa-user-circle fa-2x"></i>
-                                <div>
-                                    <strong><?php echo htmlspecialchars($current_user['full_name']); ?></strong>
-                                    <small><?php echo htmlspecialchars($current_user['username']); ?></small>
-                                </div>
-                            </div>
-                        </li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item" href="activity-log.php"><i class="fas fa-history me-2"></i>Activity Log</a></li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item text-danger" href="../core/logout.php"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-    </nav>
-    
+    <?php include '../includes/navbar.php'; ?>
+
     <!-- Main Content -->
     <main class="container-fluid py-4">
         <!-- Beautiful Page Header -->
@@ -719,285 +622,308 @@ if (!empty($status) && $applyFilters) {
                 </div>
             </div>
         </div>
-        
+
         <div class="container-fluid px-4">
-        
-        <!-- Statistics Cards -->
-        <div class="row g-3 mb-4">
-            <div class="col-md-3 col-sm-6">
-                <div class="stat-card stat-card-primary">
-                    <div class="stat-icon">
-                        <i class="fas fa-file-invoice-dollar"></i>
-                    </div>
-                    <div class="stat-content">
-                        <h3><?php echo $totalLoans; ?></h3>
-                        <p>Total Loans</p>
-                        <?php if ($totalLoans > 0): ?>
-                            <small class="text-muted">₱<?php echo number_format($totalAmount, 2); ?></small>
-                        <?php endif; ?>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3 col-sm-6">
-                <div class="stat-card stat-card-info">
-                    <div class="stat-icon">
-                        <i class="fas fa-file-alt"></i>
-                    </div>
-                    <div class="stat-content">
-                        <h3><?php echo $totalApplications; ?></h3>
-                        <p><?php echo htmlspecialchars($applicationsLabel); ?></p>
-                        <?php if ($pendingApplications > 0 && empty($status)): ?>
-                            <small class="text-warning"><i class="fas fa-clock me-1"></i><?php echo $pendingApplications; ?> Pending</small>
-                        <?php endif; ?>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3 col-sm-6">
-                <div class="stat-card stat-card-success">
-                    <div class="stat-icon">
-                        <i class="fas fa-check-circle"></i>
-                    </div>
-                    <div class="stat-content">
-                        <h3><?php echo $activeLoans; ?></h3>
-                        <p><?php echo htmlspecialchars($activeLoansLabel); ?></p>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3 col-sm-6">
-                <div class="stat-card stat-card-warning">
-                    <div class="stat-icon">
-                        <i class="fas fa-hand-holding-usd"></i>
-                    </div>
-                    <div class="stat-content">
-                        <h3>₱<?php echo number_format($totalOutstanding, 2); ?></h3>
-                        <p>Outstanding Balance</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Action Buttons -->
-        <div class="card mb-4">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-                    <div>
-                        <button type="button" class="btn btn-primary" id="btnShowFilters">
-                            <i class="fas fa-filter me-1"></i>Apply Filters
-                        </button>
-                        <?php if ($applyFilters): ?>
-                        <button type="button" class="btn btn-secondary" onclick="clearFilters()">
-                            <i class="fas fa-times me-1"></i>Clear Filters
-                        </button>
-                        <?php endif; ?>
-                    </div>
-                    <div class="btn-group">
-                        <button type="button" class="btn btn-success" onclick="viewAuditTrail()">
-                            <i class="fas fa-history me-1"></i>Audit Trail
-                        </button>
-                        <button type="button" class="btn btn-info" onclick="exportToExcel()">
-                            <i class="fas fa-file-excel me-1"></i>Export
-                        </button>
-                        <button type="button" class="btn btn-secondary" onclick="printTable()">
-                            <i class="fas fa-print me-1"></i>Print
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Filter Panel -->
-        <div class="card mb-4" id="filterPanel" style="display: <?php echo $applyFilters ? 'block' : 'none'; ?>;">
-            <div class="card-header bg-primary text-white">
-                <h5 class="mb-0"><i class="fas fa-filter me-2"></i>Loan Filters</h5>
-            </div>
-            <div class="card-body">
-                <form method="GET" action="">
-                    <input type="hidden" name="apply_filters" value="1">
-                    <div class="row g-3">
-                        <div class="col-md-3">
-                            <label class="form-label">Date From</label>
-                            <input type="date" class="form-control" name="date_from" value="<?php echo htmlspecialchars($dateFrom); ?>">
+
+            <!-- Statistics Cards -->
+            <div class="row g-3 mb-4">
+                <div class="col-md-3 col-sm-6">
+                    <div class="stat-card stat-card-primary">
+                        <div class="stat-icon">
+                            <i class="fas fa-file-invoice-dollar"></i>
                         </div>
-                        <div class="col-md-3">
-                            <label class="form-label">Date To</label>
-                            <input type="date" class="form-control" name="date_to" value="<?php echo htmlspecialchars($dateTo); ?>">
+                        <div class="stat-content">
+                            <h3><?php echo $totalLoans; ?></h3>
+                            <p>Total Loans</p>
+                            <?php if ($totalLoans > 0): ?>
+                                <small class="text-muted">₱<?php echo number_format($totalAmount, 2); ?></small>
+                            <?php endif; ?>
                         </div>
-                        <div class="col-md-3">
-                            <label class="form-label">Status</label>
-                            <select class="form-select" name="status">
-                                <option value="">All Status</option>
-                                <option value="pending" <?php echo (strtolower($status) === 'pending') ? 'selected' : ''; ?>>Pending</option>
-                                <option value="Approved" <?php echo $status === 'Approved' ? 'selected' : ''; ?>>Approved</option>
-                                <option value="active" <?php echo (strtolower($status) === 'active') ? 'selected' : ''; ?>>Active</option>
-                                <option value="Rejected" <?php echo $status === 'Rejected' ? 'selected' : ''; ?>>Rejected</option>
-                                <option value="paid" <?php echo $status === 'paid' ? 'selected' : ''; ?>>Paid</option>
-                                <option value="defaulted" <?php echo $status === 'defaulted' ? 'selected' : ''; ?>>Defaulted</option>
-                                <option value="cancelled" <?php echo $status === 'cancelled' ? 'selected' : ''; ?>>Cancelled</option>
-                            </select>
+                    </div>
+                </div>
+                <div class="col-md-3 col-sm-6">
+                    <div class="stat-card stat-card-info">
+                        <div class="stat-icon">
+                            <i class="fas fa-file-alt"></i>
                         </div>
-                        <div class="col-md-3">
-                            <label class="form-label">Loan Number</label>
-                            <input type="text" class="form-control" name="account_number" 
-                                   placeholder="Search by loan number..." 
-                                   value="<?php echo htmlspecialchars($accountNumber); ?>">
+                        <div class="stat-content">
+                            <h3><?php echo $totalApplications; ?></h3>
+                            <p><?php echo htmlspecialchars($applicationsLabel); ?></p>
+                            <?php if ($pendingApplications > 0 && empty($status)): ?>
+                                <small class="text-warning"><i
+                                        class="fas fa-clock me-1"></i><?php echo $pendingApplications; ?> Pending</small>
+                            <?php endif; ?>
                         </div>
-                        <div class="col-md-6 d-flex align-items-end">
-                            <button type="submit" class="btn btn-primary me-2">
-                                <i class="fas fa-search me-1"></i>Apply Filters
+                    </div>
+                </div>
+                <div class="col-md-3 col-sm-6">
+                    <div class="stat-card stat-card-success">
+                        <div class="stat-icon">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h3><?php echo $activeLoans; ?></h3>
+                            <p><?php echo htmlspecialchars($activeLoansLabel); ?></p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 col-sm-6">
+                    <div class="stat-card stat-card-warning">
+                        <div class="stat-icon">
+                            <i class="fas fa-hand-holding-usd"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h3>₱<?php echo number_format($totalOutstanding, 2); ?></h3>
+                            <p>Outstanding Balance</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                        <div>
+                            <button type="button" class="btn btn-primary" id="btnShowFilters">
+                                <i class="fas fa-filter me-1"></i>Apply Filters
                             </button>
-                            <button type="button" class="btn btn-secondary" onclick="clearFilters()">
-                                <i class="fas fa-times me-1"></i>Clear All
+                            <?php if ($applyFilters): ?>
+                                <button type="button" class="btn btn-secondary" onclick="clearFilters()">
+                                    <i class="fas fa-times me-1"></i>Clear Filters
+                                </button>
+                            <?php endif; ?>
+                        </div>
+                        <div class="btn-group">
+                            <button type="button" class="btn btn-success" onclick="viewAuditTrail()">
+                                <i class="fas fa-history me-1"></i>Audit Trail
+                            </button>
+                            <button type="button" class="btn btn-info" onclick="exportToExcel()">
+                                <i class="fas fa-file-excel me-1"></i>Export
+                            </button>
+                            <button type="button" class="btn btn-secondary" onclick="printTable()">
+                                <i class="fas fa-print me-1"></i>Print
                             </button>
                         </div>
                     </div>
-                </form>
-            </div>
-        </div>
-        
-        <!-- Loan History Table -->
-        <div class="card">
-            <div class="card-header bg-light">
-                <h5 class="mb-0"><i class="fas fa-table me-2"></i>Loan History</h5>
-            </div>
-            <!-- Print Title - Only visible when printing -->
-            <div class="print-title d-none">
-                <h2 class="text-center mb-3">LOAN HISTORY REPORT</h2>
-                <p class="text-center text-muted mb-4">Generated on <?php echo date('F d, Y'); ?></p>
-            </div>
-            <div class="card-body">
-                <?php if ($queryError): ?>
-                <div class="alert alert-danger">
-                    <i class="fas fa-exclamation-triangle me-2"></i>
-                    <strong>Database Query Error:</strong> <?php echo htmlspecialchars($queryError); ?>
-                    <br><small>Please check that the loans and loan_applications tables exist and have the correct structure.</small>
-                    <details class="mt-2">
-                        <summary>Debug Info</summary>
-                        <pre style="font-size: 10px; max-height: 300px; overflow: auto;"><?php echo htmlspecialchars($sql); ?></pre>
-                    </details>
                 </div>
-                <?php elseif (!$hasResults): ?>
-                <div class="empty-state">
-                    <i class="fas fa-search"></i>
-                    <h4><?php echo $applyFilters ? 'No Existing Information Found' : 'No Loan Data Available'; ?></h4>
-                    <p><?php echo $applyFilters ? 'No loans match your filter criteria. Try adjusting your filters.' : 'Start by creating loan records or applying filters to view existing loans.'; ?></p>
-                    <details class="mt-2">
-                        <summary>Debug Info</summary>
-                        <p>Total results found: <?php echo count($loans); ?></p>
-                        <p>Filters applied: <?php echo $applyFilters ? 'Yes' : 'No'; ?></p>
-                        <p>Query error: <?php echo $queryError ? htmlspecialchars($queryError) : 'None'; ?></p>
-                    </details>
-                    <?php if ($applyFilters): ?>
-                    <button class="btn btn-primary mt-3" onclick="clearFilters()">
-                        <i class="fas fa-times me-1"></i>Clear Filters
-                    </button>
+            </div>
+
+            <!-- Filter Panel -->
+            <div class="card mb-4" id="filterPanel" style="display: <?php echo $applyFilters ? 'block' : 'none'; ?>;">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-filter me-2"></i>Loan Filters</h5>
+                </div>
+                <div class="card-body">
+                    <form method="GET" action="">
+                        <input type="hidden" name="apply_filters" value="1">
+                        <div class="row g-3">
+                            <div class="col-md-3">
+                                <label class="form-label">Date From</label>
+                                <input type="date" class="form-control" name="date_from"
+                                    value="<?php echo htmlspecialchars($dateFrom); ?>">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Date To</label>
+                                <input type="date" class="form-control" name="date_to"
+                                    value="<?php echo htmlspecialchars($dateTo); ?>">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Status</label>
+                                <select class="form-select" name="status">
+                                    <option value="">All Status</option>
+                                    <option value="pending" <?php echo (strtolower($status) === 'pending') ? 'selected' : ''; ?>>Pending</option>
+                                    <option value="Approved" <?php echo $status === 'Approved' ? 'selected' : ''; ?>>
+                                        Approved</option>
+                                    <option value="active" <?php echo (strtolower($status) === 'active') ? 'selected' : ''; ?>>Active</option>
+                                    <option value="Rejected" <?php echo $status === 'Rejected' ? 'selected' : ''; ?>>
+                                        Rejected</option>
+                                    <option value="paid" <?php echo $status === 'paid' ? 'selected' : ''; ?>>Paid</option>
+                                    <option value="defaulted" <?php echo $status === 'defaulted' ? 'selected' : ''; ?>>
+                                        Defaulted</option>
+                                    <option value="cancelled" <?php echo $status === 'cancelled' ? 'selected' : ''; ?>>
+                                        Cancelled</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Loan Number</label>
+                                <input type="text" class="form-control" name="account_number"
+                                    placeholder="Search by loan number..."
+                                    value="<?php echo htmlspecialchars($accountNumber); ?>">
+                            </div>
+                            <div class="col-md-6 d-flex align-items-end">
+                                <button type="submit" class="btn btn-primary me-2">
+                                    <i class="fas fa-search me-1"></i>Apply Filters
+                                </button>
+                                <button type="button" class="btn btn-secondary" onclick="clearFilters()">
+                                    <i class="fas fa-times me-1"></i>Clear All
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Loan History Table -->
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0"><i class="fas fa-table me-2"></i>Loan History</h5>
+                </div>
+                <!-- Print Title - Only visible when printing -->
+                <div class="print-title d-none">
+                    <h2 class="text-center mb-3">LOAN HISTORY REPORT</h2>
+                    <p class="text-center text-muted mb-4">Generated on <?php echo date('F d, Y'); ?></p>
+                </div>
+                <div class="card-body">
+                    <?php if ($queryError): ?>
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <strong>Database Query Error:</strong> <?php echo htmlspecialchars($queryError); ?>
+                            <br><small>Please check that the loans and loan_applications tables exist and have the correct
+                                structure.</small>
+                            <details class="mt-2">
+                                <summary>Debug Info</summary>
+                                <pre
+                                    style="font-size: 10px; max-height: 300px; overflow: auto;"><?php echo htmlspecialchars($sql); ?></pre>
+                            </details>
+                        </div>
+                    <?php elseif (!$hasResults): ?>
+                        <div class="empty-state">
+                            <i class="fas fa-search"></i>
+                            <h4><?php echo $applyFilters ? 'No Existing Information Found' : 'No Loan Data Available'; ?>
+                            </h4>
+                            <p><?php echo $applyFilters ? 'No loans match your filter criteria. Try adjusting your filters.' : 'Start by creating loan records or applying filters to view existing loans.'; ?>
+                            </p>
+                            <details class="mt-2">
+                                <summary>Debug Info</summary>
+                                <p>Total results found: <?php echo count($loans); ?></p>
+                                <p>Filters applied: <?php echo $applyFilters ? 'Yes' : 'No'; ?></p>
+                                <p>Query error: <?php echo $queryError ? htmlspecialchars($queryError) : 'None'; ?></p>
+                            </details>
+                            <?php if ($applyFilters): ?>
+                                <button class="btn btn-primary mt-3" onclick="clearFilters()">
+                                    <i class="fas fa-times me-1"></i>Clear Filters
+                                </button>
+                            <?php endif; ?>
+                        </div>
+                    <?php else: ?>
+                        <div class="table-responsive">
+                            <table id="loanTable" class="table table-hover table-striped">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Type</th>
+                                        <th>Loan No.</th>
+                                        <th>Borrower/Applicant</th>
+                                        <th>Loan Type</th>
+                                        <th>Start Date</th>
+                                        <th>Maturity</th>
+                                        <th>Loan Amount</th>
+                                        <th>Rate</th>
+                                        <th>Monthly</th>
+                                        <th>Outstanding</th>
+                                        <th>Status</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php foreach ($loans as $loan): ?>
+                                        <tr>
+                                            <td>
+                                                <?php if ($loan['record_type'] === 'application'): ?>
+                                                    <span class="badge bg-info"><i
+                                                            class="fas fa-file-alt me-1"></i>Application</span>
+                                                <?php else: ?>
+                                                    <span class="badge bg-success"><i
+                                                            class="fas fa-hand-holding-usd me-1"></i>Loan</span>
+                                                <?php endif; ?>
+                                            </td>
+                                            <td><strong><?php echo htmlspecialchars($loan['loan_number']); ?></strong></td>
+                                            <td>
+                                                <span
+                                                    title="<?php echo htmlspecialchars($loan['borrower_name']); ?><?php if (!empty($loan['contact_number']))
+                                                           echo ' | ' . htmlspecialchars($loan['contact_number']); ?><?php if (!empty($loan['email']))
+                                                                   echo ' | ' . htmlspecialchars($loan['email']); ?>">
+                                                    <?php echo htmlspecialchars($loan['borrower_name']); ?>
+                                                    <?php if ($loan['record_type'] === 'application' && !empty($loan['contact_number'])): ?>
+                                                        <br><small
+                                                            class="text-muted"><?php echo htmlspecialchars($loan['contact_number']); ?></small>
+                                                    <?php endif; ?>
+                                                </span>
+                                            </td>
+                                            <td><?php echo htmlspecialchars($loan['loan_type_name'] ?? 'N/A'); ?></td>
+                                            <td><?php echo date('M d, Y', strtotime($loan['start_date'])); ?></td>
+                                            <td>
+                                                <?php if (!empty($loan['maturity_date'])): ?>
+                                                    <?php echo date('M d, Y', strtotime($loan['maturity_date'])); ?>
+                                                <?php elseif ($loan['record_type'] === 'application' && !empty($loan['due_date'])): ?>
+                                                    <?php echo date('M d, Y', strtotime($loan['due_date'])); ?>
+                                                <?php else: ?>
+                                                    <span class="text-muted">N/A</span>
+                                                <?php endif; ?>
+                                            </td>
+                                            <td class="text-end">₱<?php echo number_format($loan['loan_amount'], 2); ?></td>
+                                            <td class="text-center"><?php echo number_format($loan['interest_rate'], 2); ?>%
+                                            </td>
+                                            <td class="text-end">
+                                                <?php if (!empty($loan['monthly_payment'])): ?>
+                                                    ₱<?php echo number_format($loan['monthly_payment'], 2); ?>
+                                                <?php else: ?>
+                                                    <span class="text-muted">-</span>
+                                                <?php endif; ?>
+                                            </td>
+                                            <td class="text-end">
+                                                <?php if (isset($loan['outstanding_balance']) && $loan['outstanding_balance'] !== null): ?>
+                                                    ₱<?php echo number_format($loan['outstanding_balance'], 2); ?>
+                                                <?php else: ?>
+                                                    <span class="text-muted">-</span>
+                                                <?php endif; ?>
+                                            </td>
+                                            <td>
+                                                <span class="badge status-<?php echo strtolower($loan['status']); ?>">
+                                                    <?php echo ucfirst($loan['status']); ?>
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <div class="btn-group btn-group-sm" role="group">
+                                                    <button class="btn btn-info btn-action"
+                                                        onclick="<?php echo $loan['record_type'] === 'application' ? 'viewApplicationDetails(' . $loan['application_id'] . ')' : 'viewLoanDetails(' . $loan['id'] . ')'; ?>"
+                                                        title="View Details">
+                                                        <i class="fas fa-eye"></i>
+                                                    </button>
+                                                    <?php if ($loan['record_type'] === 'loan'): ?>
+                                                        <button class="btn btn-danger btn-action"
+                                                            onclick="deleteLoan(<?php echo $loan['id']; ?>)" title="Move to Bin">
+                                                            <i class="fas fa-trash"></i>
+                                                        </button>
+                                                    <?php else: ?>
+                                                        <!-- Applications can also be deleted if needed -->
+                                                        <button class="btn btn-danger btn-action"
+                                                            onclick="deleteApplication(<?php echo $loan['application_id']; ?>)"
+                                                            title="Delete Application">
+                                                            <i class="fas fa-trash"></i>
+                                                        </button>
+                                                    <?php endif; ?>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
                     <?php endif; ?>
                 </div>
-                <?php else: ?>
-                <div class="table-responsive">
-                    <table id="loanTable" class="table table-hover table-striped">
-                        <thead class="table-light">
-                            <tr>
-                                <th>Type</th>
-                                <th>Loan No.</th>
-                                <th>Borrower/Applicant</th>
-                                <th>Loan Type</th>
-                                <th>Start Date</th>
-                                <th>Maturity</th>
-                                <th>Loan Amount</th>
-                                <th>Rate</th>
-                                <th>Monthly</th>
-                                <th>Outstanding</th>
-                                <th>Status</th>
-                                <th>Action</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php foreach ($loans as $loan): ?>
-                            <tr>
-                                <td>
-                                    <?php if ($loan['record_type'] === 'application'): ?>
-                                        <span class="badge bg-info"><i class="fas fa-file-alt me-1"></i>Application</span>
-                                    <?php else: ?>
-                                        <span class="badge bg-success"><i class="fas fa-hand-holding-usd me-1"></i>Loan</span>
-                                    <?php endif; ?>
-                                </td>
-                                <td><strong><?php echo htmlspecialchars($loan['loan_number']); ?></strong></td>
-                                <td>
-                                    <span title="<?php echo htmlspecialchars($loan['borrower_name']); ?><?php if (!empty($loan['contact_number'])) echo ' | ' . htmlspecialchars($loan['contact_number']); ?><?php if (!empty($loan['email'])) echo ' | ' . htmlspecialchars($loan['email']); ?>">
-                                        <?php echo htmlspecialchars($loan['borrower_name']); ?>
-                                        <?php if ($loan['record_type'] === 'application' && !empty($loan['contact_number'])): ?>
-                                            <br><small class="text-muted"><?php echo htmlspecialchars($loan['contact_number']); ?></small>
-                                        <?php endif; ?>
-                                    </span>
-                                </td>
-                                <td><?php echo htmlspecialchars($loan['loan_type_name'] ?? 'N/A'); ?></td>
-                                <td><?php echo date('M d, Y', strtotime($loan['start_date'])); ?></td>
-                                <td>
-                                    <?php if (!empty($loan['maturity_date'])): ?>
-                                        <?php echo date('M d, Y', strtotime($loan['maturity_date'])); ?>
-                                    <?php elseif ($loan['record_type'] === 'application' && !empty($loan['due_date'])): ?>
-                                        <?php echo date('M d, Y', strtotime($loan['due_date'])); ?>
-                                    <?php else: ?>
-                                        <span class="text-muted">N/A</span>
-                                    <?php endif; ?>
-                                </td>
-                                <td class="text-end">₱<?php echo number_format($loan['loan_amount'], 2); ?></td>
-                                <td class="text-center"><?php echo number_format($loan['interest_rate'], 2); ?>%</td>
-                                <td class="text-end">
-                                    <?php if (!empty($loan['monthly_payment'])): ?>
-                                        ₱<?php echo number_format($loan['monthly_payment'], 2); ?>
-                                    <?php else: ?>
-                                        <span class="text-muted">-</span>
-                                    <?php endif; ?>
-                                </td>
-                                <td class="text-end">
-                                    <?php if (isset($loan['outstanding_balance']) && $loan['outstanding_balance'] !== null): ?>
-                                        ₱<?php echo number_format($loan['outstanding_balance'], 2); ?>
-                                    <?php else: ?>
-                                        <span class="text-muted">-</span>
-                                    <?php endif; ?>
-                                </td>
-                                <td>
-                                    <span class="badge status-<?php echo strtolower($loan['status']); ?>">
-                                        <?php echo ucfirst($loan['status']); ?>
-                                    </span>
-                                </td>
-                                <td>
-                                    <div class="btn-group btn-group-sm" role="group">
-                                        <button class="btn btn-info btn-action" onclick="<?php echo $loan['record_type'] === 'application' ? 'viewApplicationDetails(' . $loan['application_id'] . ')' : 'viewLoanDetails(' . $loan['id'] . ')'; ?>" title="View Details">
-                                            <i class="fas fa-eye"></i>
-                                        </button>
-                                        <?php if ($loan['record_type'] === 'loan'): ?>
-                                            <button class="btn btn-danger btn-action" onclick="deleteLoan(<?php echo $loan['id']; ?>)" title="Move to Bin">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
-                                        <?php else: ?>
-                                            <!-- Applications can also be deleted if needed -->
-                                            <button class="btn btn-danger btn-action" onclick="deleteApplication(<?php echo $loan['application_id']; ?>)" title="Delete Application">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
-                                        <?php endif; ?>
-                                    </div>
-                                </td>
-                            </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
-                </div>
-                <?php endif; ?>
             </div>
-        </div>
-        
+
         </div>
     </main>
-    
+
     <!-- Footer -->
     <footer>
         <div class="container">
             <p class="mb-0">&copy; <?php echo date('Y'); ?> Evergreen Accounting & Finance. All rights reserved.</p>
         </div>
     </footer>
-    
+
     <!-- Loan Details Modal -->
     <div class="modal fade" id="loanDetailsModal" tabindex="-1">
         <div class="modal-dialog modal-lg">
@@ -1015,7 +941,7 @@ if (!empty($status) && $applyFilters) {
             </div>
         </div>
     </div>
-    
+
     <!-- Audit Trail Modal -->
     <div class="modal fade" id="auditTrailModal" tabindex="-1">
         <div class="modal-dialog modal-xl">
@@ -1052,16 +978,18 @@ if (!empty($status) && $applyFilters) {
             </div>
         </div>
     </div>
-    
+
     <!-- Delete Confirmation Modal -->
-    <div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-labelledby="deleteConfirmModalLabel" aria-hidden="true">
+    <div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-labelledby="deleteConfirmModalLabel"
+        aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header bg-danger text-white">
                     <h5 class="modal-title" id="deleteConfirmModalLabel">
                         <i class="fas fa-exclamation-triangle me-2"></i>Confirm Delete
                     </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                        aria-label="Close"></button>
                 </div>
                 <div class="modal-body" id="deleteConfirmBody">
                     <p>Are you sure you want to delete this item?</p>
@@ -1076,7 +1004,7 @@ if (!empty($status) && $applyFilters) {
             </div>
         </div>
     </div>
-    
+
     <!-- jQuery -->
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <!-- Bootstrap JS -->
@@ -1088,5 +1016,5 @@ if (!empty($status) && $applyFilters) {
     <script src="../assets/js/loan-accounting.js"></script>
     <script src="../assets/js/notifications.js"></script>
 </body>
-</html>
 
+</html>

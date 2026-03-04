@@ -18,8 +18,8 @@ $transactions = [];
 $hasFilters = false;
 
 if ($apply_filters) {
-    $hasFilters = !empty($filter_date_from) || !empty($filter_date_to) || 
-                  !empty($filter_type) || !empty($filter_status) || !empty($filter_account);
+    $hasFilters = !empty($filter_date_from) || !empty($filter_date_to) ||
+        !empty($filter_type) || !empty($filter_status) || !empty($filter_account);
 }
 
 // Check if deleted_at column exists in journal_entries
@@ -142,25 +142,25 @@ $sql .= " ORDER BY entry_date DESC, created_at DESC";
 // Execute query
 try {
     $stmt = $conn->prepare($sql);
-    
+
     if ($stmt === false) {
         throw new Exception("Query preparation failed: " . $conn->error);
     }
-    
+
     if (!empty($params)) {
         $stmt->bind_param($types, ...$params);
     }
-    
+
     if (!$stmt->execute()) {
         throw new Exception("Query execution failed: " . $stmt->error);
     }
-    
+
     $result = $stmt->get_result();
-    
+
     while ($row = $result->fetch_assoc()) {
         $transactions[] = $row;
     }
-    
+
     $stmt->close();
 } catch (Exception $e) {
     // If database error, transactions will remain empty array
@@ -184,7 +184,7 @@ try {
                     SUM(CASE WHEN DATE(entry_date) = CURDATE() THEN 1 ELSE 0 END) as today_count
                   FROM journal_entries 
                   WHERE status NOT IN ('deleted', 'voided')";
-    
+
     $result = $conn->query($stats_sql);
     if ($result) {
         $stats = $result->fetch_assoc();
@@ -195,6 +195,7 @@ try {
 ?>
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -214,111 +215,11 @@ try {
     <link rel="stylesheet" href="../assets/css/financial-reporting.css">
     <link rel="stylesheet" href="../assets/css/transaction-reading.css">
 </head>
+
 <body>
     <!-- Navigation -->
-    <nav class="navbar navbar-expand-lg navbar-custom">
-        <div class="container-fluid px-4">
-            <div class="logo-section">
-            <div class="logo-circle">
-                <img src="../assets/image/LOGO.png" alt="Evergreen Logo" class="logo-img">
-            </div>
-            <div class="logo-text">
-                <h1>EVERGREEN</h1>
-                <p>Secure. Invest. Achieve</p>
-            </div>
-        </div>
-            
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            
-            <div class="collapse navbar-collapse justify-content-center" id="navbarNav">
-                <ul class="navbar-nav">
-                    <li class="nav-item">
-                        <a class="nav-link" href="../core/dashboard.php">
-                            <i class="fas fa-home me-1"></i>Home
-                        </a>
-                    </li>
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="modulesDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="fas fa-th-large me-1"></i>Modules
-                        </a>
-                        <ul class="dropdown-menu dropdown-menu-custom" aria-labelledby="modulesDropdown">
-                            <li><a class="dropdown-item" href="general-ledger.php"><i class="fas fa-book me-2"></i>General Ledger</a></li>
-                            <li><a class="dropdown-item" href="financial-reporting.php"><i class="fas fa-chart-line me-2"></i>Financial Reporting</a></li>
-                            <li><a class="dropdown-item" href="loan-accounting.php"><i class="fas fa-hand-holding-usd me-2"></i>Loan Accounting</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item active" href="transaction-reading.php"><i class="fas fa-exchange-alt me-2"></i>Transaction Reading</a></li>
-                            <li><a class="dropdown-item" href="expense-tracking.php"><i class="fas fa-receipt me-2"></i>Expense Tracking</a></li>
-                            <li><a class="dropdown-item" href="payroll-management.php"><i class="fas fa-users me-2"></i>Payroll Management</a></li>
-                        </ul>
-                    </li>
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="reportsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="fas fa-file-alt me-1"></i>Reports
-                        </a>
-                        <ul class="dropdown-menu dropdown-menu-custom" aria-labelledby="reportsDropdown">
-                            <li><a class="dropdown-item" href="financial-reporting.php"><i class="fas fa-chart-bar me-2"></i>Financial Statements</a></li>
-                            <li><a class="dropdown-item" href="financial-reporting.php"><i class="fas fa-money-bill-wave me-2"></i>Cash Flow Report</a></li>
-                            <li><a class="dropdown-item" href="expense-tracking.php"><i class="fas fa-clipboard-list me-2"></i>Expense Summary</a></li>
-                            <li><a class="dropdown-item" href="payroll-management.php"><i class="fas fa-wallet me-2"></i>Payroll Report</a></li>
-                        </ul>
-                    </li>
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="settingsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="fas fa-cog me-1"></i>Settings
-                        </a>
-                        <ul class="dropdown-menu dropdown-menu-custom" aria-labelledby="settingsDropdown">
-                            <li><a class="dropdown-item" href="bin-station.php"><i class="fas fa-trash-alt me-2"></i>Bin Station</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="database-settings.php"><i class="fas fa-database me-2"></i>Database Settings</a></li>
-                        </ul>
-                    </li>
-                </ul>
-            </div>
-            
-            <div class="d-flex align-items-center gap-3">
-                <!-- Notifications -->
-                <div class="dropdown d-none d-md-block">
-                    <a class="nav-icon-btn" href="#" id="notificationsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                        <i class="fas fa-bell"></i>
-                    </a>
-                    <ul class="dropdown-menu dropdown-menu-end dropdown-menu-custom notifications-dropdown" aria-labelledby="notificationsDropdown">
-                        <li class="dropdown-header">Notifications</li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li class="dropdown-item text-center text-muted"><small>Loading notifications...</small></li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item text-center small" href="activity-log.php">View All Notifications</a></li>
-                    </ul>
-                </div>
-                
-                <!-- User Profile Dropdown -->
-                <div class="dropdown">
-                    <a class="user-profile-btn" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                        <i class="fas fa-user-circle me-2"></i>
-                        <span class="d-none d-lg-inline"><?php echo htmlspecialchars($current_user['full_name']); ?></span>
-                        <i class="fas fa-chevron-down ms-2 d-none d-lg-inline"></i>
-                    </a>
-                    <ul class="dropdown-menu dropdown-menu-end dropdown-menu-custom" aria-labelledby="userDropdown">
-                        <li class="dropdown-header">
-                            <div class="user-dropdown-header">
-                                <i class="fas fa-user-circle fa-2x"></i>
-                                <div>
-                                    <strong><?php echo htmlspecialchars($current_user['full_name']); ?></strong>
-                                    <small><?php echo htmlspecialchars($current_user['username']); ?></small>
-                                </div>
-                            </div>
-                        </li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item" href="activity-log.php"><i class="fas fa-history me-2"></i>Activity Log</a></li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item text-danger" href="../core/logout.php"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-    </nav>
-    
+    <?php include '../includes/navbar.php'; ?>
+
     <!-- Beautiful Page Header -->
     <div class="beautiful-page-header mb-5">
         <div class="container-fluid">
@@ -364,7 +265,7 @@ try {
             </div>
         </div>
     </div>
-    
+
     <!-- Main Content -->
     <main class="container-fluid py-4">
         <!-- Action Buttons -->
@@ -390,7 +291,7 @@ try {
                 </div>
             </div>
         </div>
-        
+
         <!-- Filter Panel -->
         <div class="card shadow-sm mb-4" id="filterPanel" style="display: none;">
             <div class="card-header bg-primary text-white">
@@ -401,11 +302,13 @@ try {
                     <div class="row g-3">
                         <div class="col-md-4">
                             <label for="date_from" class="form-label">Date From</label>
-                            <input type="date" class="form-control" id="date_from" name="date_from" value="<?php echo htmlspecialchars($filter_date_from); ?>">
+                            <input type="date" class="form-control" id="date_from" name="date_from"
+                                value="<?php echo htmlspecialchars($filter_date_from); ?>">
                         </div>
                         <div class="col-md-4">
                             <label for="date_to" class="form-label">Date To</label>
-                            <input type="date" class="form-control" id="date_to" name="date_to" value="<?php echo htmlspecialchars($filter_date_to); ?>">
+                            <input type="date" class="form-control" id="date_to" name="date_to"
+                                value="<?php echo htmlspecialchars($filter_date_to); ?>">
                         </div>
                         <div class="col-md-4 d-flex align-items-end gap-2">
                             <button type="button" class="btn btn-secondary" onclick="clearFilters()">
@@ -419,16 +322,16 @@ try {
                 </form>
             </div>
         </div>
-        
+
         <!-- No Results Message -->
         <?php if ($apply_filters && $hasFilters && empty($transactions)): ?>
-        <div class="alert alert-warning shadow-sm" role="alert">
-            <i class="fas fa-exclamation-triangle me-2"></i>
-            <strong>No Existing Information Found</strong><br>
-            No transactions match your filter criteria. Please adjust your filters and try again.
-        </div>
+            <div class="alert alert-warning shadow-sm" role="alert">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                <strong>No Existing Information Found</strong><br>
+                No transactions match your filter criteria. Please adjust your filters and try again.
+            </div>
         <?php endif; ?>
-        
+
         <!-- Transaction Table -->
         <div class="card shadow-sm">
             <div class="card-header bg-white">
@@ -439,11 +342,11 @@ try {
                         </h6>
                     </div>
                     <?php if ($apply_filters && $hasFilters): ?>
-                    <div class="col-md-6 text-end">
-                        <span class="badge bg-info">
-                            <i class="fas fa-filter me-1"></i>Filters Applied
-                        </span>
-                    </div>
+                        <div class="col-md-6 text-end">
+                            <span class="badge bg-info">
+                                <i class="fas fa-filter me-1"></i>Filters Applied
+                            </span>
+                        </div>
                     <?php endif; ?>
                 </div>
             </div>
@@ -466,72 +369,84 @@ try {
                         </thead>
                         <tbody>
                             <?php if (empty($transactions)): ?>
-                            <tr>
-                                <td colspan="10" class="text-center text-muted">
-                                    <div class="py-5">
-                                        <i class="fas fa-database fa-3x mb-3 d-block text-secondary"></i>
-                                        <p class="mb-0">No transaction data available yet.</p>
-                                        <small>Add sample data using the SQL queries provided in the documentation.</small>
-                                    </div>
-                                </td>
-                            </tr>
-                            <?php else: ?>
-                                <?php 
-                                $total_debit = 0;
-                                $total_credit = 0;
-                                foreach ($transactions as $trans): 
-                                    $total_debit += $trans['total_debit'];
-                                    $total_credit += $trans['total_credit'];
-                                ?>
-                                <tr data-transaction-id="<?php echo htmlspecialchars($trans['id'], ENT_QUOTES); ?>">
-                                    <td><strong><?php echo htmlspecialchars($trans['journal_no']); ?></strong></td>
-                                    <td><?php echo date('M d, Y', strtotime($trans['entry_date'])); ?></td>
-                                    <td>
-                                        <span class="badge bg-secondary"><?php echo htmlspecialchars($trans['type_code']); ?></span>
-                                        <?php echo htmlspecialchars($trans['type_name']); ?>
-                                    </td>
-                                    <td><?php echo htmlspecialchars($trans['description'] ?? '-'); ?></td>
-                                    <td><?php echo htmlspecialchars($trans['reference_no'] ?? '-'); ?></td>
-                                    <td class="amount-debit text-end"><?php echo number_format($trans['total_debit'], 2); ?></td>
-                                    <td class="amount-credit text-end"><?php echo number_format($trans['total_credit'], 2); ?></td>
-                                    <td>
-                                        <?php
-                                        $status_class = [
-                                            'draft' => 'status-draft',
-                                            'posted' => 'status-posted',
-                                            'reversed' => 'status-reversed',
-                                            'voided' => 'status-voided'
-                                        ];
-                                        $class = $status_class[$trans['status']] ?? 'badge-secondary';
-                                        ?>
-                                        <span class="badge <?php echo $class; ?>"><?php echo ucfirst($trans['status']); ?></span>
-                                    </td>
-                                    <td><?php echo htmlspecialchars($trans['created_by_name']); ?></td>
-                                    <td>
-                                        <button class="btn btn-sm btn-info btn-action" onclick="viewTransactionDetails('<?php echo htmlspecialchars($trans['id'], ENT_QUOTES); ?>')" title="View Details">
-                                            <i class="fas fa-eye"></i>
-                                        </button>
-                                        <button class="btn btn-sm btn-danger btn-action" onclick="deleteTransaction('<?php echo htmlspecialchars($trans['id'], ENT_QUOTES); ?>')" title="Delete Transaction">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
+                                <tr>
+                                    <td colspan="10" class="text-center text-muted">
+                                        <div class="py-5">
+                                            <i class="fas fa-database fa-3x mb-3 d-block text-secondary"></i>
+                                            <p class="mb-0">No transaction data available yet.</p>
+                                            <small>Add sample data using the SQL queries provided in the
+                                                documentation.</small>
+                                        </div>
                                     </td>
                                 </tr>
+                            <?php else: ?>
+                                <?php
+                                $total_debit = 0;
+                                $total_credit = 0;
+                                foreach ($transactions as $trans):
+                                    $total_debit += $trans['total_debit'];
+                                    $total_credit += $trans['total_credit'];
+                                    ?>
+                                    <tr data-transaction-id="<?php echo htmlspecialchars($trans['id'], ENT_QUOTES); ?>">
+                                        <td><strong><?php echo htmlspecialchars($trans['journal_no']); ?></strong></td>
+                                        <td><?php echo date('M d, Y', strtotime($trans['entry_date'])); ?></td>
+                                        <td>
+                                            <span
+                                                class="badge bg-secondary"><?php echo htmlspecialchars($trans['type_code']); ?></span>
+                                            <?php echo htmlspecialchars($trans['type_name']); ?>
+                                        </td>
+                                        <td><?php echo htmlspecialchars($trans['description'] ?? '-'); ?></td>
+                                        <td><?php echo htmlspecialchars($trans['reference_no'] ?? '-'); ?></td>
+                                        <td class="amount-debit text-end"><?php echo number_format($trans['total_debit'], 2); ?>
+                                        </td>
+                                        <td class="amount-credit text-end">
+                                            <?php echo number_format($trans['total_credit'], 2); ?>
+                                        </td>
+                                        <td>
+                                            <?php
+                                            $status_class = [
+                                                'draft' => 'status-draft',
+                                                'posted' => 'status-posted',
+                                                'reversed' => 'status-reversed',
+                                                'voided' => 'status-voided'
+                                            ];
+                                            $class = $status_class[$trans['status']] ?? 'badge-secondary';
+                                            ?>
+                                            <span
+                                                class="badge <?php echo $class; ?>"><?php echo ucfirst($trans['status']); ?></span>
+                                        </td>
+                                        <td><?php echo htmlspecialchars($trans['created_by_name']); ?></td>
+                                        <td>
+                                            <button class="btn btn-sm btn-info btn-action"
+                                                onclick="viewTransactionDetails('<?php echo htmlspecialchars($trans['id'], ENT_QUOTES); ?>')"
+                                                title="View Details">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-danger btn-action"
+                                                onclick="deleteTransaction('<?php echo htmlspecialchars($trans['id'], ENT_QUOTES); ?>')"
+                                                title="Delete Transaction">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
                                 <?php endforeach; ?>
                             <?php endif; ?>
                         </tbody>
                         <tfoot class="table-light">
                             <tr>
-                                <th colspan="5" class="text-end">Total:</th>
+                                <th class="text-end" colspan="5">Total:</th>
                                 <th class="text-end"><?php echo number_format($total_debit ?? 0, 2); ?></th>
                                 <th class="text-end"><?php echo number_format($total_credit ?? 0, 2); ?></th>
-                                <th colspan="3"></th>
+                                <th></th>
+                                <th></th>
+                                <th></th>
                             </tr>
                         </tfoot>
                     </table>
                 </div>
             </div>
         </div>
-        
+
         <!-- Quick Stats -->
         <div class="row mt-4">
             <div class="col-md-3">
@@ -580,16 +495,18 @@ try {
             </div>
         </div>
     </main>
-    
+
     <!-- Audit Trail Modal -->
-    <div class="modal fade" id="auditTrailModal" tabindex="-1" aria-labelledby="auditTrailModalLabel" aria-hidden="true">
+    <div class="modal fade" id="auditTrailModal" tabindex="-1" aria-labelledby="auditTrailModalLabel"
+        aria-hidden="true">
         <div class="modal-dialog modal-xl">
             <div class="modal-content">
                 <div class="modal-header bg-primary text-white">
                     <h5 class="modal-title" id="auditTrailModalLabel">
                         <i class="fas fa-history me-2"></i>Audit Trail
                     </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                        aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     <div class="table-responsive">
@@ -624,16 +541,18 @@ try {
             </div>
         </div>
     </div>
-    
+
     <!-- Transaction Details Modal -->
-    <div class="modal fade" id="transactionDetailsModal" tabindex="-1" aria-labelledby="transactionDetailsModalLabel" aria-hidden="true">
+    <div class="modal fade" id="transactionDetailsModal" tabindex="-1" aria-labelledby="transactionDetailsModalLabel"
+        aria-hidden="true">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header bg-info text-white">
                     <h5 class="modal-title" id="transactionDetailsModalLabel">
                         <i class="fas fa-file-invoice me-2"></i>Transaction Details
                     </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                        aria-label="Close"></button>
                 </div>
                 <div class="modal-body" id="transactionDetailsBody">
                     <p class="text-center text-muted">Loading transaction details...</p>
@@ -644,16 +563,18 @@ try {
             </div>
         </div>
     </div>
-    
+
     <!-- Delete Confirmation Modal -->
-    <div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-labelledby="deleteConfirmModalLabel" aria-hidden="true">
+    <div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-labelledby="deleteConfirmModalLabel"
+        aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header bg-danger text-white">
                     <h5 class="modal-title" id="deleteConfirmModalLabel">
                         <i class="fas fa-exclamation-triangle me-2"></i>Confirm Delete
                     </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                        aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     <p>Are you sure you want to delete this transaction?</p>
@@ -668,14 +589,15 @@ try {
             </div>
         </div>
     </div>
-    
+
     <!-- Footer -->
     <footer class="mt-5">
         <div class="container-fluid">
-            <p class="mb-0 text-center">&copy; <?php echo date('Y'); ?> Evergreen Accounting & Finance. All rights reserved.</p>
+            <p class="mb-0 text-center">&copy; <?php echo date('Y'); ?> Evergreen Accounting & Finance. All rights
+                reserved.</p>
         </div>
     </footer>
-    
+
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <!-- jQuery -->
@@ -688,4 +610,5 @@ try {
     <script src="../assets/js/transaction-reading.js"></script>
     <script src="../assets/js/notifications.js"></script>
 </body>
+
 </html>

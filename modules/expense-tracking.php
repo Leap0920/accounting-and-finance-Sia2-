@@ -24,8 +24,10 @@ $expenses = [];
 
 // 1. HRIS-SIA: Get expense claims with real employee names
 // Only fetch if no transaction type filter OR if filter is set to expense_claim
-if ((empty($transactionType) || $transactionType === 'expense_claim') && 
-    $conn->query("SHOW TABLES LIKE 'expense_claims'")->num_rows > 0) {
+if (
+    (empty($transactionType) || $transactionType === 'expense_claim') &&
+    $conn->query("SHOW TABLES LIKE 'expense_claims'")->num_rows > 0
+) {
     $sql = "SELECT 
                 ec.id,
                 ec.claim_no as transaction_number,
@@ -49,30 +51,30 @@ if ((empty($transactionType) || $transactionType === 'expense_claim') &&
             LEFT JOIN expense_categories ecat ON ec.category_id = ecat.id
             LEFT JOIN users approver ON ec.approved_by = approver.id
             WHERE 1=1";
-    
+
     $params = [];
     $types = '';
-    
+
     if ($applyFilters) {
         if (!empty($dateFrom)) {
             $sql .= " AND ec.expense_date >= ?";
             $params[] = $dateFrom;
             $types .= 's';
         }
-        
+
         if (!empty($dateTo)) {
             $sql .= " AND ec.expense_date <= ?";
             $params[] = $dateTo;
             $types .= 's';
         }
-        
+
         // Status filter only applies to expense_claims (bank_transactions are always 'approved')
         if (!empty($status)) {
             $sql .= " AND ec.status = ?";
             $params[] = $status;
             $types .= 's';
         }
-        
+
         // Account number filter: search by claim_no or category code
         if (!empty($accountNumber)) {
             $sql .= " AND (ec.claim_no LIKE ? OR ecat.code LIKE ? OR ecat.name LIKE ?)";
@@ -82,9 +84,9 @@ if ((empty($transactionType) || $transactionType === 'expense_claim') &&
             $types .= 'sss';
         }
     }
-    
+
     $sql .= " ORDER BY ec.expense_date DESC, ec.created_at DESC";
-    
+
     $stmt = $conn->prepare($sql);
     if ($stmt !== false) {
         if (!empty($params)) {
@@ -102,13 +104,15 @@ if ((empty($transactionType) || $transactionType === 'expense_claim') &&
 
 // 2. BANK SYSTEM: Get transaction fees and withdrawals as expenses
 // Only fetch if no transaction type filter OR if filter is set to bank_fee
-if ((empty($transactionType) || $transactionType === 'bank_fee') &&
+if (
+    (empty($transactionType) || $transactionType === 'bank_fee') &&
     $conn->query("SHOW TABLES LIKE 'bank_transactions'")->num_rows > 0 &&
     $conn->query("SHOW TABLES LIKE 'transaction_types'")->num_rows > 0 &&
     $conn->query("SHOW TABLES LIKE 'customer_accounts'")->num_rows > 0 &&
-    $conn->query("SHOW TABLES LIKE 'bank_customers'")->num_rows > 0) {
-        
-        $sql = "SELECT 
+    $conn->query("SHOW TABLES LIKE 'bank_customers'")->num_rows > 0
+) {
+
+    $sql = "SELECT 
                     bt.transaction_id as id,
                     bt.transaction_id as transaction_id,
                     COALESCE(bt.transaction_ref, CONCAT('TXN-', bt.transaction_id)) as transaction_number,
@@ -133,59 +137,61 @@ if ((empty($transactionType) || $transactionType === 'bank_fee') &&
                 INNER JOIN bank_customers bc ON ca.customer_id = bc.customer_id
                 WHERE (tt.type_name LIKE '%fee%' OR tt.type_name LIKE '%charge%' OR tt.type_name LIKE '%withdrawal%')
                     AND ca.is_locked = 0";
-        
-        $params = [];
-        $types = '';
-        
-        if ($applyFilters) {
-            if (!empty($dateFrom)) {
-                $sql .= " AND DATE(bt.created_at) >= ?";
-                $params[] = $dateFrom;
-                $types .= 's';
-            }
-            
-            if (!empty($dateTo)) {
-                $sql .= " AND DATE(bt.created_at) <= ?";
-                $params[] = $dateTo;
-                $types .= 's';
-            }
-            
-            // Account number filter: search by account_number or transaction_ref
-            if (!empty($accountNumber)) {
-                $sql .= " AND (ca.account_number LIKE ? OR bt.transaction_ref LIKE ? OR tt.type_name LIKE ?)";
-                $params[] = '%' . $accountNumber . '%';
-                $params[] = '%' . $accountNumber . '%';
-                $params[] = '%' . $accountNumber . '%';
-                $types .= 'sss';
+
+    $params = [];
+    $types = '';
+
+    if ($applyFilters) {
+        if (!empty($dateFrom)) {
+            $sql .= " AND DATE(bt.created_at) >= ?";
+            $params[] = $dateFrom;
+            $types .= 's';
+        }
+
+        if (!empty($dateTo)) {
+            $sql .= " AND DATE(bt.created_at) <= ?";
+            $params[] = $dateTo;
+            $types .= 's';
+        }
+
+        // Account number filter: search by account_number or transaction_ref
+        if (!empty($accountNumber)) {
+            $sql .= " AND (ca.account_number LIKE ? OR bt.transaction_ref LIKE ? OR tt.type_name LIKE ?)";
+            $params[] = '%' . $accountNumber . '%';
+            $params[] = '%' . $accountNumber . '%';
+            $params[] = '%' . $accountNumber . '%';
+            $types .= 'sss';
+        }
+    }
+
+    // Note: Status filter doesn't apply to bank transactions (they're always 'approved')
+
+    $sql .= " ORDER BY bt.created_at DESC";
+
+    $stmt = $conn->prepare($sql);
+    if ($stmt !== false) {
+        if (!empty($params)) {
+            $stmt->bind_param($types, ...$params);
+        }
+        if ($stmt->execute()) {
+            $result = $stmt->get_result();
+            while ($row = $result->fetch_assoc()) {
+                $expenses[] = $row;
             }
         }
-        
-        // Note: Status filter doesn't apply to bank transactions (they're always 'approved')
-        
-        $sql .= " ORDER BY bt.created_at DESC";
-        
-        $stmt = $conn->prepare($sql);
-        if ($stmt !== false) {
-            if (!empty($params)) {
-                $stmt->bind_param($types, ...$params);
-            }
-            if ($stmt->execute()) {
-                $result = $stmt->get_result();
-                while ($row = $result->fetch_assoc()) {
-                    $expenses[] = $row;
-                }
-            }
-            $stmt->close();
-        }
+        $stmt->close();
+    }
 }
 
 // 3. REWARDS SYSTEM: Get reward redemptions as expenses
 // Only fetch if no transaction type filter OR if filter is set to reward_redemption
-if ((empty($transactionType) || $transactionType === 'reward_redemption') &&
+if (
+    (empty($transactionType) || $transactionType === 'reward_redemption') &&
     $conn->query("SHOW TABLES LIKE 'points_history'")->num_rows > 0 &&
     $conn->query("SHOW TABLES LIKE 'bank_customers'")->num_rows > 0 &&
-    $conn->query("SHOW TABLES LIKE 'bank_users'")->num_rows > 0) {
-    
+    $conn->query("SHOW TABLES LIKE 'bank_users'")->num_rows > 0
+) {
+
     $sql = "SELECT 
                 ph.id,
                 CONCAT('REWARD-', ph.id) as transaction_number,
@@ -209,23 +215,23 @@ if ((empty($transactionType) || $transactionType === 'reward_redemption') &&
             INNER JOIN bank_customers bc ON bu.email = bc.email
             WHERE ph.transaction_type = 'redemption'
                 AND ph.points < 0";
-    
+
     $params = [];
     $types = '';
-    
+
     if ($applyFilters) {
         if (!empty($dateFrom)) {
             $sql .= " AND DATE(ph.created_at) >= ?";
             $params[] = $dateFrom;
             $types .= 's';
         }
-        
+
         if (!empty($dateTo)) {
             $sql .= " AND DATE(ph.created_at) <= ?";
             $params[] = $dateTo;
             $types .= 's';
         }
-        
+
         // Account number filter: search by customer name or customer_id
         if (!empty($accountNumber)) {
             $sql .= " AND (bc.first_name LIKE ? OR bc.last_name LIKE ? OR bc.customer_id LIKE ? OR ph.description LIKE ?)";
@@ -236,11 +242,11 @@ if ((empty($transactionType) || $transactionType === 'reward_redemption') &&
             $types .= 'ssss';
         }
     }
-    
+
     // Note: Status filter doesn't apply to reward redemptions (they're always 'approved')
-    
+
     $sql .= " ORDER BY ph.created_at DESC";
-    
+
     $stmt = $conn->prepare($sql);
     if ($stmt !== false) {
         if (!empty($params)) {
@@ -258,11 +264,13 @@ if ((empty($transactionType) || $transactionType === 'reward_redemption') &&
 
 // 4. REWARDS SYSTEM: Get mission rewards as marketing expenses
 // Only fetch if no transaction type filter OR if filter is set to mission_reward
-if ((empty($transactionType) || $transactionType === 'mission_reward') &&
+if (
+    (empty($transactionType) || $transactionType === 'mission_reward') &&
     $conn->query("SHOW TABLES LIKE 'points_history'")->num_rows > 0 &&
     $conn->query("SHOW TABLES LIKE 'bank_customers'")->num_rows > 0 &&
-    $conn->query("SHOW TABLES LIKE 'bank_users'")->num_rows > 0) {
-    
+    $conn->query("SHOW TABLES LIKE 'bank_users'")->num_rows > 0
+) {
+
     $sql = "SELECT 
                 ph.id,
                 CONCAT('MISSION-', ph.id) as transaction_number,
@@ -286,23 +294,23 @@ if ((empty($transactionType) || $transactionType === 'mission_reward') &&
             INNER JOIN bank_customers bc ON bu.email = bc.email
             WHERE ph.transaction_type = 'mission'
                 AND ph.points > 0";
-    
+
     $params = [];
     $types = '';
-    
+
     if ($applyFilters) {
         if (!empty($dateFrom)) {
             $sql .= " AND DATE(ph.created_at) >= ?";
             $params[] = $dateFrom;
             $types .= 's';
         }
-        
+
         if (!empty($dateTo)) {
             $sql .= " AND DATE(ph.created_at) <= ?";
             $params[] = $dateTo;
             $types .= 's';
         }
-        
+
         // Account number filter: search by customer name or customer_id
         if (!empty($accountNumber)) {
             $sql .= " AND (bc.first_name LIKE ? OR bc.last_name LIKE ? OR bc.customer_id LIKE ? OR ph.description LIKE ?)";
@@ -313,11 +321,11 @@ if ((empty($transactionType) || $transactionType === 'mission_reward') &&
             $types .= 'ssss';
         }
     }
-    
+
     // Note: Status filter doesn't apply to mission rewards (they're always 'approved')
-    
+
     $sql .= " ORDER BY ph.created_at DESC";
-    
+
     $stmt = $conn->prepare($sql);
     if ($stmt !== false) {
         if (!empty($params)) {
@@ -342,7 +350,7 @@ if (empty($transactionType) || $transactionType === 'loan_fee') {
 
 // Apply post-query filters (in case some expenses don't have proper transaction_type set)
 if (!empty($transactionType)) {
-    $expenses = array_filter($expenses, function($exp) use ($transactionType) {
+    $expenses = array_filter($expenses, function ($exp) use ($transactionType) {
         return isset($exp['transaction_type']) && $exp['transaction_type'] === $transactionType;
     });
     $expenses = array_values($expenses); // Re-index array
@@ -351,7 +359,7 @@ if (!empty($transactionType)) {
 // Apply status filter post-query (for bank_transactions and reward transactions that don't support status in WHERE clause)
 if (!empty($status) && $status !== 'approved') {
     // Bank transactions and reward transactions are always 'approved', so only filter expense_claims if status is not 'approved'
-    $expenses = array_filter($expenses, function($exp) use ($status) {
+    $expenses = array_filter($expenses, function ($exp) use ($status) {
         $alwaysApprovedTypes = ['bank_fee', 'reward_redemption', 'mission_reward'];
         if (isset($exp['transaction_type']) && in_array($exp['transaction_type'], $alwaysApprovedTypes)) {
             // These transaction types are always approved, so exclude them if filtering for other statuses
@@ -363,7 +371,7 @@ if (!empty($status) && $status !== 'approved') {
 }
 
 // Sort all expenses by date (most recent first)
-usort($expenses, function($a, $b) {
+usort($expenses, function ($a, $b) {
     $dateA = isset($a['transaction_date']) ? strtotime($a['transaction_date']) : 0;
     $dateB = isset($b['transaction_date']) ? strtotime($b['transaction_date']) : 0;
     if ($dateA == $dateB) {
@@ -393,6 +401,7 @@ if ($conn->query("SHOW TABLES LIKE 'expense_categories'")->num_rows > 0) {
 ?>
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -410,112 +419,11 @@ if ($conn->query("SHOW TABLES LIKE 'expense_categories'")->num_rows > 0) {
     <link rel="stylesheet" href="../assets/css/financial-reporting.css">
     <link rel="stylesheet" href="../assets/css/expense-tracking.css">
 </head>
+
 <body>
     <!-- Navigation -->
-    <nav class="navbar navbar-expand-lg navbar-custom">
-        <div class="container-fluid px-4">
-            <div class="logo-section">
-                <div class="logo-circle">
-                    <img src="../assets/image/LOGO.png" alt="Evergreen Logo" class="logo-img">
-                </div>
-                <div class="logo-text">
-                    <h1>EVERGREEN</h1>
-                    <p>Secure. Invest. Achieve</p>
-                </div>
-            </div>
-            
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            
-            <div class="collapse navbar-collapse justify-content-center" id="navbarNav">
-                <ul class="navbar-nav">
-                    <li class="nav-item">
-                        <a class="nav-link" href="../core/dashboard.php">
-                            <i class="fas fa-home me-1"></i>Home
-                        </a>
-                    </li>
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle active" href="#" id="modulesDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="fas fa-th-large me-1"></i>Modules
-                        </a>
-                        <ul class="dropdown-menu dropdown-menu-custom" aria-labelledby="modulesDropdown">
-                            <li><a class="dropdown-item" href="general-ledger.php"><i class="fas fa-book me-2"></i>General Ledger</a></li>
-                            <li><a class="dropdown-item" href="financial-reporting.php"><i class="fas fa-chart-line me-2"></i>Financial Reporting</a></li>
-                            <li><a class="dropdown-item" href="loan-accounting.php"><i class="fas fa-hand-holding-usd me-2"></i>Loan Accounting</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="transaction-reading.php"><i class="fas fa-exchange-alt me-2"></i>Transaction Reading</a></li>
-                            <li><a class="dropdown-item active" href="expense-tracking.php"><i class="fas fa-receipt me-2"></i>Expense Tracking</a></li>
-                            <li><a class="dropdown-item" href="payroll-management.php"><i class="fas fa-users me-2"></i>Payroll Management</a></li>
-                        </ul>
-                    </li>
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="reportsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="fas fa-file-alt me-1"></i>Reports
-                        </a>
-                        <ul class="dropdown-menu dropdown-menu-custom" aria-labelledby="reportsDropdown">
-                            <li><a class="dropdown-item" href="financial-reporting.php"><i class="fas fa-chart-bar me-2"></i>Financial Statements</a></li>
-                            <li><a class="dropdown-item" href="financial-reporting.php"><i class="fas fa-money-bill-wave me-2"></i>Cash Flow Report</a></li>
-                            <li><a class="dropdown-item" href="expense-tracking.php"><i class="fas fa-clipboard-list me-2"></i>Expense Summary</a></li>
-                            <li><a class="dropdown-item" href="payroll-management.php"><i class="fas fa-wallet me-2"></i>Payroll Report</a></li>
-                        </ul>
-                    </li>
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="settingsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="fas fa-cog me-1"></i>Settings
-                        </a>
-                        <ul class="dropdown-menu dropdown-menu-custom" aria-labelledby="settingsDropdown">
-                            <li><a class="dropdown-item" href="bin-station.php"><i class="fas fa-trash-alt me-2"></i>Bin Station</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="database-settings.php"><i class="fas fa-database me-2"></i>Database Settings</a></li>
-                        </ul>
-                    </li>
-                </ul>
-            </div>
-            
-            <div class="d-flex align-items-center gap-3">
-                <!-- Notifications -->
-                <div class="dropdown d-none d-md-block">
-                    <a class="nav-icon-btn" href="#" id="notificationsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                        <i class="fas fa-bell"></i>
-                        <span class="notification-badge">3</span>
-                    </a>
-                    <ul class="dropdown-menu dropdown-menu-end dropdown-menu-custom notifications-dropdown" aria-labelledby="notificationsDropdown">
-                        <li class="dropdown-header">Notifications</li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li class="dropdown-item text-center text-muted"><small>Loading notifications...</small></li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item text-center small" href="activity-log.php">View All Notifications</a></li>
-                    </ul>
-                </div>
-                
-                <!-- User Profile Dropdown -->
-                <div class="dropdown">
-                    <a class="user-profile-btn" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                        <i class="fas fa-user-circle me-2"></i>
-                        <span class="d-none d-lg-inline"><?php echo htmlspecialchars($current_user['full_name']); ?></span>
-                        <i class="fas fa-chevron-down ms-2 d-none d-lg-inline"></i>
-                    </a>
-                    <ul class="dropdown-menu dropdown-menu-end dropdown-menu-custom" aria-labelledby="userDropdown">
-                        <li class="dropdown-header">
-                            <div class="user-dropdown-header">
-                                <i class="fas fa-user-circle fa-2x"></i>
-                                <div>
-                                    <strong><?php echo htmlspecialchars($current_user['full_name']); ?></strong>
-                                    <small><?php echo htmlspecialchars($current_user['username']); ?></small>
-                                </div>
-                            </div>
-                        </li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item" href="activity-log.php"><i class="fas fa-history me-2"></i>Activity Log</a></li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item text-danger" href="../core/logout.php"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-    </nav>
-    
+    <?php include '../includes/navbar.php'; ?>
+
     <!-- Main Content -->
     <main class="container-fluid py-4">
         <!-- Beautiful Page Header -->
@@ -573,26 +481,28 @@ if ($conn->query("SHOW TABLES LIKE 'expense_categories'")->num_rows > 0) {
                         <i class="fas fa-chevron-down"></i>
                     </button>
                 </div>
-                
+
                 <form class="filter-form" id="filterForm" method="GET">
                     <div class="filter-grid">
                         <div class="filter-group">
                             <label for="date_from">Date From:</label>
-                            <input type="date" id="date_from" name="date_from" value="<?php echo htmlspecialchars($dateFrom); ?>">
+                            <input type="date" id="date_from" name="date_from"
+                                value="<?php echo htmlspecialchars($dateFrom); ?>">
                         </div>
-                        
+
                         <div class="filter-group">
                             <label for="date_to">Date To:</label>
-                            <input type="date" id="date_to" name="date_to" value="<?php echo htmlspecialchars($dateTo); ?>">
+                            <input type="date" id="date_to" name="date_to"
+                                value="<?php echo htmlspecialchars($dateTo); ?>">
                         </div>
-                        
+
                         <div class="filter-group">
                             <label for="transaction_type">Transaction Type:</label>
                             <select id="transaction_type" name="transaction_type">
                                 <option value="">All Types</option>
                                 <?php foreach ($transactionTypeOptions as $type): ?>
                                     <option value="<?php echo $type; ?>" <?php echo $transactionType === $type ? 'selected' : ''; ?>>
-                                        <?php 
+                                        <?php
                                         $displayNames = [
                                             'expense_claim' => 'Expense Claim (HRIS)',
                                             'bank_fee' => 'Bank Fee/Charge (Bank System)',
@@ -600,13 +510,13 @@ if ($conn->query("SHOW TABLES LIKE 'expense_categories'")->num_rows > 0) {
                                             'reward_redemption' => 'Reward Redemption (Marketing)',
                                             'mission_reward' => 'Mission Rewards (Marketing)'
                                         ];
-                                        echo $displayNames[$type] ?? ucfirst(str_replace('_', ' ', $type)); 
+                                        echo $displayNames[$type] ?? ucfirst(str_replace('_', ' ', $type));
                                         ?>
                                     </option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
-                        
+
                         <div class="filter-group">
                             <label for="status">Status:</label>
                             <select id="status" name="status">
@@ -618,15 +528,15 @@ if ($conn->query("SHOW TABLES LIKE 'expense_categories'")->num_rows > 0) {
                                 <?php endforeach; ?>
                             </select>
                         </div>
-                        
+
                         <div class="filter-group">
                             <label for="account_number">Reference/Category/Account:</label>
-                            <input type="text" id="account_number" name="account_number" 
-                                   value="<?php echo htmlspecialchars($accountNumber); ?>" 
-                                   placeholder="Search by claim number, category, or account">
+                            <input type="text" id="account_number" name="account_number"
+                                value="<?php echo htmlspecialchars($accountNumber); ?>"
+                                placeholder="Search by claim number, category, or account">
                         </div>
                     </div>
-                    
+
                     <div class="filter-actions">
                         <button type="submit" name="apply_filters" class="btn-primary">
                             <i class="fas fa-search"></i> Apply Filters
@@ -650,7 +560,7 @@ if ($conn->query("SHOW TABLES LIKE 'expense_categories'")->num_rows > 0) {
                             <?php endif; ?>
                         </span>
                     </div>
-                    
+
                     <div class="results-actions">
                         <?php if (!empty($expenses)): ?>
                             <button class="btn-export" onclick="exportToPDF()">
@@ -671,7 +581,8 @@ if ($conn->query("SHOW TABLES LIKE 'expense_categories'")->num_rows > 0) {
                         <h4>No Expense Records Found</h4>
                         <p>
                             <?php if ($applyFilters): ?>
-                                No expenses match your current filter criteria. Try adjusting your filters or clear them to see all records.
+                                No expenses match your current filter criteria. Try adjusting your filters or clear them to see
+                                all records.
                             <?php else: ?>
                                 No expense records are available in the system.
                             <?php endif; ?>
@@ -702,27 +613,30 @@ if ($conn->query("SHOW TABLES LIKE 'expense_categories'")->num_rows > 0) {
                                 <?php foreach ($expenses as $expense): ?>
                                     <tr>
                                         <td>
-                                            <span class="transaction-number"><?php echo htmlspecialchars($expense['transaction_number']); ?></span>
+                                            <span
+                                                class="transaction-number"><?php echo htmlspecialchars($expense['transaction_number']); ?></span>
                                         </td>
                                         <td>
-                                            <span class="transaction-date"><?php echo date('M d, Y', strtotime($expense['transaction_date'])); ?></span>
+                                            <span
+                                                class="transaction-date"><?php echo date('M d, Y', strtotime($expense['transaction_date'])); ?></span>
                                         </td>
                                         <td>
-                                            <span class="employee-name"><?php echo htmlspecialchars($expense['employee_name']); ?></span>
+                                            <span
+                                                class="employee-name"><?php echo htmlspecialchars($expense['employee_name']); ?></span>
                                         </td>
                                         <td>
                                             <span class="category-name">
                                                 <?php echo htmlspecialchars($expense['category_name']); ?>
                                                 <?php if (!empty($expense['transaction_type']) && $expense['transaction_type'] !== 'expense_claim'): ?>
                                                     <br><small class="text-muted">
-                                                        <?php 
+                                                        <?php
                                                         $typeLabels = [
                                                             'bank_fee' => '(Bank System)',
                                                             'loan_fee' => '(Loan Subsystem)',
                                                             'reward_redemption' => '(Marketing)',
                                                             'mission_reward' => '(Marketing)'
                                                         ];
-                                                        echo $typeLabels[$expense['transaction_type']] ?? '(' . ucfirst(str_replace('_', ' ', $expense['transaction_type'])) . ')'; 
+                                                        echo $typeLabels[$expense['transaction_type']] ?? '(' . ucfirst(str_replace('_', ' ', $expense['transaction_type'])) . ')';
                                                         ?>
                                                     </small>
                                                 <?php else: ?>
@@ -745,16 +659,17 @@ if ($conn->query("SHOW TABLES LIKE 'expense_categories'")->num_rows > 0) {
                                             </span>
                                         </td>
                                         <td>
-                                            <span class="description"><?php echo htmlspecialchars(substr($expense['description'], 0, 50)) . (strlen($expense['description']) > 50 ? '...' : ''); ?></span>
+                                            <span
+                                                class="description"><?php echo htmlspecialchars(substr($expense['description'], 0, 50)) . (strlen($expense['description']) > 50 ? '...' : ''); ?></span>
                                         </td>
                                         <td>
                                             <div class="action-buttons">
-                                                <?php 
+                                                <?php
                                                 // Determine the correct ID format based on transaction type
                                                 $expenseIdForView = isset($expense['id']) ? $expense['id'] : '';
                                                 $expenseIdForAudit = isset($expense['id']) ? $expense['id'] : '';
                                                 $transactionType = isset($expense['transaction_type']) ? $expense['transaction_type'] : 'expense_claim';
-                                                
+
                                                 // Format ID based on transaction type for proper API routing
                                                 if ($transactionType === 'expense_claim') {
                                                     // For expense claims, use the ID directly
@@ -766,7 +681,9 @@ if ($conn->query("SHOW TABLES LIKE 'expense_categories'")->num_rows > 0) {
                                                     $expenseIdForAudit = 'TXN-' . $txnId;
                                                 }
                                                 ?>
-                                                <button class="btn-view" onclick="viewExpense('<?php echo htmlspecialchars($expenseIdForView, ENT_QUOTES); ?>', '<?php echo htmlspecialchars($transactionType, ENT_QUOTES); ?>')" title="View Details">
+                                                <button class="btn-view"
+                                                    onclick="viewExpense('<?php echo htmlspecialchars($expenseIdForView, ENT_QUOTES); ?>', '<?php echo htmlspecialchars($transactionType, ENT_QUOTES); ?>')"
+                                                    title="View Details">
                                                     <i class="fas fa-eye"></i>
                                                 </button>
                                             </div>
@@ -780,7 +697,7 @@ if ($conn->query("SHOW TABLES LIKE 'expense_categories'")->num_rows > 0) {
             </div>
         </div>
     </main>
-    
+
     <!-- Modal for Expense Details -->
     <div id="expenseModal" class="modal">
         <div class="modal-content">
@@ -812,5 +729,5 @@ if ($conn->query("SHOW TABLES LIKE 'expense_categories'")->num_rows > 0) {
     <script src="../assets/js/expense-tracking.js"></script>
     <script src="../assets/js/notifications.js"></script>
 </body>
-</html>
 
+</html>

@@ -219,25 +219,38 @@ function renderAccountTypesChart(data) {
     const ctx = document.getElementById('accountTypesChart');
     if (!ctx) return;
 
+    // Calculate percentages for legend
+    const total = data.values.reduce((a, b) => a + b, 0);
+    const colorMap = {
+        'Asset': '#1B6B4A',
+        'Liability': '#EF4444',
+        'Revenue': '#F5A623',
+        'Equity': '#8B5CF6',
+        'Expense': '#E8612D'
+    };
+    const bgColors = data.labels.map(label => colorMap[label] || '#94A3B8');
+
+    // Update legend percentages
+    if (total > 0) {
+        data.labels.forEach((label, i) => {
+            const pct = Math.round((data.values[i] / total) * 100);
+            const legendEl = document.getElementById('legend-' + label.toLowerCase().replace(/\s+/g, ''));
+            if (legendEl) legendEl.textContent = pct + '%';
+        });
+    }
+
     new Chart(ctx, {
-        type: 'pie',
+        type: 'doughnut',
         data: {
             labels: data.labels,
             datasets: [{
                 data: data.values,
-                backgroundColor: [
-                    '#28A745',
-                    '#DC3545',
-                    '#6F42C1',
-                    '#17A2B8',
-                    '#FFC107',
-                    '#E83E8C',
-                    '#20C997'
-                ],
+                backgroundColor: bgColors,
                 borderWidth: 0,
                 hoverBorderWidth: 3,
                 hoverBorderColor: '#fff',
-                hoverOffset: 10
+                hoverOffset: 8,
+                cutout: '65%'
             }]
         },
         options: {
@@ -250,32 +263,21 @@ function renderAccountTypesChart(data) {
             },
             plugins: {
                 legend: {
-                    position: 'right',
-                    labels: {
-                        color: '#fff',
-                        padding: 20,
-                        font: {
-                            size: 14,
-                            weight: '600'
-                        },
-                        usePointStyle: true,
-                        pointStyle: 'circle',
-                        boxWidth: 15
-                    }
+                    display: false
                 },
                 tooltip: {
-                    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+                    backgroundColor: 'rgba(26, 29, 33, 0.95)',
                     titleColor: '#fff',
                     bodyColor: '#fff',
-                    padding: 15,
+                    padding: 14,
                     displayColors: true,
-                    cornerRadius: 8,
+                    cornerRadius: 10,
+                    titleFont: { size: 13, weight: '600' },
+                    bodyFont: { size: 12 },
                     callbacks: {
                         label: function (context) {
                             let label = context.label || '';
-                            if (label) {
-                                label += ': ';
-                            }
+                            if (label) label += ': ';
                             label += context.parsed + ' accounts';
                             const total = context.dataset.data.reduce((a, b) => a + b, 0);
                             const percentage = ((context.parsed / total) * 100).toFixed(1);
@@ -285,7 +287,25 @@ function renderAccountTypesChart(data) {
                     }
                 }
             }
-        }
+        },
+        plugins: [{
+            id: 'centerText',
+            afterDraw(chart) {
+                const { ctx, chartArea: { width, height, top, left } } = chart;
+                ctx.save();
+                const centerX = left + width / 2;
+                const centerY = top + height / 2;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.font = 'bold 28px Inter, sans-serif';
+                ctx.fillStyle = '#1A1D21';
+                ctx.fillText('100%', centerX, centerY - 10);
+                ctx.font = '500 11px Inter, sans-serif';
+                ctx.fillStyle = '#A0AEC0';
+                ctx.fillText('TOTAL SHARE', centerX, centerY + 14);
+                ctx.restore();
+            }
+        }]
     });
 }
 
@@ -298,17 +318,20 @@ function renderTransactionSummaryChart(data) {
         data: {
             labels: data.labels,
             datasets: [{
-                label: 'Transactions',
+                label: 'Volume',
                 data: data.values,
-                backgroundColor: 'rgba(245, 166, 35, 0.9)',
-                borderColor: '#F5A623',
+                backgroundColor: (ctx) => {
+                    const gradient = ctx.chart.ctx.createLinearGradient(0, 0, 0, ctx.chart.chartArea?.bottom || 300);
+                    gradient.addColorStop(0, 'rgba(27, 107, 74, 0.85)');
+                    gradient.addColorStop(1, 'rgba(27, 107, 74, 0.35)');
+                    return gradient;
+                },
+                borderColor: '#1B6B4A',
                 borderWidth: 0,
-                borderRadius: 8,
+                borderRadius: 6,
                 borderSkipped: false,
-                barThickness: 40,
-                hoverBackgroundColor: 'rgba(245, 166, 35, 1)',
-                hoverBorderColor: '#fff',
-                hoverBorderWidth: 2
+                barThickness: 32,
+                hoverBackgroundColor: 'rgba(27, 107, 74, 0.95)'
             }]
         },
         options: {
@@ -320,15 +343,27 @@ function renderTransactionSummaryChart(data) {
             },
             plugins: {
                 legend: {
-                    display: false
+                    display: true,
+                    position: 'top',
+                    align: 'end',
+                    labels: {
+                        color: '#718096',
+                        font: { size: 11, weight: '500' },
+                        usePointStyle: true,
+                        pointStyle: 'circle',
+                        boxWidth: 8,
+                        padding: 16
+                    }
                 },
                 tooltip: {
-                    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+                    backgroundColor: 'rgba(26, 29, 33, 0.95)',
                     titleColor: '#fff',
                     bodyColor: '#fff',
-                    padding: 15,
+                    padding: 14,
                     displayColors: false,
-                    cornerRadius: 8,
+                    cornerRadius: 10,
+                    titleFont: { size: 13, weight: '600' },
+                    bodyFont: { size: 12 },
                     callbacks: {
                         label: function (context) {
                             return context.parsed.y + ' transactions';
@@ -340,30 +375,27 @@ function renderTransactionSummaryChart(data) {
                 y: {
                     beginAtZero: true,
                     ticks: {
-                        color: '#fff',
-                        font: {
-                            size: 13,
-                            weight: '600'
-                        },
-                        stepSize: 25
+                        color: '#A0AEC0',
+                        font: { size: 11, weight: '500' },
+                        stepSize: 25,
+                        padding: 8
                     },
                     grid: {
-                        color: 'rgba(255, 255, 255, 0.15)',
-                        borderColor: 'rgba(255, 255, 255, 0.2)',
+                        color: 'rgba(0, 0, 0, 0.05)',
                         drawBorder: false
-                    }
+                    },
+                    border: { display: false }
                 },
                 x: {
                     ticks: {
-                        color: '#fff',
-                        font: {
-                            size: 13,
-                            weight: '600'
-                        }
+                        color: '#718096',
+                        font: { size: 11, weight: '600' },
+                        padding: 8
                     },
                     grid: {
                         display: false
-                    }
+                    },
+                    border: { display: false }
                 }
             }
         }
@@ -3201,3 +3233,19 @@ window.submitDeclineApplication = submitDeclineApplication;
 window.applyApplicationFilter = applyApplicationFilter;
 window.resetApplicationFilter = resetApplicationFilter;
 window.changeApplicationsPerPage = changeApplicationsPerPage;
+
+// ========================================
+// CHART TAB SWITCHING
+// ========================================
+
+function switchChartTab(btn, tabName) {
+    // Update active tab button
+    document.querySelectorAll('.chart-tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+
+    // Reload charts (in a full implementation, this would switch between chart views)
+    console.log('Switched to chart tab:', tabName);
+    showNotification('Viewing: ' + tabName.charAt(0).toUpperCase() + tabName.slice(1), 'info');
+}
+
+window.switchChartTab = switchChartTab;

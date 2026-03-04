@@ -256,9 +256,17 @@ $current_user = getCurrentUser();
 
         <!-- Charts Overview -->
         <div class="gl-section">
-            <div class="section-header">
-                <h2>Charts Overview</h2>
-                <p>Visual representation of your financial data</p>
+            <div class="section-header" style="display: flex; align-items: flex-start; justify-content: space-between;">
+                <div>
+                    <h2>Charts Overview</h2>
+                    <p>Visual representation of your financial ecosystem</p>
+                </div>
+                <div class="chart-tabs">
+                    <button class="chart-tab-btn active"
+                        onclick="switchChartTab(this, 'distribution')">Distribution</button>
+                    <button class="chart-tab-btn" onclick="switchChartTab(this, 'category')">Category Summary</button>
+                    <button class="chart-tab-btn" onclick="switchChartTab(this, 'growth')">Growth</button>
+                </div>
             </div>
             <div class="chart-grid">
                 <div class="chart-container">
@@ -266,17 +274,40 @@ $current_user = getCurrentUser();
                     <div class="chart-wrapper">
                         <canvas id="accountTypesChart"></canvas>
                     </div>
+                    <div class="chart-legend" id="accountTypeLegend">
+                        <div class="chart-legend-item">
+                            <span class="chart-legend-dot" style="background: #1B6B4A;"></span>
+                            <span>Assets</span>
+                            <span class="chart-legend-value" id="legend-assets">45%</span>
+                        </div>
+                        <div class="chart-legend-item">
+                            <span class="chart-legend-dot" style="background: #EF4444;"></span>
+                            <span>Liability</span>
+                            <span class="chart-legend-value" id="legend-liability">25%</span>
+                        </div>
+                        <div class="chart-legend-item">
+                            <span class="chart-legend-dot" style="background: #F5A623;"></span>
+                            <span>Revenue</span>
+                            <span class="chart-legend-value" id="legend-revenue">20%</span>
+                        </div>
+                        <div class="chart-legend-item">
+                            <span class="chart-legend-dot" style="background: #8B5CF6;"></span>
+                            <span>Equity</span>
+                            <span class="chart-legend-value" id="legend-equity">10%</span>
+                        </div>
+                    </div>
                 </div>
                 <div class="chart-container">
-                    <h4>Transaction Summary by Category</h4>
+                    <h4>Transaction Summary</h4>
                     <div class="chart-wrapper">
                         <canvas id="transactionSummaryChart"></canvas>
                     </div>
+                    <div class="chart-insight">
+                        <i class="fas fa-info-circle"></i>
+                        <p><strong>Insight:</strong> Cash Disbursements (CD) are currently 15% higher than last month.
+                            Consider reviewing high-value outflows.</p>
+                    </div>
                 </div>
-            </div>
-            <div class="chart-actions">
-                <button class="btn-chart" onclick="applyChartFilters()">Apply Filters</button>
-                <button class="btn-chart-outline" onclick="viewDrillDown()">View Drill-Down Details</button>
             </div>
         </div>
 
@@ -430,29 +461,41 @@ $current_user = getCurrentUser();
 
         <!-- Transaction Records -->
         <div class="gl-section" id="transactions">
-            <div class="section-header">
-                <h2>Transaction Records</h2>
-                <p>Detailed transaction history and filters</p>
+            <div class="section-header" style="display: flex; align-items: flex-start; justify-content: space-between;">
+                <div>
+                    <h2>Recent Transaction Records</h2>
+                    <p>Real-time update of all ledger postings</p>
+                </div>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <button class="btn-export" onclick="exportTransactions()">
+                        <i class="fas fa-download"></i> Export
+                    </button>
+                    <button class="btn-new-transaction" onclick="window.location.href='transaction-reading.php'">
+                        <i class="fas fa-plus"></i> New Transaction
+                    </button>
+                </div>
             </div>
             <div class="gl-toolbar gl-toolbar--split" role="search" aria-label="Transaction filters">
                 <div class="gl-toolbar__group">
-                    <div class="gl-toolbar__field gl-toolbar__field--compact">
-                        <label for="transaction-from">From</label>
-                        <input type="date" id="transaction-from" class="gl-input">
+                    <div class="gl-toolbar__field">
+                        <span class="gl-toolbar__icon"><i class="fas fa-search"></i></span>
+                        <input type="text" class="search-input" placeholder="Search by ID, description, or reference..." id="transaction-search" autocomplete="off" style="min-width: 280px;">
                     </div>
                     <div class="gl-toolbar__field gl-toolbar__field--compact">
-                        <label for="transaction-to">To</label>
-                        <input type="date" id="transaction-to" class="gl-input">
+                        <label for="transaction-from">FROM</label>
+                        <input type="date" id="transaction-from" class="gl-input" placeholder="mm/dd/yyyy">
+                    </div>
+                    <div class="gl-toolbar__field gl-toolbar__field--compact">
+                        <label for="transaction-to">TO</label>
+                        <input type="date" id="transaction-to" class="gl-input" placeholder="mm/dd/yyyy">
                     </div>
                 </div>
                 <div class="gl-toolbar__actions">
                     <button class="btn-filter" type="button" onclick="applyTransactionFilter()">
-                        <i class="fas fa-sliders-h"></i>
-                        <span>Apply</span>
+                        <span>Apply Filter</span>
                     </button>
                     <button class="btn-reset" type="button" onclick="resetTransactionFilter()">
                         <i class="fas fa-rotate-left"></i>
-                        <span>Reset</span>
                     </button>
                 </div>
             </div>
@@ -838,6 +881,11 @@ $current_user = getCurrentUser();
     <!-- Footer -->
     <footer class="gl-footer">
         <p>&copy; 2025 Evergreen Accounting & Finance. All rights reserved.</p>
+        <div class="gl-footer-links">
+            <a href="#">Support</a>
+            <a href="#">Privacy Policy</a>
+            <a href="#">Terms of Service</a>
+        </div>
     </footer>
 
     <!-- jQuery -->

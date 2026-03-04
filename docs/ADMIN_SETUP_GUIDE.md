@@ -134,7 +134,7 @@ C:\xampp\htdocs\
     │   ├── core/
     │   ├── database/
     │   │   └── sql/
-    │   │       ├── unified_schema.sql    ← Database schema
+    │   │       ├── schema.sql             ← Database schema
     │   │       ├── location_data.sql     ← Philippine location data
     │   │       └── Sampled_data.sql      ← Sample data
     │   ├── docs/
@@ -150,7 +150,7 @@ Make sure these SQL files are present:
 
 | # | File Location                                                        | Description                              |
 | - | -------------------------------------------------------------------- | ---------------------------------------- |
-| 1 | `accounting-and-finance/database/sql/unified_schema.sql`             | Main database schema (tables, structure) |
+| 1 | `accounting-and-finance/database/sql/schema.sql`                     | Main database schema (tables, structure) |
 | 2 | `accounting-and-finance/database/sql/location_data.sql`              | Philippine provinces, cities, barangays  |
 | 3 | `accounting-and-finance/database/sql/Sampled_data.sql`               | Sample data, admin users, test data      |
 | 4 | `accounting-and-finance/database/12-14-25 ALTER DB CHANGES HRIS.sql` | HRIS role and supervisor changes         |
@@ -197,14 +197,14 @@ The SQL files **MUST** be imported in this specific order:
 
 | Order | File                                 | Description                                  |
 | :---: | ------------------------------------ | -------------------------------------------- |
-| **1** | `unified_schema.sql`                 | Creates the database and all tables          |
+| **1** | `schema.sql`                         | Creates the database and all tables          |
 | **2** | `location_data.sql`                  | Populates Philippine location data           |
 | **3** | `Sampled_data.sql`                   | Adds admin users, sample employees, accounts |
 | **4** | `12-14-25 ALTER DB CHANGES HRIS.sql` | HRIS role management updates                 |
 
 ***
 
-### 5.1 Import: unified_schema.sql (Database Schema)
+### 5.1 Import: schema.sql (Database Schema)
 
 1. Click on the **"Import"** tab at the top menu
 2. Click **"Choose File"** or **"Browse"**
@@ -212,7 +212,7 @@ The SQL files **MUST** be imported in this specific order:
    ```
    C:\xampp\htdocs\Evergreen\accounting-and-finance\database\sql\
    ```
-4. Select **`unified_schema.sql`**
+4. Select **`schema.sql`**
 5. Make sure these settings are correct:
    * Character set: `utf-8`
    * Format: `SQL`
@@ -382,7 +382,7 @@ You will be redirected to the **Dashboard** with access to:
 
 **Solution:**
 
-1. Re-import `unified_schema.sql`
+1. Re-import `schema.sql`
 2. Make sure `BankingDB` database exists
 
 ***
@@ -413,7 +413,7 @@ Use this checklist to verify your setup:
 * [ ] Apache service is running (GREEN)
 * [ ] MySQL service is running (GREEN)
 * [ ] Project files in `C:\xampp\htdocs\Evergreen\accounting-and-finance\`
-* [ ] `unified_schema.sql` imported successfully
+* [ ] `schema.sql` imported successfully
 * [ ] `location_data.sql` imported successfully
 * [ ] `Sampled_data.sql` imported successfully
 * [ ] `12-14-25 ALTER DB CHANGES HRIS.sql` imported successfully

@@ -167,7 +167,7 @@ Loan Subsystem → loans table → Triggers → Journal Entries → GL
 | `SUBSYSTEM_INTEGRATION_COMPLETE.md` | Overall integration overview |
 | `GENERAL_LEDGER_INTEGRATION.md` | Detailed GL integration guide |
 | `database/sql/integration_triggers.sql` | Trigger definitions |
-| `database/sql/unified_schema.sql` | Complete database schema |
+| `database/sql/schema.sql` | Complete database schema |
 | `database/sql/Sampled_data.sql` | Sample data for all subsystems |
 
 ---

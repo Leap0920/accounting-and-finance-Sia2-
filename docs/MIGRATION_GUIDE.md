@@ -52,7 +52,7 @@ This guide covers migrating your Accounting & Finance System between devices, se
 
 2. **Import Schema:**
    - Open phpMyAdmin
-   - Import `database/unified_schema.sql`
+   - Import `database/sql/schema.sql`
 
 3. **Create Admin User:**
    - **CRITICAL STEP:** Import `database/Sampled_data.sql` into `BankingDB` database
@@ -139,7 +139,7 @@ SELECT COUNT(*) as transaction_count FROM journal_entries;
 **Root Cause:** Schema not imported properly
 
 **Solutions:**
-1. Re-import `database/unified_schema.sql`
+1. Re-import `database/sql/schema.sql`
 2. Check for SQL errors during import
 3. Verify database permissions
 

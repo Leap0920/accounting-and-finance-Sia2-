@@ -2,7 +2,7 @@
 -- COMPREHENSIVE ACCOUNTING & FINANCE DATA
 -- ========================================
 -- This file contains ALL sample data for the accounting system
--- Run this after schema.sql to populate the database with comprehensive test data
+-- Run this after database/sql/schema.sql to populate the database with comprehensive test data
 -- 
 -- 
 -- Instructions:

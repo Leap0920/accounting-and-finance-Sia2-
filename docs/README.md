@@ -48,7 +48,7 @@ C:\xampp\htdocs\accounting-and-finance\
 2. Open phpMyAdmin (http://localhost/phpmyadmin)
 3. Import the unified database schema:
    - Go to the **Import** tab
-   - Choose the file `database/unified_schema.sql`
+   - Choose the file `database/sql/schema.sql`
    - Click **Go** to execute
 4. **⚠️ CRITICAL:** Insert the admin user and sample data:
    - Go to the **SQL** tab and select the `BankingDB` database

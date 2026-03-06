@@ -246,37 +246,44 @@ function renderAccountTypesChart(data) {
             datasets: [{
                 data: data.values,
                 backgroundColor: bgColors,
-                borderWidth: 0,
-                hoverBorderWidth: 3,
-                hoverBorderColor: '#fff',
-                hoverOffset: 8,
-                cutout: '65%'
+                borderWidth: 2,
+                borderColor: '#ffffff',
+                hoverBorderWidth: 0,
+                hoverOffset: 12,
+                cutout: '72%'
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            layout: {
+                padding: {
+                    top: 10,
+                    bottom: 10
+                }
+            },
             animation: {
                 animateRotate: true,
                 animateScale: true,
-                duration: 1000
+                duration: 1500,
+                easing: 'easeOutQuint'
             },
             plugins: {
                 legend: {
                     display: false
                 },
                 tooltip: {
-                    backgroundColor: 'rgba(26, 29, 33, 0.95)',
+                    backgroundColor: 'rgba(17, 24, 39, 0.95)',
                     titleColor: '#fff',
                     bodyColor: '#fff',
                     padding: 14,
                     displayColors: true,
-                    cornerRadius: 10,
-                    titleFont: { size: 13, weight: '600' },
-                    bodyFont: { size: 12 },
+                    cornerRadius: 12,
+                    titleFont: { size: 13, weight: '700', family: 'Inter' },
+                    bodyFont: { size: 12, family: 'Inter' },
                     callbacks: {
                         label: function (context) {
-                            let label = context.label || '';
+                            let label = ' ' + context.label || '';
                             if (label) label += ': ';
                             label += context.parsed + ' accounts';
                             const total = context.dataset.data.reduce((a, b) => a + b, 0);
@@ -297,12 +304,18 @@ function renderAccountTypesChart(data) {
                 const centerY = top + height / 2;
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
-                ctx.font = 'bold 28px Inter, sans-serif';
+
+                // Draw Total Number
+                const totalSum = data.values.reduce((a, b) => a + b, 0);
+                ctx.font = 'bold 32px Inter, sans-serif';
                 ctx.fillStyle = '#1A1D21';
-                ctx.fillText('100%', centerX, centerY - 10);
-                ctx.font = '500 11px Inter, sans-serif';
-                ctx.fillStyle = '#A0AEC0';
-                ctx.fillText('TOTAL SHARE', centerX, centerY + 14);
+                ctx.fillText(totalSum, centerX, centerY - 8);
+
+                // Draw Label
+                ctx.font = '700 10px Inter, sans-serif';
+                ctx.fillStyle = '#94A3B8';
+                ctx.letterSpacing = '1px';
+                ctx.fillText('TOTAL ACCOUNTS', centerX, centerY + 18);
                 ctx.restore();
             }
         }]
@@ -310,90 +323,94 @@ function renderAccountTypesChart(data) {
 }
 
 function renderTransactionSummaryChart(data) {
-    const ctx = document.getElementById('transactionSummaryChart');
-    if (!ctx) return;
+    const canvas = document.getElementById('transactionSummaryChart');
+    if (!canvas) return;
+
+    // Destroy existing chart if it exists
+    const existingChart = Chart.getChart(canvas);
+    if (existingChart) existingChart.destroy();
+
+    const ctx = canvas.getContext('2d');
+
+    // Create a sophisticated gradient area fill
+    const fillGradient = ctx.createLinearGradient(0, 50, 0, 280);
+    fillGradient.addColorStop(0, 'rgba(27, 107, 74, 0.35)');
+    fillGradient.addColorStop(0.5, 'rgba(27, 107, 74, 0.1)');
+    fillGradient.addColorStop(1, 'rgba(27, 107, 74, 0.01)');
 
     new Chart(ctx, {
-        type: 'bar',
+        type: 'line',
         data: {
             labels: data.labels,
             datasets: [{
-                label: 'Volume',
+                label: 'Transactions',
                 data: data.values,
-                backgroundColor: (ctx) => {
-                    const gradient = ctx.chart.ctx.createLinearGradient(0, 0, 0, ctx.chart.chartArea?.bottom || 300);
-                    gradient.addColorStop(0, 'rgba(27, 107, 74, 0.85)');
-                    gradient.addColorStop(1, 'rgba(27, 107, 74, 0.35)');
-                    return gradient;
-                },
                 borderColor: '#1B6B4A',
-                borderWidth: 0,
-                borderRadius: 6,
-                borderSkipped: false,
-                barThickness: 32,
-                hoverBackgroundColor: 'rgba(27, 107, 74, 0.95)'
+                borderWidth: 4,
+                backgroundColor: fillGradient,
+                fill: true,
+                tension: 0.45, // Smooth cubic interpolation
+                pointBackgroundColor: '#ffffff',
+                pointBorderColor: '#1B6B4A',
+                pointBorderWidth: 3,
+                pointRadius: 6,
+                pointHoverRadius: 9,
+                pointHoverBackgroundColor: '#1B6B4A',
+                pointHoverBorderColor: '#ffffff',
+                pointHoverBorderWidth: 3,
+                borderCapStyle: 'round'
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            interaction: {
+                intersect: false,
+                mode: 'index',
+            },
             animation: {
-                duration: 1000,
-                easing: 'easeInOutQuart'
+                duration: 2000,
+                easing: 'easeOutQuart'
             },
             plugins: {
-                legend: {
-                    display: true,
-                    position: 'top',
-                    align: 'end',
-                    labels: {
-                        color: '#718096',
-                        font: { size: 11, weight: '500' },
-                        usePointStyle: true,
-                        pointStyle: 'circle',
-                        boxWidth: 8,
-                        padding: 16
-                    }
-                },
+                legend: { display: false },
                 tooltip: {
-                    backgroundColor: 'rgba(26, 29, 33, 0.95)',
-                    titleColor: '#fff',
-                    bodyColor: '#fff',
+                    backgroundColor: 'rgba(17, 24, 39, 0.95)',
                     padding: 14,
+                    cornerRadius: 12,
+                    titleFont: { size: 13, weight: '700', family: 'Inter' },
+                    bodyFont: { size: 13, family: 'Inter' },
                     displayColors: false,
-                    cornerRadius: 10,
-                    titleFont: { size: 13, weight: '600' },
-                    bodyFont: { size: 12 },
                     callbacks: {
                         label: function (context) {
-                            return context.parsed.y + ' transactions';
+                            return ' ' + context.parsed.y + ' transactions';
                         }
                     }
                 }
             },
             scales: {
-                y: {
-                    beginAtZero: true,
+                x: {
+                    grid: { display: false },
                     ticks: {
-                        color: '#A0AEC0',
-                        font: { size: 11, weight: '500' },
-                        stepSize: 25,
-                        padding: 8
-                    },
-                    grid: {
-                        color: 'rgba(0, 0, 0, 0.05)',
-                        drawBorder: false
+                        color: '#64748B',
+                        font: { size: 11, weight: '600', family: 'Inter' },
+                        padding: 15
                     },
                     border: { display: false }
                 },
-                x: {
-                    ticks: {
-                        color: '#718096',
-                        font: { size: 11, weight: '600' },
-                        padding: 8
-                    },
+                y: {
+                    beginAtZero: true,
+                    suggestedMax: Math.max(...data.values) * 1.25,
                     grid: {
-                        display: false
+                        color: 'rgba(0, 0, 0, 0.04)',
+                        drawBorder: false,
+                        tickLength: 0
+                    },
+                    ticks: {
+                        color: '#94A3B8',
+                        font: { size: 11, weight: '500', family: 'Inter' },
+                        padding: 15,
+                        stepSize: Math.ceil(Math.max(...data.values) / 4)
                     },
                     border: { display: false }
                 }
@@ -406,148 +423,102 @@ function renderAuditCharts(data) {
     // Audit Account Types Chart
     const ctx1 = document.getElementById('auditAccountTypesChart');
     if (ctx1) {
+        // Destroy existing if any
+        const existingChart1 = Chart.getChart(ctx1);
+        if (existingChart1) existingChart1.destroy();
+
         new Chart(ctx1, {
-            type: 'pie',
+            type: 'doughnut', // Use doughnut as it's more modern than pie
             data: {
                 labels: data.account_types.labels,
                 datasets: [{
                     data: data.account_types.values,
                     backgroundColor: [
-                        '#28A745',
-                        '#DC3545',
-                        '#6F42C1',
-                        '#17A2B8',
-                        '#FFC107'
+                        '#1B6B4A',
+                        '#EF4444',
+                        '#8B5CF6',
+                        '#3B82F6',
+                        '#F5A623'
                     ],
-                    borderWidth: 0,
-                    hoverBorderWidth: 3,
-                    hoverBorderColor: '#fff',
-                    hoverOffset: 10
+                    borderWidth: 2,
+                    borderColor: '#fff',
+                    hoverOffset: 12,
+                    cutout: '70%'
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                animation: {
-                    animateRotate: true,
-                    animateScale: true,
-                    duration: 1000
-                },
                 plugins: {
                     legend: {
                         position: 'right',
                         labels: {
-                            color: '#fff',
-                            padding: 20,
-                            font: {
-                                size: 14,
-                                weight: '600'
-                            },
+                            color: '#475569',
+                            font: { size: 12, weight: '600', family: 'Inter' },
                             usePointStyle: true,
                             pointStyle: 'circle',
-                            boxWidth: 15
+                            padding: 20
                         }
                     },
                     tooltip: {
-                        backgroundColor: 'rgba(0, 0, 0, 0.9)',
-                        titleColor: '#fff',
-                        bodyColor: '#fff',
-                        padding: 15,
-                        displayColors: true,
-                        cornerRadius: 8,
-                        callbacks: {
-                            label: function (context) {
-                                let label = context.label || '';
-                                if (label) {
-                                    label += ': ';
-                                }
-                                label += context.parsed + ' accounts';
-                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                                const percentage = ((context.parsed / total) * 100).toFixed(1);
-                                label += ' (' + percentage + '%)';
-                                return label;
-                            }
-                        }
+                        backgroundColor: 'rgba(17, 24, 39, 0.95)',
+                        padding: 12,
+                        cornerRadius: 12
                     }
                 }
             }
         });
     }
 
-    // Audit Transaction Chart
+    // Audit Transaction Chart - Smooth Area for consistency
     const ctx2 = document.getElementById('auditTransactionChart');
     if (ctx2) {
+        const existingChart2 = Chart.getChart(ctx2);
+        if (existingChart2) existingChart2.destroy();
+
+        const ctx2D = ctx2.getContext('2d');
+        const amberGradient = ctx2D.createLinearGradient(0, 0, 0, 300);
+        amberGradient.addColorStop(0, 'rgba(245, 166, 35, 0.35)');
+        amberGradient.addColorStop(1, 'rgba(245, 166, 35, 0.01)');
+
         new Chart(ctx2, {
-            type: 'bar',
+            type: 'line',
             data: {
                 labels: data.transaction_summary.labels,
                 datasets: [{
                     label: 'Transactions',
                     data: data.transaction_summary.values,
-                    backgroundColor: 'rgba(245, 166, 35, 0.9)',
                     borderColor: '#F5A623',
-                    borderWidth: 0,
-                    borderRadius: 8,
-                    borderSkipped: false,
-                    barThickness: 35,
-                    hoverBackgroundColor: 'rgba(245, 166, 35, 1)',
-                    hoverBorderColor: '#fff',
-                    hoverBorderWidth: 2
+                    borderWidth: 3,
+                    backgroundColor: amberGradient,
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 4,
+                    pointBackgroundColor: '#F5A623'
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                animation: {
-                    duration: 1000,
-                    easing: 'easeInOutQuart'
-                },
                 plugins: {
-                    legend: {
-                        display: false
-                    },
+                    legend: { display: false },
                     tooltip: {
-                        backgroundColor: 'rgba(0, 0, 0, 0.9)',
-                        titleColor: '#fff',
-                        bodyColor: '#fff',
-                        padding: 15,
-                        displayColors: false,
-                        cornerRadius: 8,
-                        callbacks: {
-                            label: function (context) {
-                                return context.parsed.y + ' transactions';
-                            }
-                        }
+                        backgroundColor: 'rgba(17, 24, 39, 0.95)',
+                        padding: 12,
+                        cornerRadius: 12
                     }
                 },
                 scales: {
+                    x: {
+                        grid: { display: false },
+                        ticks: { color: '#64748B', font: { size: 11, weight: '600' } },
+                        border: { display: false }
+                    },
                     y: {
                         beginAtZero: true,
-                        ticks: {
-                            color: '#fff',
-                            font: {
-                                size: 13,
-                                weight: '600'
-                            },
-                            stepSize: 25
-                        },
-                        grid: {
-                            color: 'rgba(255, 255, 255, 0.15)',
-                            borderColor: 'rgba(255, 255, 255, 0.2)',
-                            drawBorder: false
-                        }
-                    },
-                    x: {
-                        ticks: {
-                            color: '#fff',
-                            font: {
-                                size: 13,
-                                weight: '600'
-                            }
-                        },
-                        grid: {
-                            display: false
-                        }
+                        grid: { color: 'rgba(0,0,0,0.03)', drawBorder: false },
+                        ticks: { color: '#94A3B8', font: { size: 11 } },
+                        border: { display: false }
                     }
                 }
             }

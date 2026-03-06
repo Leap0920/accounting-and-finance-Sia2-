@@ -322,34 +322,55 @@ main.container-fluid {
 }
 
 .chart-container {
-    padding: 16px !important;
-    background: transparent !important;
-    border: none !important;
+    padding: 20px !important;
+    background: var(--gl-white) !important;
+    border: 1px solid transparent !important;
     box-shadow: none !important;
-    border-radius: 0 !important;
+    border-radius: var(--gl-radius) !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.chart-container:hover {
+    background: #FAFBFC !important;
+    border-color: var(--gl-border-light) !important;
+    transform: translateY(-2px);
 }
 
 .chart-container:first-child {
     border-right: 1px solid var(--gl-border-light) !important;
-    padding-right: 28px !important;
+    padding-right: 32px !important;
+    border-radius: var(--gl-radius) 0 0 var(--gl-radius) !important;
 }
 
 .chart-container:last-child {
-    padding-left: 28px !important;
+    padding-left: 32px !important;
+    border-radius: 0 var(--gl-radius) var(--gl-radius) 0 !important;
 }
 
 .chart-container h4 {
-    font-size: 0.72rem !important;
+    font-size: 0.75rem !important;
     font-weight: 700 !important;
     text-transform: uppercase !important;
-    letter-spacing: 0.1em !important;
+    letter-spacing: 0.12em !important;
     color: var(--gl-text-light) !important;
-    margin: 0 0 16px !important;
+    margin: 0 0 20px !important;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.chart-container h4::before {
+    content: '';
+    width: 3px;
+    height: 12px;
+    background: var(--gl-primary);
+    border-radius: 4px;
 }
 
 .chart-wrapper {
-    height: 260px !important;
+    height: 280px !important;
     position: relative;
+    filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.02));
 }
 
 .chart-actions {

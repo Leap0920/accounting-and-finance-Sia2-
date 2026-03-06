@@ -89,8 +89,11 @@ function destroyUserSession()
         $conn = getDBConnection();
         if ($conn) {
             $stmt = $conn->prepare("UPDATE users SET remember_token = NULL WHERE id = ?");
-            $stmt->bind_param("i", $user_id);
-            $stmt->execute();
+            if ($stmt) {
+                $stmt->bind_param("i", $user_id);
+                $stmt->execute();
+                $stmt->close();
+            }
         }
     }
 

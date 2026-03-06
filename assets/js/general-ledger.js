@@ -607,7 +607,7 @@ function loadAccountTypes() {
 // LOAD ACCOUNTS TABLE
 // ========================================
 
-function loadAccountsTable(searchTerm = '', accountType = '') {
+function loadAccountsTable(searchTerm = '', accountType = '', sort = '') {
     showLoadingState('accounts');
 
     const params = new URLSearchParams();
@@ -617,6 +617,9 @@ function loadAccountsTable(searchTerm = '', accountType = '') {
     }
     if (accountType) {
         params.append('account_type', accountType);
+    }
+    if (sort) {
+        params.append('sort', sort);
     }
     params.append('limit', paginationState.accounts.perPage);
     params.append('offset', (paginationState.accounts.currentPage - 1) * paginationState.accounts.perPage);
@@ -846,6 +849,7 @@ function viewDrillDown() {
 function applyAccountFilter() {
     const searchInput = document.getElementById('account-search');
     const typeFilter = document.getElementById('account-type-filter');
+    const sortSelect = document.getElementById('account-sort');
 
     if (!searchInput || !typeFilter) {
         console.error('Account filter inputs not found');
@@ -854,8 +858,9 @@ function applyAccountFilter() {
 
     const searchTerm = searchInput.value.trim();
     const accountType = typeFilter.value;
+    const sort = sortSelect ? sortSelect.value : '';
 
-    console.log('Applying account filter:', { search: searchTerm, type: accountType });
+    console.log('Applying account filter:', { search: searchTerm, type: accountType, sort: sort });
 
     let filterMsg = '';
     if (searchTerm && accountType) {
@@ -870,12 +875,13 @@ function applyAccountFilter() {
         showNotification(filterMsg, 'info');
     }
 
-    loadAccountsTable(searchTerm, accountType);
+    loadAccountsTable(searchTerm, accountType, sort);
 }
 
 function resetAccountFilter() {
     const searchInput = document.getElementById('account-search');
     const typeFilter = document.getElementById('account-type-filter');
+    const sortSelect = document.getElementById('account-sort');
 
     if (searchInput) {
         searchInput.value = '';
@@ -883,9 +889,12 @@ function resetAccountFilter() {
     if (typeFilter) {
         typeFilter.value = '';
     }
+    if (sortSelect) {
+        sortSelect.value = 'newest';
+    }
 
     console.log('Resetting account filter...');
-    loadAccountsTable('', '');
+    loadAccountsTable('', '', 'newest');
     showNotification('Account filter reset', 'info');
 }
 
@@ -2355,39 +2364,39 @@ function exportAccounts() {
 
 function generateAccountsPDF(accounts) {
     const { jsPDF } = window.jspdf;
-    const doc = new jsPDF('landscape', 'mm', 'a4');
+    const doc = new jsPDF('portrait', 'mm', 'a4');
 
-    // Colors
-    const primaryColor = [0, 128, 128]; // Teal
-    const headerBg = [0, 128, 128];
+    // Colors matching reference image
+    const primaryColor = [27, 62, 62]; // Dark teal
+    const headerBg = [27, 62, 62];
     const lightGray = [248, 249, 250];
 
     // Header
     doc.setFillColor(...primaryColor);
-    doc.rect(0, 0, 297, 35, 'F');
+    doc.rect(0, 0, 210, 30, 'F');
 
-    // Logo placeholder and title
+    // Logo and title
     doc.setTextColor(255, 255, 255);
-    doc.setFontSize(24);
+    doc.setFontSize(20);
     doc.setFont('helvetica', 'bold');
-    doc.text('EVERGREEN', 14, 18);
-    doc.setFontSize(10);
+    doc.text('EVERGREEN', 14, 15);
+    doc.setFontSize(9);
     doc.setFont('helvetica', 'normal');
-    doc.text('Secure. Invest. Achieve', 14, 25);
+    doc.text('Secure. Invest. Achieve', 14, 22);
 
     // Report title
-    doc.setFontSize(16);
+    doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
-    doc.text('Accounts Report', 297 - 14, 18, { align: 'right' });
-    doc.setFontSize(10);
+    doc.text('Accounts Report', 210 - 14, 15, { align: 'right' });
+    doc.setFontSize(9);
     doc.setFont('helvetica', 'normal');
-    doc.text(`Generated: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`, 297 - 14, 25, { align: 'right' });
+    doc.text(`Generated: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`, 210 - 14, 22, { align: 'right' });
 
     // Summary section
     doc.setTextColor(0, 0, 0);
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
-    doc.text('Summary', 14, 45);
+    doc.text('Summary', 14, 40);
 
     // Calculate totals
     const totalBalance = accounts.reduce((sum, acc) => sum + (parseFloat(acc.available_balance) || 0), 0);
@@ -2399,28 +2408,27 @@ function generateAccountsPDF(accounts) {
 
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
-    doc.text(`Total Accounts: ${accounts.length}`, 14, 52);
-    doc.text(`Total Balance: ₱${totalBalance.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 14, 58);
-
-    // Account type breakdown
-    let xPos = 100;
+    const summaryParts = [`Total Accounts: ${accounts.length}`];
     Object.entries(accountTypes).forEach(([type, count]) => {
-        doc.text(`${type}: ${count}`, xPos, 52);
-        xPos += 50;
+        summaryParts.push(`${type}: ${count}`);
     });
+    doc.text(summaryParts.join('    '), 14, 47);
 
-    // Table
-    const tableData = accounts.map((acc, index) => [
-        index + 1,
+    doc.setFontSize(12);
+    doc.setFont('courier', 'bold');
+    doc.text(`Total Balance: \u00b1${Math.abs(totalBalance).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 14, 55);
+
+    // Table - 4 columns matching reference image
+    const tableData = accounts.map(acc => [
         acc.account_number || '-',
         acc.account_name || '-',
         acc.account_type || '-',
-        `₱${(parseFloat(acc.available_balance) || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+        `\u00b1${(parseFloat(acc.available_balance) || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
     ]);
 
     doc.autoTable({
-        startY: 65,
-        head: [['#', 'Account Number', 'Account Name', 'Account Type', 'Available Balance']],
+        startY: 62,
+        head: [['Account Number', 'Account Name', 'Account Type', 'Available Balance']],
         body: tableData,
         theme: 'grid',
         headStyles: {
@@ -2428,30 +2436,37 @@ function generateAccountsPDF(accounts) {
             textColor: [255, 255, 255],
             fontStyle: 'bold',
             fontSize: 10,
-            halign: 'center'
+            halign: 'center',
+            cellPadding: 4
         },
         bodyStyles: {
-            fontSize: 9,
-            cellPadding: 3
+            fontSize: 10,
+            cellPadding: 4,
+            lineColor: [200, 200, 200],
+            lineWidth: 0.5
         },
         columnStyles: {
-            0: { halign: 'center', cellWidth: 15 },
-            1: { halign: 'left', cellWidth: 45 },
-            2: { halign: 'left', cellWidth: 80 },
-            3: { halign: 'center', cellWidth: 40 },
-            4: { halign: 'right', cellWidth: 50 }
+            0: { halign: 'left', cellWidth: 38 },
+            1: { halign: 'left', cellWidth: 60 },
+            2: { halign: 'left', cellWidth: 38 },
+            3: { halign: 'right', cellWidth: 46, fontStyle: 'bold', font: 'courier' }
         },
         alternateRowStyles: {
-            fillColor: lightGray
+            fillColor: [255, 255, 255]
+        },
+        styles: {
+            lineColor: [180, 180, 180],
+            lineWidth: 0.3
         },
         margin: { left: 14, right: 14 },
+        tableWidth: 'auto',
         didDrawPage: function (data) {
             // Footer on each page
             doc.setFontSize(8);
             doc.setTextColor(128, 128, 128);
             doc.text(
                 `Page ${data.pageNumber}`,
-                297 / 2,
+                210 / 2,
                 doc.internal.pageSize.height - 10,
                 { align: 'center' }
             );
@@ -2466,12 +2481,12 @@ function generateAccountsPDF(accounts) {
     // Total row at the end
     const finalY = doc.lastAutoTable.finalY + 5;
     doc.setFillColor(...primaryColor);
-    doc.rect(14, finalY, 269, 10, 'F');
+    doc.rect(14, finalY, 182, 10, 'F');
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(11);
     doc.setFont('helvetica', 'bold');
     doc.text('TOTAL', 20, finalY + 7);
-    doc.text(`₱${totalBalance.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 269, finalY + 7, { align: 'right' });
+    doc.text(`\u00b1${Math.abs(totalBalance).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 182, finalY + 7, { align: 'right' });
 
     // Save PDF
     const filename = `Accounts_Report_${new Date().toISOString().split('T')[0]}.pdf`;
@@ -2660,7 +2675,8 @@ function changeAccountsPerPage() {
         paginationState.accounts.currentPage = 1;
         const searchInput = document.getElementById('account-search');
         const typeFilter = document.getElementById('account-type-filter');
-        loadAccountsTable(searchInput?.value || '', typeFilter?.value || '');
+        const sortSelect = document.getElementById('account-sort');
+        loadAccountsTable(searchInput?.value || '', typeFilter?.value || '', sortSelect?.value || '');
     }
 }
 

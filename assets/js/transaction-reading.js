@@ -3,80 +3,19 @@
  * Handles filtering, export, print, and audit trail functionality
  */
 
-(function() {
+(function () {
     'use strict';
 
-    let dataTable = null;
     window.currentTransactionId = null; // Make it globally accessible
 
     /**
      * Initialize when DOM is ready
      */
-    document.addEventListener('DOMContentLoaded', function() {
-        // Check if table has actual data rows (not the "no data" message)
-        const hasData = document.querySelector('#transactionTable tbody tr:not([colspan])') !== null;
-        const hasNoDataMessage = document.querySelector('#transactionTable tbody tr[colspan]') !== null;
-        
-        console.log('Has data:', hasData);
-        console.log('Has no data message:', hasNoDataMessage);
-        
-        if (hasData) {
-            // Initialize DataTables with existing data
-            initDataTable();
-        } else {
-            console.log('No data found, skipping DataTable initialization');
-        }
-        
+    document.addEventListener('DOMContentLoaded', function () {
         initEventHandlers();
         checkUrlFilters();
     });
 
-    /**
-     * Initialize DataTable with enhanced features
-     * Only initialized if table has data rows
-     */
-    function initDataTable() {
-        if (typeof $.fn.dataTable === 'undefined') {
-            console.warn('DataTables not loaded');
-            return;
-        }
-
-        const table = $('#transactionTable');
-        if (table.length && !$.fn.DataTable.isDataTable('#transactionTable')) {
-            // Count actual columns in the table
-            const columnCount = table.find('thead th').length;
-            console.log('Table column count:', columnCount);
-            
-            // Only initialize if we have the expected number of columns
-            if (columnCount === 10) {
-                dataTable = table.DataTable({
-                    responsive: true,
-                    pageLength: 25,
-                    order: [[1, 'desc']], // Order by date descending
-                    language: {
-                        info: "Showing _START_ to _END_ of _TOTAL_ transactions",
-                        infoEmpty: "Showing 0 to 0 of 0 transactions",
-                        infoFiltered: "(filtered from _MAX_ total transactions)",
-                        lengthMenu: "Show _MENU_ transactions per page",
-                        search: "Search transactions:",
-                        zeroRecords: "No matching transactions found",
-                        emptyTable: "No transaction data available"
-                    },
-                    columnDefs: [
-                        { orderable: false, targets: [9] }, // Actions column not sortable
-                        { type: 'date', targets: [1] }, // Date column
-                        { className: 'text-end', targets: [5, 6] }, // Debit and Credit columns right-aligned
-                        { className: 'text-center', targets: [7] } // Status column centered
-                    ],
-                    dom: '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>>rtip'
-                });
-                console.log('DataTable initialized successfully');
-            } else {
-                console.warn('Column count mismatch. Expected 10, found:', columnCount);
-                console.log('Skipping DataTable initialization to prevent errors');
-            }
-        }
-    }
 
     /**
      * Initialize all event handlers
@@ -85,9 +24,9 @@
         // Show/Hide Filter Panel
         const btnShowFilters = document.getElementById('btnShowFilters');
         const filterPanel = document.getElementById('filterPanel');
-        
+
         if (btnShowFilters && filterPanel) {
-            btnShowFilters.addEventListener('click', function() {
+            btnShowFilters.addEventListener('click', function () {
                 if (filterPanel.style.display === 'none' || !filterPanel.style.display) {
                     filterPanel.style.display = 'block';
                     this.innerHTML = '<i class="fas fa-times me-1"></i>Hide Filters';
@@ -117,7 +56,7 @@
         if (urlParams.has('apply_filters')) {
             const filterPanel = document.getElementById('filterPanel');
             const btnShowFilters = document.getElementById('btnShowFilters');
-            
+
             if (filterPanel && btnShowFilters) {
                 filterPanel.style.display = 'block';
                 btnShowFilters.innerHTML = '<i class="fas fa-times me-1"></i>Hide Filters';
@@ -130,26 +69,26 @@
     /**
      * Clear all filters and reload page
      */
-    window.clearFilters = function() {
+    window.clearFilters = function () {
         window.location.href = window.location.pathname;
     };
 
     /**
      * Export table data to Excel with professional formatting
      */
-    window.exportToExcel = function() {
+    window.exportToExcel = function () {
         // Get table data
         const table = document.getElementById('transactionTable');
         const rows = table.querySelectorAll('tbody tr:not([colspan])');
-        
+
         if (rows.length === 0) {
             showNotification('No data available to export', 'warning');
             return;
         }
-        
+
         // Show loading
         showLoading('Preparing Excel export...');
-        
+
         // Get filter information
         const urlParams = new URLSearchParams(window.location.search);
         const dateFrom = urlParams.get('date_from') || '';
@@ -158,14 +97,14 @@
         const statusFilter = urlParams.get('status') || '';
         const accountFilter = urlParams.get('account') || '';
         const hasFilters = dateFrom || dateTo || typeFilter || statusFilter || accountFilter;
-        
+
         // Calculate totals
         let totalDebit = 0;
         let totalCredit = 0;
         const statusCounts = {};
         const typeCounts = {};
         const transactions = [];
-        
+
         rows.forEach(row => {
             const cells = row.querySelectorAll('td');
             if (cells.length >= 9) {
@@ -180,16 +119,16 @@
                 const creditStr = cells[6].textContent.trim().replace(/,/g, '');
                 const status = cells[7].textContent.trim();
                 const createdBy = cells[8].textContent.trim();
-                
+
                 const debit = parseFloat(debitStr) || 0;
                 const credit = parseFloat(creditStr) || 0;
-                
+
                 totalDebit += debit;
                 totalCredit += credit;
-                
+
                 statusCounts[status] = (statusCounts[status] || 0) + 1;
                 typeCounts[typeCode] = (typeCounts[typeCode] || 0) + 1;
-                
+
                 transactions.push({
                     journalNo,
                     date,
@@ -204,23 +143,23 @@
                 });
             }
         });
-        
+
         // Build professional CSV content
         let csvContent = '';
-        
+
         // Header Section
         csvContent += 'EVERGREEN ACCOUNTING & FINANCE SYSTEM\n';
         csvContent += 'TRANSACTION RECORDING REPORT\n';
         csvContent += '\n';
-        csvContent += `Report Generated: ${new Date().toLocaleString('en-US', { 
-            year: 'numeric', 
-            month: 'long', 
-            day: 'numeric', 
-            hour: '2-digit', 
-            minute: '2-digit' 
+        csvContent += `Report Generated: ${new Date().toLocaleString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
         })}\n`;
         csvContent += '\n';
-        
+
         // Report Parameters Section
         csvContent += 'REPORT PARAMETERS\n';
         csvContent += '\n';
@@ -236,7 +175,7 @@
         }
         csvContent += '\n';
         csvContent += '\n';
-        
+
         // Executive Summary Section
         csvContent += 'EXECUTIVE SUMMARY\n';
         csvContent += '\n';
@@ -246,7 +185,7 @@
         csvContent += `Total Credit Amount,${totalCredit.toFixed(2)}\n`;
         csvContent += `Balance Difference,${(totalDebit - totalCredit).toFixed(2)}\n`;
         csvContent += '\n';
-        
+
         // Summary by Status
         csvContent += 'SUMMARY BY STATUS\n';
         csvContent += '\n';
@@ -257,7 +196,7 @@
             csvContent += `"${status.toUpperCase()}",${count},${percentage}%\n`;
         });
         csvContent += '\n';
-        
+
         // Summary by Type
         csvContent += 'SUMMARY BY TRANSACTION TYPE\n';
         csvContent += '\n';
@@ -270,12 +209,12 @@
         csvContent += '\n';
         csvContent += '\n';
         csvContent += '\n';
-        
+
         // Transaction Details Section
         csvContent += 'TRANSACTION DETAILS\n';
         csvContent += '\n';
         csvContent += 'Journal No.,Date,Type Code,Type Name,Description,Reference No.,Debit Amount,Credit Amount,Status,Created By\n';
-        
+
         transactions.forEach(trans => {
             csvContent += `"${trans.journalNo}",`;
             csvContent += `"${trans.date}",`;
@@ -288,7 +227,7 @@
             csvContent += `"${trans.status.toUpperCase()}",`;
             csvContent += `"${trans.createdBy}"\n`;
         });
-        
+
         // Totals Row
         csvContent += '\n';
         csvContent += '"TOTAL","","","","","",';
@@ -297,7 +236,7 @@
         csvContent += '"",""\n';
         csvContent += '\n';
         csvContent += '\n';
-        
+
         // Footer Section
         csvContent += 'REPORT INFORMATION\n';
         csvContent += '\n';
@@ -310,12 +249,12 @@
         csvContent += `"Export Date: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}"\n`;
         csvContent += '\n';
         csvContent += '"© ' + new Date().getFullYear() + ' Evergreen Accounting & Finance. All rights reserved."\n';
-        
+
         // Create and download file
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement('a');
         const url = URL.createObjectURL(blob);
-        
+
         const dateStr = new Date().toISOString().split('T')[0];
         const filename = `transaction_report_${dateStr}.csv`;
         link.setAttribute('href', url);
@@ -325,7 +264,7 @@
         link.click();
         document.body.removeChild(link);
         URL.revokeObjectURL(url);
-        
+
         hideLoading();
         showNotification('Excel file exported successfully!', 'success');
     };
@@ -333,11 +272,11 @@
     /**
      * Print transaction table
      */
-    window.printTable = function() {
+    window.printTable = function () {
         // Hide filter panel before printing
         const filterPanel = document.getElementById('filterPanel');
         const originalDisplay = filterPanel ? filterPanel.style.display : '';
-        
+
         if (filterPanel) {
             filterPanel.style.display = 'none';
         }
@@ -354,17 +293,17 @@
     /**
      * View transaction details
      */
-    window.viewTransactionDetails = function(transactionId) {
+    window.viewTransactionDetails = function (transactionId) {
         window.currentTransactionId = transactionId;
-        
+
         const modal = new bootstrap.Modal(document.getElementById('transactionDetailsModal'));
         const modalBody = document.getElementById('transactionDetailsBody');
-        
+
         // Show loading state
         modalBody.innerHTML = '<div class="text-center py-4"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div><p class="mt-3">Loading transaction details...</p></div>';
-        
+
         modal.show();
-        
+
         // Fetch transaction details from API
         fetch(`api/transaction-data.php?action=get_transaction_details&id=${transactionId}`)
             .then(response => response.json())
@@ -377,7 +316,7 @@
                         'reversed': 'status-reversed',
                         'voided': 'status-voided'
                     }[trans.status] || 'badge-secondary';
-                    
+
                     modalBody.innerHTML = `
                         <div class="row mb-3">
                             <div class="col-md-6">
@@ -390,7 +329,7 @@
                                     <dd class="col-sm-7"><span class="badge bg-secondary">${trans.type_code}</span> ${trans.type_name}</dd>
                                     
                                     <dt class="col-sm-5">Entry Date:</dt>
-                                    <dd class="col-sm-7">${new Date(trans.entry_date).toLocaleDateString('en-US', {year: 'numeric', month: 'short', day: 'numeric'})}</dd>
+                                    <dd class="col-sm-7">${new Date(trans.entry_date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</dd>
                                     
                                     <dt class="col-sm-5">Status:</dt>
                                     <dd class="col-sm-7"><span class="badge ${statusClass}">${trans.status.toUpperCase()}</span></dd>
@@ -452,32 +391,32 @@
     /**
      * View audit trail for current/all transactions
      */
-    window.viewAuditTrail = function(transactionId) {
+    window.viewAuditTrail = function (transactionId) {
         if (transactionId) {
             window.currentTransactionId = transactionId;
         }
-        
+
         const modal = new bootstrap.Modal(document.getElementById('auditTrailModal'));
         const modalBody = document.getElementById('auditTrailBody');
         const modalTitle = document.getElementById('auditTrailModalLabel');
-        
+
         // Update modal title
         if (transactionId) {
             modalTitle.innerHTML = '<i class="fas fa-history me-2"></i>Audit Trail - Transaction #' + transactionId;
         } else {
             modalTitle.innerHTML = '<i class="fas fa-history me-2"></i>Audit Trail - All Transactions';
         }
-        
+
         // Show loading state
         modalBody.innerHTML = '<tr><td colspan="7" class="text-center py-4"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div><p class="mt-3">Loading audit trail...</p></td></tr>';
-        
+
         modal.show();
-        
+
         // Fetch audit trail from API
-        const url = transactionId 
+        const url = transactionId
             ? `api/transaction-data.php?action=get_audit_trail&id=${transactionId}`
             : `api/transaction-data.php?action=get_audit_trail`;
-            
+
         fetch(url)
             .then(response => response.json())
             .then(data => {
@@ -491,7 +430,7 @@
                             hour: '2-digit',
                             minute: '2-digit'
                         });
-                        
+
                         const actionBadge = {
                             'create': 'badge bg-success',
                             'update': 'badge bg-info',
@@ -500,7 +439,7 @@
                             'reverse': 'badge bg-warning',
                             'void': 'badge bg-dark'
                         }[log.action] || 'badge bg-secondary';
-                        
+
                         html += `
                             <tr>
                                 <td>${timestamp}</td>
@@ -543,40 +482,40 @@
     /**
      * Export audit trail
      */
-    window.exportAuditTrail = function() {
+    window.exportAuditTrail = function () {
         showNotification('Audit trail export feature will be available when connected to database', 'info');
     };
 
     /**
      * Delete transaction (soft delete - move to bin)
      */
-    window.deleteTransaction = function(transactionId) {
+    window.deleteTransaction = function (transactionId) {
         console.log('Delete transaction called with ID:', transactionId);
         console.log('Transaction ID type:', typeof transactionId);
         console.log('Transaction ID value:', transactionId);
-        
+
         if (!transactionId || transactionId === 'undefined' || transactionId === 'null') {
             showNotification('Error: Invalid transaction ID', 'error');
             return;
         }
-        
+
         // Show custom confirmation modal instead of browser confirm
         const modal = new bootstrap.Modal(document.getElementById('deleteConfirmModal'));
         const confirmBtn = document.getElementById('confirmDeleteBtn');
-        
+
         // Remove any existing event listeners
         const newConfirmBtn = confirmBtn.cloneNode(true);
         confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
-        
+
         // Add click handler for this specific deletion
-        newConfirmBtn.addEventListener('click', function() {
+        newConfirmBtn.addEventListener('click', function () {
             modal.hide();
             performDeleteTransaction(transactionId);
         });
-        
+
         modal.show();
     };
-    
+
     // Actual delete function
     function performDeleteTransaction(transactionId) {
         // Show loading
@@ -586,13 +525,13 @@
         // The API will extract the numeric ID and validate the source
         const url = 'api/transaction-data.php';
         const data = `action=soft_delete_transaction&transaction_id=${encodeURIComponent(transactionId)}`;
-        
+
         console.log('===== DELETE REQUEST DETAILS =====');
         console.log('Making request to:', url);
         console.log('With data:', data);
         console.log('Full URL will be:', window.location.origin + window.location.pathname.replace('transaction-reading.php', '') + url);
         console.log('==================================');
-        
+
         fetch(url, {
             method: 'POST',
             headers: {
@@ -600,103 +539,97 @@
             },
             body: data
         })
-        .then(response => {
-            console.log('===== RESPONSE RECEIVED =====');
-            console.log('Response status:', response.status);
-            console.log('Response ok:', response.ok);
-            console.log('Response type:', response.type);
-            console.log('Response URL:', response.url);
-            
-            // Check if response is ok before trying to parse JSON
-            if (!response.ok) {
-                // Try to get error message from response
+            .then(response => {
+                console.log('===== RESPONSE RECEIVED =====');
+                console.log('Response status:', response.status);
+                console.log('Response ok:', response.ok);
+                console.log('Response type:', response.type);
+                console.log('Response URL:', response.url);
+
+                // Check if response is ok before trying to parse JSON
+                if (!response.ok) {
+                    // Try to get error message from response
+                    return response.text().then(text => {
+                        console.error('ERROR RESPONSE TEXT:', text);
+                        let errorMessage = `HTTP error! status: ${response.status}`;
+                        try {
+                            const errorData = JSON.parse(text);
+                            console.error('Parsed error data:', errorData);
+                            if (errorData.error) {
+                                errorMessage += ` - ${errorData.error}`;
+                            }
+                        } catch (e) {
+                            console.error('Could not parse error as JSON:', e);
+                            // If not JSON, include raw text
+                            if (text.length > 0) {
+                                errorMessage += ` - ${text.substring(0, 200)}`;
+                            }
+                        }
+                        throw new Error(errorMessage);
+                    });
+                }
+
+                // Get response text first to debug
                 return response.text().then(text => {
-                    console.error('ERROR RESPONSE TEXT:', text);
-                    let errorMessage = `HTTP error! status: ${response.status}`;
+                    console.log('Raw response text:', text);
                     try {
-                        const errorData = JSON.parse(text);
-                        console.error('Parsed error data:', errorData);
-                        if (errorData.error) {
-                            errorMessage += ` - ${errorData.error}`;
-                        }
-                    } catch (e) {
-                        console.error('Could not parse error as JSON:', e);
-                        // If not JSON, include raw text
-                        if (text.length > 0) {
-                            errorMessage += ` - ${text.substring(0, 200)}`;
-                        }
+                        return JSON.parse(text);
+                    } catch (parseError) {
+                        console.error('JSON parse error:', parseError);
+                        console.error('Response text that failed to parse:', text);
+                        throw new Error('Invalid JSON response from server');
                     }
-                    throw new Error(errorMessage);
                 });
-            }
-            
-            // Get response text first to debug
-            return response.text().then(text => {
-                console.log('Raw response text:', text);
-                try {
-                    return JSON.parse(text);
-                } catch (parseError) {
-                    console.error('JSON parse error:', parseError);
-                    console.error('Response text that failed to parse:', text);
-                    throw new Error('Invalid JSON response from server');
-                }
-            });
-        })
-        .then(data => {
-            console.log('Response data:', data);
-            hideLoading();
-            if (data.success) {
-                // Show appropriate message based on what actually happened
-                let message = data.message || 'Transaction processed successfully!';
-                let notificationType = 'success';
-                
-                // If soft delete is not available, explain what happened
-                if (data.soft_delete_available === false) {
-                    message = 'Transaction voided successfully! It has been moved to the bin station where you can restore it later.';
-                    notificationType = 'info';
-                } else {
-                    message = 'Transaction deleted successfully! It has been moved to the bin station where you can restore it later.';
-                }
-                
-                showNotification(message, notificationType);
-                
-                // Immediately remove the row from the table (real-time update)
-                const table = document.getElementById('transactionTable');
-                if (table) {
-                    const rowToRemove = table.querySelector(`tr[data-transaction-id="${transactionId}"]`);
-                    if (rowToRemove) {
-                        // If DataTable is initialized, use its API
-                        if (dataTable && typeof dataTable.row === 'function') {
-                            dataTable.row(rowToRemove).remove().draw(false);
-                            console.log('Row removed from DataTable');
-                        } else {
+            })
+            .then(data => {
+                console.log('Response data:', data);
+                hideLoading();
+                if (data.success) {
+                    // Show appropriate message based on what actually happened
+                    let message = data.message || 'Transaction processed successfully!';
+                    let notificationType = 'success';
+
+                    // If soft delete is not available, explain what happened
+                    if (data.soft_delete_available === false) {
+                        message = 'Transaction voided successfully! It has been moved to the bin station where you can restore it later.';
+                        notificationType = 'info';
+                    } else {
+                        message = 'Transaction deleted successfully! It has been moved to the bin station where you can restore it later.';
+                    }
+
+                    showNotification(message, notificationType);
+
+                    // Immediately remove the row from the table (real-time update)
+                    const table = document.getElementById('transactionTable');
+                    if (table) {
+                        const rowToRemove = table.querySelector(`tr[data-transaction-id="${transactionId}"]`);
+                        if (rowToRemove) {
                             // Remove directly from DOM
                             rowToRemove.remove();
-                            console.log('Row removed from DOM');
+                            console.log('Row removed from table');
+                        } else {
+                            // Fallback: reload page if row not found
+                            console.warn('Row not found, reloading page');
+                            setTimeout(() => {
+                                window.location.reload();
+                            }, 1000);
                         }
-                    } else {
-                        // Fallback: reload page if row not found
-                        console.warn('Row not found, reloading page');
-                        setTimeout(() => {
-                            window.location.reload();
-                        }, 1000);
                     }
+                } else {
+                    showNotification('Delete failed: ' + (data.error || 'Unknown error'), 'error');
                 }
-            } else {
-                showNotification('Delete failed: ' + (data.error || 'Unknown error'), 'error');
-            }
-        })
-        .catch(error => {
-            console.error('Fetch error:', error);
-            hideLoading();
-            
-            // Try to get more specific error information
-            if (error.message.includes('HTTP error! status: 400')) {
-                showNotification('Delete failed: Bad request (400) - Check console for details', 'error');
-            } else {
-                showNotification('Delete failed: ' + error.message, 'error');
-            }
-        });
+            })
+            .catch(error => {
+                console.error('Fetch error:', error);
+                hideLoading();
+
+                // Try to get more specific error information
+                if (error.message.includes('HTTP error! status: 400')) {
+                    showNotification('Delete failed: Bad request (400) - Check console for details', 'error');
+                } else {
+                    showNotification('Delete failed: ' + error.message, 'error');
+                }
+            });
     };
 
     /**
@@ -704,19 +637,19 @@
      */
     function getCurrentFilters() {
         const params = new URLSearchParams();
-        
+
         const dateFrom = document.getElementById('date_from');
         const dateTo = document.getElementById('date_to');
         const type = document.getElementById('type');
         const status = document.getElementById('status');
         const account = document.getElementById('account');
-        
+
         if (dateFrom && dateFrom.value) params.append('date_from', dateFrom.value);
         if (dateTo && dateTo.value) params.append('date_to', dateTo.value);
         if (type && type.value) params.append('type', type.value);
         if (status && status.value) params.append('status', status.value);
         if (account && account.value) params.append('account', account.value);
-        
+
         return params.toString();
     }
 
@@ -752,14 +685,14 @@
      * Show notification toast
      */
     function showNotification(message, type = 'success') {
-        const alertClass = type === 'error' ? 'alert-danger' : 
-                          type === 'warning' ? 'alert-warning' :
-                          type === 'info' ? 'alert-info' : 'alert-success';
-        
+        const alertClass = type === 'error' ? 'alert-danger' :
+            type === 'warning' ? 'alert-warning' :
+                type === 'info' ? 'alert-info' : 'alert-success';
+
         const iconClass = type === 'error' ? 'fa-exclamation-circle' :
-                         type === 'warning' ? 'fa-exclamation-triangle' :
-                         type === 'info' ? 'fa-info-circle' : 'fa-check-circle';
-        
+            type === 'warning' ? 'fa-exclamation-triangle' :
+                type === 'info' ? 'fa-info-circle' : 'fa-check-circle';
+
         const toast = document.createElement('div');
         toast.className = `alert ${alertClass} alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3`;
         toast.style.zIndex = '9999';
@@ -769,10 +702,10 @@
             ${message}
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         `;
-        
+
         document.body.appendChild(toast);
-        
-        setTimeout(function() {
+
+        setTimeout(function () {
             toast.remove();
         }, 5000);
     }
@@ -784,66 +717,66 @@
      * Sample function to populate transaction data (for demo)
      * In production, this would be replaced with actual database queries
      */
-    window.loadSampleData = function() {
+    window.loadSampleData = function () {
         showNotification('Sample data loading is disabled. Connect to database to load actual transactions.', 'info');
     };
 
     /**
      * Sync bank transactions to journal entries
      */
-    window.syncBankTransactions = function() {
+    window.syncBankTransactions = function () {
         const btn = document.getElementById('btnSyncBankTransactions');
         const originalText = btn.innerHTML;
-        
+
         // Disable button and show loading
         btn.disabled = true;
         btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Syncing...';
-        
+
         showLoading('Syncing bank transactions to journal entries...');
-        
+
         fetch('../modules/api/transaction-data.php?action=sync_bank_transactions', {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json'
             }
         })
-        .then(response => response.json())
-        .then(data => {
-            hideLoading();
-            btn.disabled = false;
-            btn.innerHTML = originalText;
-            
-            if (data.success) {
-                const message = data.synced_count > 0 
-                    ? `Successfully synced ${data.synced_count} bank transaction(s) to journal entries.`
-                    : 'No new bank transactions to sync.';
-                
-                showNotification(message, 'success');
-                
-                if (data.has_errors && data.errors.length > 0) {
-                    console.warn('Sync errors:', data.errors);
-                    setTimeout(() => {
-                        showNotification('Some transactions had errors. Check console for details.', 'warning');
-                    }, 2000);
+            .then(response => response.json())
+            .then(data => {
+                hideLoading();
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+
+                if (data.success) {
+                    const message = data.synced_count > 0
+                        ? `Successfully synced ${data.synced_count} bank transaction(s) to journal entries.`
+                        : 'No new bank transactions to sync.';
+
+                    showNotification(message, 'success');
+
+                    if (data.has_errors && data.errors.length > 0) {
+                        console.warn('Sync errors:', data.errors);
+                        setTimeout(() => {
+                            showNotification('Some transactions had errors. Check console for details.', 'warning');
+                        }, 2000);
+                    }
+
+                    // Reload page after 2 seconds to show new transactions
+                    if (data.synced_count > 0) {
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 2000);
+                    }
+                } else {
+                    showNotification('Error: ' + (data.error || 'Failed to sync bank transactions'), 'error');
                 }
-                
-                // Reload page after 2 seconds to show new transactions
-                if (data.synced_count > 0) {
-                    setTimeout(() => {
-                        window.location.reload();
-                    }, 2000);
-                }
-            } else {
-                showNotification('Error: ' + (data.error || 'Failed to sync bank transactions'), 'error');
-            }
-        })
-        .catch(error => {
-            hideLoading();
-            btn.disabled = false;
-            btn.innerHTML = originalText;
-            console.error('Sync error:', error);
-            showNotification('Error syncing bank transactions: ' + error.message, 'error');
-        });
+            })
+            .catch(error => {
+                hideLoading();
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+                console.error('Sync error:', error);
+                showNotification('Error syncing bank transactions: ' + error.message, 'error');
+            });
     };
 
 })();

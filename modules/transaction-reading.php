@@ -22,150 +22,168 @@ if ($apply_filters) {
         !empty($filter_type) || !empty($filter_status) || !empty($filter_account);
 }
 
+// Check which tables exist in the database
+$existingTables = [];
+$tableCheckResult = $conn->query("SHOW TABLES");
+if ($tableCheckResult) {
+    while ($tableRow = $tableCheckResult->fetch_row()) {
+        $existingTables[] = $tableRow[0];
+    }
+}
+
 // Check if deleted_at column exists in journal_entries
 $hasDeletedAtColumn = false;
+if (in_array('journal_entries', $existingTables)) {
+    try {
+        $checkResult = $conn->query("SHOW COLUMNS FROM journal_entries LIKE 'deleted_at'");
+        $hasDeletedAtColumn = $checkResult && $checkResult->num_rows > 0;
+    } catch (Exception $e) {
+        $hasDeletedAtColumn = false;
+    }
+}
+
+// Try to load transactions from available tables
 try {
-    $checkResult = $conn->query("SHOW COLUMNS FROM journal_entries LIKE 'deleted_at'");
-    $hasDeletedAtColumn = $checkResult && $checkResult->num_rows > 0;
+    // Check if required tables exist for journal entries
+    $hasJournalEntries = in_array('journal_entries', $existingTables);
+    $hasJournalTypes = in_array('journal_types', $existingTables);
+    $hasUsers = in_array('users', $existingTables);
+    $hasFiscalPeriods = in_array('fiscal_periods', $existingTables);
+    $hasBankTransactions = in_array('bank_transactions', $existingTables);
+    $hasTransactionTypes = in_array('transaction_types', $existingTables);
+    $hasBankEmployees = in_array('bank_employees', $existingTables);
+    $hasCustomerAccounts = in_array('customer_accounts', $existingTables);
+
+    // Build journal entries query if tables exist
+    if ($hasJournalEntries && $hasJournalTypes && $hasUsers) {
+        $deletedFilter = "je.status != 'voided' AND je.status != 'deleted'";
+        if ($hasDeletedAtColumn) {
+            $deletedFilter .= " AND (je.deleted_at IS NULL OR je.deleted_at = '' OR je.deleted_at = '0000-00-00 00:00:00')";
+        }
+
+        $jeSql = "SELECT 
+                    CONCAT('JE-', je.id) as id,
+                    je.journal_no as journal_no,
+                    je.entry_date as entry_date,
+                    jt.code as type_code,
+                    jt.name as type_name,
+                    je.description,
+                    je.reference_no,
+                    je.total_debit,
+                    je.total_credit,
+                    je.status,
+                    u.username as created_by,
+                    u.full_name as created_by_name,
+                    je.created_at,
+                    je.posted_at,
+                    " . ($hasFiscalPeriods ? "fp.period_name" : "NULL") . " as fiscal_period,
+                    'journal' as source
+                FROM journal_entries je
+                INNER JOIN journal_types jt ON je.journal_type_id = jt.id
+                INNER JOIN users u ON je.created_by = u.id
+                " . ($hasFiscalPeriods ? "LEFT JOIN fiscal_periods fp ON je.fiscal_period_id = fp.id" : "") . "
+                WHERE $deletedFilter";
+
+        $params = [];
+        $types = '';
+
+        // Apply filters to journal entries
+        if (!empty($filter_date_from)) {
+            $jeSql .= " AND je.entry_date >= ?";
+            $params[] = $filter_date_from;
+            $types .= 's';
+        }
+        if (!empty($filter_date_to)) {
+            $jeSql .= " AND je.entry_date <= ?";
+            $params[] = $filter_date_to;
+            $types .= 's';
+        }
+        if (!empty($filter_type)) {
+            $jeSql .= " AND jt.code = ?";
+            $params[] = $filter_type;
+            $types .= 's';
+        }
+        if (!empty($filter_status)) {
+            $jeSql .= " AND je.status = ?";
+            $params[] = $filter_status;
+            $types .= 's';
+        }
+        if (!empty($filter_account)) {
+            $jeSql .= " AND (je.reference_no LIKE ? OR je.description LIKE ?)";
+            $params[] = "%{$filter_account}%";
+            $params[] = "%{$filter_account}%";
+            $types .= 'ss';
+        }
+
+        $jeSql .= " ORDER BY je.entry_date DESC, je.created_at DESC";
+
+        $stmt = $conn->prepare($jeSql);
+        if ($stmt) {
+            if (!empty($params)) {
+                $stmt->bind_param($types, ...$params);
+            }
+            $stmt->execute();
+            $result = $stmt->get_result();
+            while ($row = $result->fetch_assoc()) {
+                $transactions[] = $row;
+            }
+            $stmt->close();
+        } else {
+            error_log("Journal entries query preparation failed: " . $conn->error);
+        }
+    }
+
+    // Add bank transactions if tables exist
+    if ($hasBankTransactions && $hasTransactionTypes && $hasCustomerAccounts) {
+        $hasBankDeletedAtColumn = false;
+        try {
+            $checkBankResult = $conn->query("SHOW COLUMNS FROM bank_transactions LIKE 'deleted_at'");
+            $hasBankDeletedAtColumn = $checkBankResult && $checkBankResult->num_rows > 0;
+        } catch (Exception $e) {
+            $hasBankDeletedAtColumn = false;
+        }
+
+        $btSql = "SELECT 
+                    CONCAT('BT-', bt.transaction_id) as id,
+                    bt.transaction_ref as journal_no,
+                    DATE(bt.created_at) as entry_date,
+                    tt.type_name as type_code,
+                    tt.type_name as type_name,
+                    COALESCE(bt.description, 'Bank Transaction') as description,
+                    bt.transaction_ref as reference_no,
+                    CASE WHEN bt.amount > 0 THEN bt.amount ELSE 0 END as total_debit,
+                    CASE WHEN bt.amount < 0 THEN ABS(bt.amount) ELSE 0 END as total_credit,
+                    'posted' as status,
+                    COALESCE(" . ($hasBankEmployees ? "be.employee_name" : "'System'") . ", 'System') as created_by,
+                    COALESCE(" . ($hasBankEmployees ? "be.employee_name" : "'System'") . ", 'System') as created_by_name,
+                    bt.created_at,
+                    bt.created_at as posted_at,
+                    DATE_FORMAT(bt.created_at, '%Y-%m') as fiscal_period,
+                    'bank' as source
+                FROM bank_transactions bt
+                INNER JOIN transaction_types tt ON bt.transaction_type_id = tt.transaction_type_id
+                " . ($hasBankEmployees ? "LEFT JOIN bank_employees be ON bt.employee_id = be.employee_id" : "") . "
+                INNER JOIN customer_accounts ca ON bt.account_id = ca.account_id
+                " . ($hasBankDeletedAtColumn ? "WHERE bt.deleted_at IS NULL" : "");
+
+        $btStmt = $conn->prepare($btSql);
+        if ($btStmt) {
+            $btStmt->execute();
+            $btResult = $btStmt->get_result();
+            while ($row = $btResult->fetch_assoc()) {
+                $transactions[] = $row;
+            }
+            $btStmt->close();
+        }
+    }
+
+    // Sort combined results by entry_date DESC
+    usort($transactions, function ($a, $b) {
+        return strtotime($b['entry_date']) - strtotime($a['entry_date']);
+    });
+
 } catch (Exception $e) {
-    // Column doesn't exist, use status filter only
-    $hasDeletedAtColumn = false;
-}
-
-// Check if deleted_at column exists in bank_transactions
-$hasBankDeletedAtColumn = false;
-try {
-    $checkBankResult = $conn->query("SHOW COLUMNS FROM bank_transactions LIKE 'deleted_at'");
-    $hasBankDeletedAtColumn = $checkBankResult && $checkBankResult->num_rows > 0;
-} catch (Exception $e) {
-    $hasBankDeletedAtColumn = false;
-}
-
-// Build query to fetch transactions from BOTH journal entries AND bank transactions
-// Filter out deleted items: check both status and deleted_at column if it exists
-// IMPORTANT: Always exclude voided status and items with deleted_at set
-$deletedFilter = "je.status != 'voided' AND je.status != 'deleted'";
-if ($hasDeletedAtColumn) {
-    $deletedFilter .= " AND (je.deleted_at IS NULL OR je.deleted_at = '' OR je.deleted_at = '0000-00-00 00:00:00')";
-}
-
-$sql = "SELECT * FROM (
-            -- Journal Entries from Accounting System
-            SELECT 
-                CONCAT('JE-', je.id) as id,
-                je.journal_no as journal_no,
-                je.entry_date as entry_date,
-                jt.code as type_code,
-                jt.name as type_name,
-                je.description,
-                je.reference_no,
-                je.total_debit,
-                je.total_credit,
-                je.status,
-                u.username as created_by,
-                u.full_name as created_by_name,
-                je.created_at,
-                je.posted_at,
-                fp.period_name as fiscal_period,
-                'journal' as source
-            FROM journal_entries je
-            INNER JOIN journal_types jt ON je.journal_type_id = jt.id
-            INNER JOIN users u ON je.created_by = u.id
-            LEFT JOIN fiscal_periods fp ON je.fiscal_period_id = fp.id
-            WHERE $deletedFilter
-            
-            UNION ALL
-            
-            -- Bank Transactions from Bank System
-            SELECT 
-                CONCAT('BT-', bt.transaction_id) as id,
-                bt.transaction_ref as journal_no,
-                DATE(bt.created_at) as entry_date,
-                tt.type_name as type_code,
-                tt.type_name as type_name,
-                COALESCE(bt.description, 'Bank Transaction') as description,
-                bt.transaction_ref as reference_no,
-                CASE WHEN bt.amount > 0 THEN bt.amount ELSE 0 END as total_debit,
-                CASE WHEN bt.amount < 0 THEN ABS(bt.amount) ELSE 0 END as total_credit,
-                'posted' as status,
-                COALESCE(be.employee_name, 'System') as created_by,
-                COALESCE(be.employee_name, 'System') as created_by_name,
-                bt.created_at,
-                bt.created_at as posted_at,
-                DATE_FORMAT(bt.created_at, '%Y-%m') as fiscal_period,
-                'bank' as source
-            FROM bank_transactions bt
-            INNER JOIN transaction_types tt ON bt.transaction_type_id = tt.transaction_type_id
-            LEFT JOIN bank_employees be ON bt.employee_id = be.employee_id
-            INNER JOIN customer_accounts ca ON bt.account_id = ca.account_id
-            " . ($hasBankDeletedAtColumn ? "WHERE bt.deleted_at IS NULL" : "") . "
-        ) combined_transactions
-        WHERE 1=1";
-
-$params = [];
-$types = '';
-
-// Apply filters
-if (!empty($filter_date_from)) {
-    $sql .= " AND entry_date >= ?";
-    $params[] = $filter_date_from;
-    $types .= 's';
-}
-
-if (!empty($filter_date_to)) {
-    $sql .= " AND entry_date <= ?";
-    $params[] = $filter_date_to;
-    $types .= 's';
-}
-
-if (!empty($filter_type)) {
-    $sql .= " AND type_code = ?";
-    $params[] = $filter_type;
-    $types .= 's';
-}
-
-if (!empty($filter_status)) {
-    $sql .= " AND status = ?";
-    $params[] = $filter_status;
-    $types .= 's';
-}
-
-if (!empty($filter_account)) {
-    $sql .= " AND (reference_no LIKE ? OR description LIKE ?)";
-    $params[] = "%{$filter_account}%";
-    $params[] = "%{$filter_account}%";
-    $types .= 'ss';
-}
-
-$sql .= " ORDER BY entry_date DESC, created_at DESC";
-
-// Execute query
-try {
-    $stmt = $conn->prepare($sql);
-
-    if ($stmt === false) {
-        throw new Exception("Query preparation failed: " . $conn->error);
-    }
-
-    if (!empty($params)) {
-        $stmt->bind_param($types, ...$params);
-    }
-
-    if (!$stmt->execute()) {
-        throw new Exception("Query execution failed: " . $stmt->error);
-    }
-
-    $result = $stmt->get_result();
-
-    while ($row = $result->fetch_assoc()) {
-        $transactions[] = $row;
-    }
-
-    $stmt->close();
-} catch (Exception $e) {
-    // If database error, transactions will remain empty array
     error_log("Transaction query error: " . $e->getMessage());
-    // Don't throw - just log and continue with empty array
 }
 
 // Get statistics
@@ -207,8 +225,6 @@ try {
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <!-- DataTables CSS -->
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css">
     <!-- Custom CSS -->
     <link rel="stylesheet" href="../assets/css/style.css">
     <link rel="stylesheet" href="../assets/css/dashboard.css">
@@ -353,7 +369,7 @@ try {
             <div class="card-body">
                 <div class="table-responsive">
                     <table id="transactionTable" class="table table-hover table-striped align-middle">
-                        <thead class="table-dark">
+                        <thead class="table-light">
                             <tr>
                                 <th>Journal No.</th>
                                 <th>Date</th>
@@ -432,16 +448,6 @@ try {
                                 <?php endforeach; ?>
                             <?php endif; ?>
                         </tbody>
-                        <tfoot class="table-light">
-                            <tr>
-                                <th class="text-end" colspan="5">Total:</th>
-                                <th class="text-end"><?php echo number_format($total_debit ?? 0, 2); ?></th>
-                                <th class="text-end"><?php echo number_format($total_credit ?? 0, 2); ?></th>
-                                <th></th>
-                                <th></th>
-                                <th></th>
-                            </tr>
-                        </tfoot>
                     </table>
                 </div>
             </div>
@@ -598,13 +604,10 @@ try {
         </div>
     </footer>
 
-    <!-- Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <!-- jQuery -->
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-    <!-- DataTables JS -->
-    <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
-    <script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <!-- Custom JS -->
     <script src="../assets/js/dashboard.js"></script>
     <script src="../assets/js/transaction-reading.js"></script>

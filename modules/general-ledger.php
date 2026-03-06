@@ -259,22 +259,36 @@ $current_user = getCurrentUser();
                 <p>List of financial accounts with balances</p>
             </div>
             <div class="gl-toolbar" role="search" aria-label="Account search and filters">
-                <div class="gl-toolbar__field">
-                    <label for="account-search" class="visually-hidden">Search accounts</label>
-                    <span class="gl-toolbar__icon"><i class="fas fa-search"></i></span>
-                    <input type="text" class="search-input" placeholder="Search by name or account number"
-                        id="account-search" autocomplete="off">
-                </div>
-                <div class="gl-toolbar__field">
-                    <label for="account-type-filter" class="visually-hidden">Filter by account type</label>
-                    <span class="gl-toolbar__icon"><i class="fas fa-filter"></i></span>
-                    <select class="search-input" id="account-type-filter">
-                        <option value="">All Account Types</option>
-                        <option value="Savings">Savings</option>
-                        <option value="Checking">Checking</option>
-                        <option value="Fixed Deposit">Fixed Deposit</option>
-                        <option value="Loan">Loan</option>
-                    </select>
+                <div class="gl-toolbar__group">
+                    <div class="gl-toolbar__field">
+                        <label for="account-search" class="visually-hidden">Search accounts</label>
+                        <span class="gl-toolbar__icon"><i class="fas fa-search"></i></span>
+                        <input type="text" class="search-input" placeholder="Search by name or account number"
+                            id="account-search" autocomplete="off">
+                    </div>
+                    <div class="gl-toolbar__field">
+                        <label for="account-type-filter" class="visually-hidden">Filter by account type</label>
+                        <span class="gl-toolbar__icon"><i class="fas fa-filter"></i></span>
+                        <select class="search-input" id="account-type-filter">
+                            <option value="">All Account Types</option>
+                            <option value="Savings">Savings</option>
+                            <option value="Checking">Checking</option>
+                            <option value="Fixed Deposit">Fixed Deposit</option>
+                            <option value="Loan">Loan</option>
+                        </select>
+                    </div>
+                    <div class="gl-toolbar__field">
+                        <span class="gl-toolbar__icon"><i class="fas fa-sort"></i></span>
+                        <select class="search-input" id="account-sort" onchange="applyAccountFilter()"
+                            style="min-width: 180px; padding-left: 35px;">
+                            <option value="newest">Newest First</option>
+                            <option value="oldest">Oldest First</option>
+                            <option value="name_asc">Name (A-Z)</option>
+                            <option value="name_desc">Name (Z-A)</option>
+                            <option value="acct_asc">Account # (Asc)</option>
+                            <option value="acct_desc">Account # (Desc)</option>
+                        </select>
+                    </div>
                 </div>
                 <div class="gl-toolbar__actions">
                     <button class="btn-filter" type="button" onclick="applyAccountFilter()">
@@ -330,19 +344,9 @@ $current_user = getCurrentUser();
 
         <!-- Transaction Records -->
         <div class="gl-section" id="transactions">
-            <div class="section-header" style="display: flex; align-items: flex-start; justify-content: space-between;">
-                <div>
-                    <h2>Recent Transaction Records</h2>
-                    <p>Real-time update of all ledger postings</p>
-                </div>
-                <div style="display: flex; gap: 10px; align-items: center;">
-                    <button class="btn-export" onclick="exportTransactions()">
-                        <i class="fas fa-download"></i> Export
-                    </button>
-                    <button class="btn-new-transaction" onclick="window.location.href='transaction-reading.php'">
-                        <i class="fas fa-plus"></i> New Transaction
-                    </button>
-                </div>
+            <div class="section-header">
+                <h2>Recent Transaction Records</h2>
+                <p>Real-time update of all ledger postings</p>
             </div>
             <div class="gl-toolbar gl-toolbar--split" role="search" aria-label="Transaction filters">
                 <div class="gl-toolbar__group">

@@ -14,8 +14,8 @@ $current_user = getCurrentUser();
 // Get filter parameters
 $dateFrom = $_GET['date_from'] ?? '';
 $dateTo = $_GET['date_to'] ?? '';
-$transactionType = $_GET['transaction_type'] ?? '';
 $status = $_GET['status'] ?? '';
+$minAmount = $_GET['min_amount'] ?? '';
 $accountNumber = $_GET['account_number'] ?? '';
 $applyFilters = isset($_GET['apply_filters']);
 
@@ -25,7 +25,6 @@ $expenses = [];
 // 1. HRIS-SIA: Get expense claims with real employee names
 // Only fetch if no transaction type filter OR if filter is set to expense_claim
 if (
-    (empty($transactionType) || $transactionType === 'expense_claim') &&
     $conn->query("SHOW TABLES LIKE 'expense_claims'")->num_rows > 0
 ) {
     $sql = "SELECT 
@@ -75,13 +74,22 @@ if (
             $types .= 's';
         }
 
-        // Account number filter: search by claim_no or category code
+        // Account number filter: search by claim_no, category, employee name, or description
         if (!empty($accountNumber)) {
-            $sql .= " AND (ec.claim_no LIKE ? OR ecat.code LIKE ? OR ecat.name LIKE ?)";
+            $sql .= " AND (ec.claim_no LIKE ? OR ecat.code LIKE ? OR ecat.name LIKE ? OR e.first_name LIKE ? OR e.last_name LIKE ? OR ec.description LIKE ?)";
             $params[] = '%' . $accountNumber . '%';
             $params[] = '%' . $accountNumber . '%';
             $params[] = '%' . $accountNumber . '%';
-            $types .= 'sss';
+            $params[] = '%' . $accountNumber . '%';
+            $params[] = '%' . $accountNumber . '%';
+            $params[] = '%' . $accountNumber . '%';
+            $types .= 'ssssss';
+        }
+
+        if (!empty($minAmount)) {
+            $sql .= " AND ec.amount >= ?";
+            $params[] = $minAmount;
+            $types .= 'd';
         }
     }
 
@@ -186,7 +194,6 @@ if (
 // 3. REWARDS SYSTEM: Get reward redemptions as expenses
 // Only fetch if no transaction type filter OR if filter is set to reward_redemption
 if (
-    (empty($transactionType) || $transactionType === 'reward_redemption') &&
     $conn->query("SHOW TABLES LIKE 'points_history'")->num_rows > 0 &&
     $conn->query("SHOW TABLES LIKE 'bank_customers'")->num_rows > 0 &&
     $conn->query("SHOW TABLES LIKE 'bank_users'")->num_rows > 0
@@ -265,7 +272,6 @@ if (
 // 4. REWARDS SYSTEM: Get mission rewards as marketing expenses
 // Only fetch if no transaction type filter OR if filter is set to mission_reward
 if (
-    (empty($transactionType) || $transactionType === 'mission_reward') &&
     $conn->query("SHOW TABLES LIKE 'points_history'")->num_rows > 0 &&
     $conn->query("SHOW TABLES LIKE 'bank_customers'")->num_rows > 0 &&
     $conn->query("SHOW TABLES LIKE 'bank_users'")->num_rows > 0
@@ -348,27 +354,37 @@ if (empty($transactionType) || $transactionType === 'loan_fee') {
     // This section can be expanded based on actual loan fee structure
 }
 
-// Apply post-query filters (in case some expenses don't have proper transaction_type set)
-if (!empty($transactionType)) {
-    $expenses = array_filter($expenses, function ($exp) use ($transactionType) {
-        return isset($exp['transaction_type']) && $exp['transaction_type'] === $transactionType;
-    });
-    $expenses = array_values($expenses); // Re-index array
-}
+// Apply post-query filters
+$filteredExpenses = $expenses;
 
-// Apply status filter post-query (for bank_transactions and reward transactions that don't support status in WHERE clause)
-if (!empty($status) && $status !== 'approved') {
-    // Bank transactions and reward transactions are always 'approved', so only filter expense_claims if status is not 'approved'
-    $expenses = array_filter($expenses, function ($exp) use ($status) {
+if (!empty($status)) {
+    $filteredExpenses = array_filter($filteredExpenses, function ($exp) use ($status) {
         $alwaysApprovedTypes = ['bank_fee', 'reward_redemption', 'mission_reward'];
         if (isset($exp['transaction_type']) && in_array($exp['transaction_type'], $alwaysApprovedTypes)) {
-            // These transaction types are always approved, so exclude them if filtering for other statuses
             return $status === 'approved';
         }
         return isset($exp['status']) && $exp['status'] === $status;
     });
-    $expenses = array_values($expenses); // Re-index array
 }
+
+if (!empty($accountNumber)) {
+    $filteredExpenses = array_filter($filteredExpenses, function($exp) use ($accountNumber) {
+        return stripos($exp['transaction_number'] ?? '', $accountNumber) !== false || 
+               stripos($exp['category_code'] ?? '', $accountNumber) !== false ||
+               stripos($exp['category_name'] ?? '', $accountNumber) !== false ||
+               stripos($exp['employee_name'] ?? '', $accountNumber) !== false ||
+               stripos($exp['description'] ?? '', $accountNumber) !== false;
+    });
+}
+
+if (!empty($minAmount)) {
+    $filteredExpenses = array_filter($filteredExpenses, function($exp) use ($minAmount) {
+        return floatval($exp['amount'] ?? 0) >= floatval($minAmount);
+    });
+}
+
+// Reset keys and update expenses
+$expenses = array_values($filteredExpenses);
 
 // Sort all expenses by date (most recent first)
 usort($expenses, function ($a, $b) {
@@ -575,9 +591,21 @@ function buildPageUrl($page)
     <div class="et-filter-bar">
         <div class="et-filter-pills">
             <!-- Period filter pill -->
-            <div class="et-filter-pill" id="pillPeriod" onclick="toggleFilterDropdown('periodDropdown')">
+            <div class="et-filter-pill <?php echo (!empty($dateFrom) || !empty($dateTo)) ? 'active' : ''; ?>"
+                id="pillPeriod" onclick="toggleFilterDropdown('periodDropdown')">
                 <i class="fas fa-calendar"></i>
-                <span id="pillPeriodLabel">This Quarter</span>
+                <span id="pillPeriodLabel">
+                    <?php
+                    if (empty($dateFrom) && empty($dateTo))
+                        echo 'All Time';
+                    else if (!empty($dateFrom) && !empty($dateTo))
+                        echo date('M d', strtotime($dateFrom)) . ' - ' . date('M d', strtotime($dateTo));
+                    else if (!empty($dateFrom))
+                        echo 'From ' . date('M d', strtotime($dateFrom));
+                    else
+                        echo 'Until ' . date('M d', strtotime($dateTo));
+                    ?>
+                </span>
                 <i class="fas fa-chevron-down"></i>
                 <div class="et-filter-dropdown" id="periodDropdown">
                     <div class="et-filter-dropdown-item selected" onclick="applyPeriodFilter('quarter')">This Quarter
@@ -588,47 +616,49 @@ function buildPageUrl($page)
                 </div>
             </div>
 
-            <!-- Department/Type filter pill -->
-            <div class="et-filter-pill" id="pillDept" onclick="toggleFilterDropdown('deptDropdown')">
-                <i class="fas fa-building"></i>
-                <span
-                    id="pillDeptLabel"><?php echo empty($transactionType) ? 'Department: All' : ucfirst(str_replace('_', ' ', $transactionType)); ?></span>
-                <i class="fas fa-chevron-down"></i>
-                <div class="et-filter-dropdown" id="deptDropdown">
-                    <div class="et-filter-dropdown-item <?php echo empty($transactionType) ? 'selected' : ''; ?>"
-                        onclick="applyTypeFilter('')">All</div>
-                    <?php foreach ($transactionTypeOptions as $type):
-                        $dNames = [
-                            'expense_claim' => 'Expense Claim',
-                            'bank_fee' => 'Bank Fee',
-                            'loan_fee' => 'Loan Fee',
-                            'reward_redemption' => 'Reward Redemption',
-                            'mission_reward' => 'Mission Rewards'
-                        ];
-                        ?>
-                        <div class="et-filter-dropdown-item <?php echo $transactionType === $type ? 'selected' : ''; ?>"
-                            onclick="applyTypeFilter('<?php echo $type; ?>')">
-                            <?php echo $dNames[$type] ?? ucfirst(str_replace('_', ' ', $type)); ?>
-                        </div>
-                    <?php endforeach; ?>
-                </div>
-            </div>
-
             <!-- Status filter pill -->
-            <div class="et-filter-pill" id="pillStatus" onclick="toggleFilterDropdown('statusDropdown')">
+            <div class="et-filter-pill <?php echo !empty($status) ? 'active' : ''; ?>" id="pillStatus"
+                onclick="toggleFilterDropdown('statusDropdown')">
                 <i class="fas fa-sliders-h"></i>
                 <span
                     id="pillStatusLabel"><?php echo empty($status) ? 'Status: All' : 'Status: ' . ucfirst($status); ?></span>
                 <i class="fas fa-chevron-down"></i>
                 <div class="et-filter-dropdown" id="statusDropdown">
                     <div class="et-filter-dropdown-item <?php echo empty($status) ? 'selected' : ''; ?>"
-                        onclick="applyStatusFilter('')">All</div>
+                        onclick="applyStatusFilter('')">All Status</div>
                     <?php foreach ($statusOptions as $sOpt): ?>
                         <div class="et-filter-dropdown-item <?php echo $status === $sOpt ? 'selected' : ''; ?>"
                             onclick="applyStatusFilter('<?php echo $sOpt; ?>')">
                             <?php echo ucfirst($sOpt); ?>
                         </div>
                     <?php endforeach; ?>
+                </div>
+            </div>
+
+            <!-- Search Filter Pill -->
+            <div class="et-filter-pill <?php echo !empty($accountNumber) ? 'active' : ''; ?>" id="pillSearch"
+                onclick="promptSearch()">
+                <i class="fas fa-search"></i>
+                <span
+                    id="pillSearchLabel"><?php echo empty($accountNumber) ? 'Search...' : 'Search: ' . htmlspecialchars($accountNumber); ?></span>
+                <?php if (!empty($accountNumber)): ?>
+                    <span class="pill-remove" onclick="clearSearch(event)">&times;</span>
+                <?php endif; ?>
+            </div>
+
+            <!-- Amount filter pill -->
+            <div class="et-filter-pill <?php echo !empty($minAmount) ? 'active' : ''; ?>" id="pillAmount" onclick="toggleFilterDropdown('amountDropdown')">
+                <i class="fas fa-coins"></i>
+                <span id="pillAmountLabel">
+                    <?php echo empty($minAmount) ? 'Amount: All' : 'Amount > ₱' . number_format($minAmount, 0); ?>
+                </span>
+                <i class="fas fa-chevron-down"></i>
+                <div class="et-filter-dropdown" id="amountDropdown">
+                    <div class="et-filter-dropdown-item <?php echo empty($minAmount) ? 'selected' : ''; ?>" onclick="applyAmountFilter('')">All Amounts</div>
+                    <div class="et-filter-dropdown-item <?php echo $minAmount == '1000' ? 'selected' : ''; ?>" onclick="applyAmountFilter('1000')">> ₱1,000</div>
+                    <div class="et-filter-dropdown-item <?php echo $minAmount == '5000' ? 'selected' : ''; ?>" onclick="applyAmountFilter('5000')">> ₱5,000</div>
+                    <div class="et-filter-dropdown-item <?php echo $minAmount == '10000' ? 'selected' : ''; ?>" onclick="applyAmountFilter('10000')">> ₱10,000</div>
+                    <div class="et-filter-dropdown-item <?php echo $minAmount == '50000' ? 'selected' : ''; ?>" onclick="applyAmountFilter('50000')">> ₱50,000</div>
                 </div>
             </div>
 
@@ -651,9 +681,8 @@ function buildPageUrl($page)
             <form id="filterForm" method="GET" style="display:none;">
                 <input type="hidden" name="date_from" id="date_from" value="<?php echo htmlspecialchars($dateFrom); ?>">
                 <input type="hidden" name="date_to" id="date_to" value="<?php echo htmlspecialchars($dateTo); ?>">
-                <input type="hidden" name="transaction_type" id="transaction_type"
-                    value="<?php echo htmlspecialchars($transactionType); ?>">
                 <input type="hidden" name="status" id="hiddenStatus" value="<?php echo htmlspecialchars($status); ?>">
+                <input type="hidden" name="min_amount" id="min_amount" value="<?php echo htmlspecialchars($minAmount); ?>">
                 <input type="hidden" name="account_number" id="account_number"
                     value="<?php echo htmlspecialchars($accountNumber); ?>">
                 <input type="hidden" name="apply_filters" value="1">
@@ -747,9 +776,9 @@ function buildPageUrl($page)
                                                     class="et-amount">₱<?php echo number_format($expense['amount'], 2); ?></span>
                                             </td>
                                             <td class="text-center">
-                                                <span class="et-status <?php echo $statusNorm; ?>">
+                                                <span class="et-status <?php echo $statusNorm ?: 'pending'; ?>">
                                                     <span class="et-status-dot"></span>
-                                                    <?php echo ucfirst($expense['status']); ?>
+                                                    <?php echo ucfirst($expense['status'] ?: 'Pending'); ?>
                                                 </span>
                                             </td>
                                             <td>
@@ -871,13 +900,28 @@ function buildPageUrl($page)
             form.submit();
         }
 
-        function applyTypeFilter(type) {
-            document.getElementById('transaction_type').value = type;
+        function promptSearch() {
+            const currentSearch = document.getElementById('account_number').value;
+            const query = prompt("Search by category, employee, or ref #:", currentSearch);
+            if (query !== null) {
+                document.getElementById('account_number').value = query;
+                document.getElementById('filterForm').submit();
+            }
+        }
+
+        function clearSearch(e) {
+            e.stopPropagation();
+            document.getElementById('account_number').value = '';
             document.getElementById('filterForm').submit();
         }
 
         function applyStatusFilter(status) {
             document.getElementById('hiddenStatus').value = status;
+            document.getElementById('filterForm').submit();
+        }
+
+        function applyAmountFilter(amt) {
+            document.getElementById('min_amount').value = amt;
             document.getElementById('filterForm').submit();
         }
 

@@ -236,21 +236,36 @@ function loadCharts() {
 }
 
 function renderAccountTypesChart(data) {
-    const ctx = document.getElementById('accountTypesChart');
-    if (!ctx) return;
+    const canvas = document.getElementById('accountTypesChart');
+    if (!canvas) return;
 
-    // Calculate percentages for legend
-    const total = data.values.reduce((a, b) => a + b, 0);
-    const colorMap = {
-        'Asset': '#1B6B4A',
-        'Liability': '#EF4444',
-        'Revenue': '#F5A623',
-        'Equity': '#8B5CF6',
-        'Expense': '#E8612D'
+    const existingChart = Chart.getChart(canvas);
+    if (existingChart) existingChart.destroy();
+
+    const ctx = canvas.getContext('2d');
+
+    // Create vibrant gradients for each account type
+    const createGradient = (color1, color2) => {
+        const grad = ctx.createLinearGradient(0, 0, 0, 400);
+        grad.addColorStop(0, color1);
+        grad.addColorStop(1, color2);
+        return grad;
     };
-    const bgColors = data.labels.map(label => colorMap[label] || '#94A3B8');
 
-    // Update legend percentages
+    const colorMap = {
+        'Asset': { main: '#1B6B4A', light: '#34D399' },
+        'Liability': { main: '#EF4444', light: '#F87171' },
+        'Revenue': { main: '#F5A623', light: '#FCD34D' },
+        'Equity': { main: '#8B5CF6', light: '#A78BFA' },
+        'Expense': { main: '#E8612D', light: '#FB923C' }
+    };
+
+    const bgColors = data.labels.map(label => {
+        const colors = colorMap[label] || { main: '#94A3B8', light: '#CBD5E1' };
+        return createGradient(colors.main, colors.light);
+    });
+
+    const total = data.values.reduce((a, b) => a + b, 0);
     if (total > 0) {
         data.labels.forEach((label, i) => {
             const pct = Math.round((data.values[i] / total) * 100);
@@ -342,40 +357,49 @@ function renderAccountTypesChart(data) {
     });
 }
 
-function renderTransactionSummaryChart(data) {
+function renderTransactionSummaryChart(data, type = 'distribution') {
     const canvas = document.getElementById('transactionSummaryChart');
     if (!canvas) return;
 
-    // Destroy existing chart if it exists
     const existingChart = Chart.getChart(canvas);
     if (existingChart) existingChart.destroy();
 
     const ctx = canvas.getContext('2d');
 
-    // Create a sophisticated gradient area fill
+    // Theme definitions
+    const themes = {
+        distribution: { color: '#1B6B4A', area: 'rgba(27, 107, 74, 0.35)', label: 'Transactions' },
+        category: { color: '#F5A623', area: 'rgba(245, 166, 35, 0.35)', label: 'Count by Status' },
+        growth: { color: '#6366F1', area: 'rgba(99, 102, 241, 0.35)', label: 'Monthly Growth' }
+    };
+    const theme = themes[type] || themes.distribution;
+
     const fillGradient = ctx.createLinearGradient(0, 50, 0, 280);
-    fillGradient.addColorStop(0, 'rgba(27, 107, 74, 0.35)');
-    fillGradient.addColorStop(0.5, 'rgba(27, 107, 74, 0.1)');
-    fillGradient.addColorStop(1, 'rgba(27, 107, 74, 0.01)');
+    fillGradient.addColorStop(0, theme.area);
+    fillGradient.addColorStop(0.5, theme.area.replace('0.35', '0.1'));
+    fillGradient.addColorStop(1, theme.area.replace('0.35', '0.01'));
+
+    // Update dynamic insight
+    updateChartInsight(type, data);
 
     new Chart(ctx, {
         type: 'line',
         data: {
             labels: data.labels,
             datasets: [{
-                label: 'Transactions',
+                label: theme.label,
                 data: data.values,
-                borderColor: '#1B6B4A',
+                borderColor: theme.color,
                 borderWidth: 4,
                 backgroundColor: fillGradient,
                 fill: true,
-                tension: 0.45, // Smooth cubic interpolation
+                tension: 0.45,
                 pointBackgroundColor: '#ffffff',
-                pointBorderColor: '#1B6B4A',
+                pointBorderColor: theme.color,
                 pointBorderWidth: 3,
                 pointRadius: 6,
                 pointHoverRadius: 9,
-                pointHoverBackgroundColor: '#1B6B4A',
+                pointHoverBackgroundColor: theme.color,
                 pointHoverBorderColor: '#ffffff',
                 pointHoverBorderWidth: 3,
                 borderCapStyle: 'round'
@@ -2678,19 +2702,30 @@ let applicationPaginationState = {
     total: 0
 };
 
-function loadPendingApplications(statusFilter = 'pending', searchTerm = '') {
+function loadPendingApplications() {
     const tbody = document.querySelector('#pending-applications-table tbody');
     if (!tbody) return;
 
     // Show loading state
     tbody.innerHTML = '<tr><td colspan="6" class="text-center"><div class="loading-spinner"></div><p>Loading applications...</p></td></tr>';
 
+    // Get filter values from UI
+    const statusFilter = document.getElementById('application-status-filter')?.value || 'all';
+    const searchTerm = document.getElementById('application-search')?.value?.trim() || '';
+    const appNumber = document.getElementById('application-id-filter')?.value?.trim() || '';
+    const dateFrom = document.getElementById('application-date-from')?.value || '';
+    const dateTo = document.getElementById('application-date-to')?.value || '';
+    const sort = document.getElementById('application-sort')?.value || 'newest';
+
     const params = new URLSearchParams();
     params.append('action', 'get_pending_applications');
     params.append('status_filter', statusFilter);
-    if (searchTerm) {
-        params.append('search', searchTerm);
-    }
+    if (searchTerm) params.append('search', searchTerm);
+    if (appNumber) params.append('app_number', appNumber);
+    if (dateFrom) params.append('date_from', dateFrom);
+    if (dateTo) params.append('date_to', dateTo);
+    if (sort) params.append('sort', sort);
+
     params.append('limit', applicationPaginationState.perPage);
     params.append('offset', (applicationPaginationState.currentPage - 1) * applicationPaginationState.perPage);
 
@@ -3168,17 +3203,20 @@ function submitDeclineApplication() {
 }
 
 function applyApplicationFilter() {
-    const searchTerm = document.getElementById('application-search').value.trim();
-    const statusFilter = document.getElementById('application-status-filter').value;
     applicationPaginationState.currentPage = 1;
-    loadPendingApplications(statusFilter, searchTerm);
+    loadPendingApplications();
 }
 
 function resetApplicationFilter() {
-    document.getElementById('application-search').value = '';
-    document.getElementById('application-status-filter').value = 'pending';
+    if (document.getElementById('application-search')) document.getElementById('application-search').value = '';
+    if (document.getElementById('application-id-filter')) document.getElementById('application-id-filter').value = '';
+    if (document.getElementById('application-status-filter')) document.getElementById('application-status-filter').value = 'all';
+    if (document.getElementById('application-date-from')) document.getElementById('application-date-from').value = '';
+    if (document.getElementById('application-date-to')) document.getElementById('application-date-to').value = '';
+    if (document.getElementById('application-sort')) document.getElementById('application-sort').value = 'newest';
+
     applicationPaginationState.currentPage = 1;
-    loadPendingApplications('pending', '');
+    loadPendingApplications();
 }
 
 function changeApplicationsPerPage() {
@@ -3186,9 +3224,7 @@ function changeApplicationsPerPage() {
     if (select) {
         applicationPaginationState.perPage = parseInt(select.value);
         applicationPaginationState.currentPage = 1;
-        const statusFilter = document.getElementById('application-status-filter').value;
-        const searchTerm = document.getElementById('application-search').value.trim();
-        loadPendingApplications(statusFilter, searchTerm);
+        loadPendingApplications();
     }
 }
 
@@ -3262,13 +3298,44 @@ function switchChartTab(btn, tabName) {
     }
 
     if (dataToRender) {
-        renderTransactionSummaryChart(dataToRender);
+        renderTransactionSummaryChart(dataToRender, tabName);
         console.log(`Switched view to: ${label}`);
         showNotification(`Switched view to ${label}`, 'success');
     } else {
         console.error('Data not found for tab:', tabName);
         showNotification('Chart data not available', 'error');
     }
+}
+
+function updateChartInsight(type, data) {
+    const insightBox = document.querySelector('.chart-insight p');
+    if (!insightBox) return;
+
+    let insightText = '';
+    const total = data.values.reduce((a, b) => a + b, 0);
+    const maxVal = Math.max(...data.values);
+    const maxLabel = data.labels[data.values.indexOf(maxVal)];
+
+    switch (type) {
+        case 'distribution':
+            insightText = `<strong>Insight:</strong> The highest activity is currently in ${maxLabel} with ${maxVal} total entries.`;
+            break;
+        case 'category':
+            insightText = `<strong>Insight:</strong> You have a total of ${total} entries processed. ${maxLabel} constitutes the largest portion.`;
+            break;
+        case 'growth':
+            const current = data.values[data.values.length - 1] || 0;
+            const previous = data.values[data.values.length - 2] || 0;
+            if (previous > 0) {
+                const diff = ((current - previous) / previous * 100).toFixed(1);
+                const trend = diff > 0 ? 'increased' : 'decreased';
+                insightText = `<strong>Insight:</strong> Transaction volume ${trend} by ${Math.abs(diff)}% this period compared to last month.`;
+            } else {
+                insightText = `<strong>Insight:</strong> Monthly trend analysis shows a current volume of ${current} transactions.`;
+            }
+            break;
+    }
+    insightBox.innerHTML = insightText;
 }
 
 window.switchChartTab = switchChartTab;

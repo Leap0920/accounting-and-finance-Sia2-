@@ -1854,8 +1854,12 @@ function getPendingApplications()
     global $conn;
 
     try {
-        $statusFilter = $_GET['status_filter'] ?? 'pending';
+        $statusFilter = $_GET['status_filter'] ?? 'all';
         $search = $_GET['search'] ?? '';
+        $appNumber = $_GET['app_number'] ?? '';
+        $dateFrom = $_GET['date_from'] ?? '';
+        $dateTo = $_GET['date_to'] ?? '';
+        $sort = $_GET['sort'] ?? 'newest';
         $limit = (int) ($_GET['limit'] ?? 25);
         $offset = (int) ($_GET['offset'] ?? 0);
 
@@ -1863,17 +1867,53 @@ function getPendingApplications()
         $params = [];
         $types = '';
 
-        if ($statusFilter === 'pending') {
-            $whereClause .= " AND status = 'Pending'";
+        if ($statusFilter !== 'all') {
+            $whereClause .= " AND status = ?";
+            $mappedStatus = ($statusFilter === 'rejected' ? 'Rejected' : ucfirst($statusFilter));
+            $params[] = $mappedStatus;
+            $types .= 's';
         }
 
-        if ($search) {
-            $whereClause .= " AND (full_name LIKE ? OR email LIKE ? OR id LIKE ?)";
-            $searchParam = "%$search%";
-            $params[] = $searchParam;
-            $params[] = $searchParam;
-            $params[] = $searchParam;
+        if ($appNumber) {
+            $searchPattern = "%$appNumber%";
+            // Searches Name, Raw ID, and Formatted ID (e.g. APP-00001)
+            $whereClause .= " AND (full_name LIKE ? OR id LIKE ? OR CONCAT('APP-', LPAD(id, 5, '0')) LIKE ?)";
+            $params[] = $searchPattern;
+            $params[] = $searchPattern;
+            $params[] = $searchPattern;
             $types .= 'sss';
+        }
+
+        if ($dateFrom) {
+            $whereClause .= " AND DATE(created_at) >= ?";
+            $params[] = $dateFrom;
+            $types .= 's';
+        }
+
+        if ($dateTo) {
+            $whereClause .= " AND DATE(created_at) <= ?";
+            $params[] = $dateTo;
+            $types .= 's';
+        }
+
+        // Sorting
+        $orderBy = "created_at DESC";
+        switch ($sort) {
+            case 'oldest':
+                $orderBy = "created_at ASC";
+                break;
+            case 'name_asc':
+                $orderBy = "full_name ASC";
+                break;
+            case 'name_desc':
+                $orderBy = "full_name DESC";
+                break;
+            case 'app_asc':
+                $orderBy = "id ASC";
+                break;
+            case 'app_desc':
+                $orderBy = "id DESC";
+                break;
         }
 
         $sql = "SELECT 
@@ -1888,7 +1928,7 @@ function getPendingApplications()
             loan_amount as annual_income
         FROM loan_applications 
         $whereClause
-        ORDER BY created_at DESC
+        ORDER BY $orderBy
         LIMIT ? OFFSET ?";
 
         // Get total count
@@ -1901,12 +1941,13 @@ function getPendingApplications()
         $totalCount = $countStmt->get_result()->fetch_assoc()['total'] ?? 0;
 
         // Execute main query
-        $types .= 'ii';
-        $params[] = $limit;
-        $params[] = $offset;
+        $finalParams = $params;
+        $finalTypes = $types . 'ii';
+        $finalParams[] = $limit;
+        $finalParams[] = $offset;
 
         $stmt = $conn->prepare($sql);
-        $stmt->bind_param($types, ...$params);
+        $stmt->bind_param($finalTypes, ...$finalParams);
         $stmt->execute();
         $result = $stmt->get_result();
 

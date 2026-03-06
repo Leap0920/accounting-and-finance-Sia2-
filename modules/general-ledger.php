@@ -182,29 +182,34 @@ $current_user = getCurrentUser();
                 <p>Review and approve or decline card applications from marketing form</p>
             </div>
             <div class="gl-toolbar" role="search" aria-label="Application filters">
-                <div class="gl-toolbar__field">
-                    <label for="application-search" class="visually-hidden">Search applications</label>
-                    <span class="gl-toolbar__icon"><i class="fas fa-search"></i></span>
-                    <input type="text" class="search-input" placeholder="Search by name, email, or application number"
-                        id="application-search" autocomplete="off">
-                </div>
-                <div class="gl-toolbar__field">
-                    <label for="application-status-filter" class="visually-hidden">Filter by status</label>
-                    <span class="gl-toolbar__icon"><i class="fas fa-filter"></i></span>
-                    <select class="search-input" id="application-status-filter">
-                        <option value="pending">Pending</option>
-                        <option value="all">All Statuses</option>
-                    </select>
-                </div>
-                <div class="gl-toolbar__actions">
-                    <button class="btn-filter" type="button" onclick="applyApplicationFilter()">
-                        <i class="fas fa-filter"></i>
-                        <span>Apply filter</span>
-                    </button>
-                    <button class="btn-reset" type="button" onclick="resetApplicationFilter()">
-                        <i class="fas fa-rotate-left"></i>
-                        <span>Reset</span>
-                    </button>
+                <div class="gl-toolbar__group">
+                    <div class="gl-toolbar__field">
+                        <span class="gl-toolbar__icon"><i class="fas fa-search"></i></span>
+                        <input type="text" class="search-input" placeholder="Search App # or Name"
+                            id="application-id-filter" oninput="applyApplicationFilter()" style="width: 250px;">
+                    </div>
+                    <div class="gl-toolbar__field">
+                        <span class="gl-toolbar__icon"><i class="fas fa-filter"></i></span>
+                        <select class="search-input" id="application-status-filter" onchange="applyApplicationFilter()"
+                            style="min-width: 160px;">
+                            <option value="all" selected>All Statuses</option>
+                            <option value="pending">Pending</option>
+                            <option value="approved">Approved</option>
+                            <option value="rejected">Declined</option>
+                        </select>
+                    </div>
+                    <div class="gl-toolbar__field">
+                        <span class="gl-toolbar__icon"><i class="fas fa-sort"></i></span>
+                        <select class="search-input" id="application-sort" onchange="applyApplicationFilter()"
+                            style="min-width: 180px; padding-left: 35px;">
+                            <option value="newest">Newest First</option>
+                            <option value="oldest">Oldest First</option>
+                            <option value="name_asc">Name (A-Z)</option>
+                            <option value="name_desc">Name (Z-A)</option>
+                            <option value="app_asc">App # (Asc)</option>
+                            <option value="app_desc">App # (Desc)</option>
+                        </select>
+                    </div>
                 </div>
             </div>
             <div class="table-container">

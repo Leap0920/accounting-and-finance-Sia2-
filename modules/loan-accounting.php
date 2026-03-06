@@ -95,7 +95,7 @@ $applyFilters = isset($_GET['apply_filters']);
 // Show only applications for now (since loans table might be empty)
 // Set to false to include both loans and applications
 // Build query to combine both loans and loan_applications
-$showOnlyApplications = false; 
+$showOnlyApplications = false;
 
 // Initial base queries without filters
 $loansBaseSql = "SELECT 
@@ -484,6 +484,8 @@ if (!empty($status) && $applyFilters) {
     <link rel="stylesheet" href="../assets/css/dashboard.css">
     <link rel="stylesheet" href="../assets/css/loan-accounting.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- html2pdf -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
         .ln-page {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
@@ -785,8 +787,8 @@ if (!empty($status) && $applyFilters) {
         }
 
         /* Specific alignment Column styling */
-        .ln-table .col-amount, 
-        .ln-table .col-monthly, 
+        .ln-table .col-amount,
+        .ln-table .col-monthly,
         .ln-table .col-outstanding {
             text-align: right;
             font-weight: 600;
@@ -1112,25 +1114,85 @@ if (!empty($status) && $applyFilters) {
             color: #111827;
         }
 
-        @media (max-width: 1200px) {
+        @media print {
+            @page {
+                size: landscape;
+                margin: 0.5cm;
+            }
+
+            body * {
+                visibility: hidden;
+            }
+
+            #loanReportArea,
+            #loanReportArea * {
+                visibility: visible;
+            }
+
+            #loanReportArea {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                margin: 0;
+                padding: 0;
+            }
+
+            .ln-action-btn,
+            .col-action,
+            .ln-btn-export,
+            .navbar,
+            .ln-search-bar,
+            .ln-table-header__filters,
+            .ln-pagination {
+                display: none !important;
+            }
+
+            .ln-container {
+                max-width: none !important;
+                padding: 0 !important;
+                width: 100% !important;
+            }
+
             .ln-table {
-                font-size: 11px;
-                /* Even smaller on medium screens */
+                font-size: 9pt !important;
+                table-layout: auto !important;
             }
 
-            .ln-table thead th {
-                padding: 8px 4px;
-                font-size: 8px;
+            .ln-table th,
+            .ln-table td {
+                padding: 4pt 2pt !important;
             }
 
-            .ln-table tbody td {
-                padding: 10px 4px;
-                font-size: 11px;
+            .ln-stat-card {
+                break-inside: avoid;
+                border: 1px solid #ddd !important;
+                padding: 10pt !important;
             }
 
-            .ln-borrower__name {
-                max-width: 100px;
+            .ln-page {
+                background: white !important;
             }
+        }
+
+        .ln-table {
+            font-size: 11px;
+            /* Even smaller on medium screens */
+        }
+
+        .ln-table thead th {
+            padding: 8px 4px;
+            font-size: 8px;
+        }
+
+        .ln-table tbody td {
+            padding: 10px 4px;
+            font-size: 11px;
+        }
+
+        .ln-borrower__name {
+            max-width: 100px;
+        }
         }
 
         @media (max-width: 992px) {
@@ -1214,365 +1276,373 @@ if (!empty($status) && $applyFilters) {
                     <p class="ln-header__subtitle">Real-time overview of your current loan portfolio and active
                         applications.</p>
                 </div>
-                <button class="ln-btn-export" onclick="exportToExcel()">
-                    <i class="fas fa-download"></i> Export Data
+                <button class="ln-btn-export" onclick="exportToPDF()">
+                    <i class="fas fa-file-pdf"></i> Export PDF
                 </button>
             </div>
 
-            <!-- Stats Cards -->
-            <div class="ln-stats">
-                <div class="ln-stat-card">
-                    <div class="ln-stat-card__top">
-                        <div class="ln-stat-card__label">Total Loans</div>
-                        <div class="ln-stat-card__icon ln-stat-card__icon--total"><i
-                                class="fas fa-file-invoice-dollar"></i></div>
-                    </div>
-                    <div class="ln-stat-card__value"><?php echo number_format($totalLoans); ?></div>
-                    <div class="ln-stat-card__trend ln-stat-card__trend--up">
-                        <i class="fas fa-trending-up" style="font-size:11px;">↗</i> +12% <span>vs last month</span>
-                    </div>
-                </div>
-                <div class="ln-stat-card">
-                    <div class="ln-stat-card__top">
-                        <div class="ln-stat-card__label"><?php echo htmlspecialchars($applicationsLabel); ?></div>
-                        <div class="ln-stat-card__icon ln-stat-card__icon--apps"><i class="fas fa-file-alt"></i></div>
-                    </div>
-                    <div class="ln-stat-card__value">
-                        ₱<?php echo $totalAmount >= 1000000 ? number_format($totalAmount / 1000000, 1) . 'M' : number_format($totalAmount); ?>
-                    </div>
-                    <div class="ln-stat-card__trend ln-stat-card__trend--up">
-                        <i style="font-size:11px;">↗</i> +5% <span>vs last month</span>
-                    </div>
-                </div>
-                <div class="ln-stat-card">
-                    <div class="ln-stat-card__top">
-                        <div class="ln-stat-card__label"><?php echo htmlspecialchars($activeLoansLabel); ?></div>
-                        <div class="ln-stat-card__icon ln-stat-card__icon--active"><i class="fas fa-exchange-alt"></i>
+            <!-- Report Area (Target for PDF) -->
+            <div id="loanReportArea">
+                <div class="ln-stats">
+                    <div class="ln-stat-card">
+                        <div class="ln-stat-card__top">
+                            <div class="ln-stat-card__label">Total Loans</div>
+                            <div class="ln-stat-card__icon ln-stat-card__icon--total"><i
+                                    class="fas fa-file-invoice-dollar"></i></div>
+                        </div>
+                        <div class="ln-stat-card__value"><?php echo number_format($totalLoans); ?></div>
+                        <div class="ln-stat-card__trend ln-stat-card__trend--up">
+                            <i class="fas fa-trending-up" style="font-size:11px;">↗</i> +12% <span>vs last month</span>
                         </div>
                     </div>
-                    <div class="ln-stat-card__value"><?php echo number_format($activeLoans); ?></div>
-                    <div class="ln-stat-card__trend ln-stat-card__trend--down">
-                        <i style="font-size:11px;">↘</i> -2% <span>vs last month</span>
-                    </div>
-                </div>
-                <div class="ln-stat-card">
-                    <div class="ln-stat-card__top">
-                        <div class="ln-stat-card__label">Outstanding Balance</div>
-                        <div class="ln-stat-card__icon ln-stat-card__icon--outstanding"><i class="fas fa-wallet"></i>
+                    <div class="ln-stat-card">
+                        <div class="ln-stat-card__top">
+                            <div class="ln-stat-card__label"><?php echo htmlspecialchars($applicationsLabel); ?></div>
+                            <div class="ln-stat-card__icon ln-stat-card__icon--apps"><i class="fas fa-file-alt"></i>
+                            </div>
+                        </div>
+                        <div class="ln-stat-card__value">
+                            ₱<?php echo $totalAmount >= 1000000 ? number_format($totalAmount / 1000000, 1) . 'M' : number_format($totalAmount); ?>
+                        </div>
+                        <div class="ln-stat-card__trend ln-stat-card__trend--up">
+                            <i style="font-size:11px;">↗</i> +5% <span>vs last month</span>
                         </div>
                     </div>
-                    <div class="ln-stat-card__value">
-                        ₱<?php echo $totalOutstanding >= 1000000 ? number_format($totalOutstanding / 1000000, 1) . 'M' : number_format($totalOutstanding); ?>
+                    <div class="ln-stat-card">
+                        <div class="ln-stat-card__top">
+                            <div class="ln-stat-card__label"><?php echo htmlspecialchars($activeLoansLabel); ?></div>
+                            <div class="ln-stat-card__icon ln-stat-card__icon--active"><i
+                                    class="fas fa-exchange-alt"></i>
+                            </div>
+                        </div>
+                        <div class="ln-stat-card__value"><?php echo number_format($activeLoans); ?></div>
+                        <div class="ln-stat-card__trend ln-stat-card__trend--down">
+                            <i style="font-size:11px;">↘</i> -2% <span>vs last month</span>
+                        </div>
                     </div>
-                    <div class="ln-stat-card__trend ln-stat-card__trend--up">
-                        <i style="font-size:11px;">↗</i> +8% <span>vs last month</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Loan History Table Section -->
-            <div class="ln-table-section">
-                <div class="ln-table-header">
-                    <div class="ln-table-header__title">Loan History</div>
-                    <div class="ln-table-header__filters">
-                        <select class="ln-filter-select" id="filterStatus" onchange="applyInlineFilter()">
-                            <option value="" <?php echo empty($status) ? 'selected' : ''; ?>>Status: All</option>
-                            <option value="pending" <?php echo strtolower($status) === 'pending' ? 'selected' : ''; ?>>
-                                Pending</option>
-                            <option value="Approved" <?php echo $status === 'Approved' ? 'selected' : ''; ?>>Approved
-                            </option>
-                            <option value="active" <?php echo strtolower($status) === 'active' ? 'selected' : ''; ?>>
-                                Active</option>
-                            <option value="Rejected" <?php echo $status === 'Rejected' ? 'selected' : ''; ?>>Rejected
-                            </option>
-                            <option value="paid" <?php echo $status === 'paid' ? 'selected' : ''; ?>>Paid</option>
-                            <option value="defaulted" <?php echo $status === 'defaulted' ? 'selected' : ''; ?>>Defaulted
-                            </option>
-                        </select>
-                        <input type="date" class="ln-filter-date" id="filterDateFrom" title="Date From"
-                            onchange="applyInlineFilter()" value="<?php echo htmlspecialchars($dateFrom); ?>">
-                        <input type="date" class="ln-filter-date" id="filterDateTo" title="Date To"
-                            onchange="applyInlineFilter()" value="<?php echo htmlspecialchars($dateTo); ?>">
+                    <div class="ln-stat-card">
+                        <div class="ln-stat-card__top">
+                            <div class="ln-stat-card__label">Outstanding Balance</div>
+                            <div class="ln-stat-card__icon ln-stat-card__icon--outstanding"><i
+                                    class="fas fa-wallet"></i>
+                            </div>
+                        </div>
+                        <div class="ln-stat-card__value">
+                            ₱<?php echo $totalOutstanding >= 1000000 ? number_format($totalOutstanding / 1000000, 1) . 'M' : number_format($totalOutstanding); ?>
+                        </div>
+                        <div class="ln-stat-card__trend ln-stat-card__trend--up">
+                            <i style="font-size:11px;">↗</i> +8% <span>vs last month</span>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Search Bar -->
-                <div class="ln-search-bar">
-                    <div class="ln-search-bar__wrap">
-                        <i class="fas fa-search"></i>
-                        <input type="text" id="loanSearchInput"
-                            placeholder="Search by Loan No., Borrower Name, or Amount..." onkeyup="filterLoanTable()">
+                <!-- Loan History Table Section -->
+                <div class="ln-table-section">
+                    <div class="ln-table-header">
+                        <div class="ln-table-header__title">Loan History</div>
+                        <div class="ln-table-header__filters">
+                            <select class="ln-filter-select" id="filterStatus" onchange="applyInlineFilter()">
+                                <option value="" <?php echo empty($status) ? 'selected' : ''; ?>>Status: All</option>
+                                <option value="pending" <?php echo strtolower($status) === 'pending' ? 'selected' : ''; ?>>
+                                    Pending</option>
+                                <option value="Approved" <?php echo $status === 'Approved' ? 'selected' : ''; ?>>Approved
+                                </option>
+                                <option value="active" <?php echo strtolower($status) === 'active' ? 'selected' : ''; ?>>
+                                    Active</option>
+                                <option value="Rejected" <?php echo $status === 'Rejected' ? 'selected' : ''; ?>>Rejected
+                                </option>
+                                <option value="paid" <?php echo $status === 'paid' ? 'selected' : ''; ?>>Paid</option>
+                                <option value="defaulted" <?php echo $status === 'defaulted' ? 'selected' : ''; ?>>
+                                    Defaulted
+                                </option>
+                            </select>
+                            <input type="date" class="ln-filter-date" id="filterDateFrom" title="Date From"
+                                onchange="applyInlineFilter()" value="<?php echo htmlspecialchars($dateFrom); ?>">
+                            <input type="date" class="ln-filter-date" id="filterDateTo" title="Date To"
+                                onchange="applyInlineFilter()" value="<?php echo htmlspecialchars($dateTo); ?>">
+                        </div>
                     </div>
-                </div>
 
-                <?php if ($queryError): ?>
-                    <div style="padding: 24px;">
-                        <div class="alert alert-danger mb-0">
-                            <i class="fas fa-exclamation-triangle me-2"></i>
-                            <strong>Database Query Error:</strong> <?php echo htmlspecialchars($queryError); ?>
+                    <!-- Search Bar -->
+                    <div class="ln-search-bar">
+                        <div class="ln-search-bar__wrap">
+                            <i class="fas fa-search"></i>
+                            <input type="text" id="loanSearchInput"
+                                placeholder="Search by Loan No., Borrower Name, or Amount..."
+                                onkeyup="filterLoanTable()">
                         </div>
                     </div>
-                <?php elseif (!$hasResults): ?>
-                    <div class="ln-empty">
-                        <div class="ln-empty__icon"><i class="fas fa-search"></i></div>
-                        <div class="ln-empty__title">
-                            <?php echo $applyFilters ? 'No Matching Loans Found' : 'No Loan Data Available'; ?>
+
+                    <?php if ($queryError): ?>
+                        <div style="padding: 24px;">
+                            <div class="alert alert-danger mb-0">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                <strong>Database Query Error:</strong> <?php echo htmlspecialchars($queryError); ?>
+                            </div>
                         </div>
-                        <div class="ln-empty__text">
-                            <?php echo $applyFilters ? 'Try adjusting your filters.' : 'Loan applications will appear here.'; ?>
+                    <?php elseif (!$hasResults): ?>
+                        <div class="ln-empty">
+                            <div class="ln-empty__icon"><i class="fas fa-search"></i></div>
+                            <div class="ln-empty__title">
+                                <?php echo $applyFilters ? 'No Matching Loans Found' : 'No Loan Data Available'; ?>
+                            </div>
+                            <div class="ln-empty__text">
+                                <?php echo $applyFilters ? 'Try adjusting your filters.' : 'Loan applications will appear here.'; ?>
+                            </div>
                         </div>
-                    </div>
-                <?php else: ?>
-                    <div class="ln-table-wrapper">
-                        <table class="ln-table" id="loanTable">
-                            <thead>
-                                <tr>
-                                    <th class="col-type">Type</th>
-                                    <th class="col-loanno">Loan No.</th>
-                                    <th class="col-borrower">Borrower/Applicant</th>
-                                    <th class="col-loantype">Loan Type</th>
-                                    <th class="col-startdate">Start Date</th>
-                                    <th class="col-maturity">Maturity</th>
-                                    <th class="col-amount">Loan Amount</th>
-                                    <th class="col-rate">Rate</th>
-                                    <th class="col-monthly">Monthly</th>
-                                    <th class="col-outstanding">Outstanding</th>
-                                    <th class="col-status">Status</th>
-                                    <th class="col-action">Action</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?php foreach ($loans as $index => $loan):
-                                    $avatarColor = ($index % 6) + 1;
-                                    $initials = '';
-                                    $nameParts = explode(' ', $loan['borrower_name'] ?? '');
-                                    if (count($nameParts) >= 2) {
-                                        $initials = strtoupper(substr($nameParts[0], 0, 1) . substr($nameParts[1], 0, 1));
-                                    } elseif (count($nameParts) == 1) {
-                                        $initials = strtoupper(substr($nameParts[0], 0, 2));
-                                    }
-                                    $loanStatus = strtolower($loan['status'] ?? 'pending');
-                                    ?>
-                                    <tr data-status="<?php echo htmlspecialchars($loanStatus); ?>">
-                                        <td>
-                                            <?php if ($loan['record_type'] === 'application'): ?>
-                                                <span class="ln-type-badge ln-type-badge--app">APP</span>
-                                            <?php else: ?>
-                                                <span class="ln-type-badge ln-type-badge--loan">LOAN</span>
-                                            <?php endif; ?>
-                                        </td>
-                                        <td class="journal-no"><?php echo htmlspecialchars($loan['loan_number']); ?></td>
-                                        <td>
-                                            <div class="ln-borrower">
-                                                <div class="ln-avatar ln-avatar--<?php echo $avatarColor; ?>">
-                                                    <?php echo $initials; ?>
-                                                </div>
-                                                <span
-                                                    class="ln-borrower__name"><?php echo htmlspecialchars($loan['borrower_name']); ?></span>
-                                            </div>
-                                        </td>
-                                        <td><?php echo htmlspecialchars($loan['loan_type_name'] ?? 'N/A'); ?></td>
-                                        <td class="date-cell"><?php echo date('M d, Y', strtotime($loan['start_date'])); ?></td>
-                                        <td class="date-cell">
-                                            <?php if (!empty($loan['maturity_date'])): ?>
-                                                <?php echo date('M d, Y', strtotime($loan['maturity_date'])); ?>
-                                            <?php elseif (!empty($loan['due_date'])): ?>
-                                                <?php echo date('M d, Y', strtotime($loan['due_date'])); ?>
-                                            <?php else: ?>
-                                                <span style="color:#ccc;">—</span>
-                                            <?php endif; ?>
-                                        </td>
-                                        <td class="amount-cell">₱<?php echo number_format($loan['loan_amount'], 2); ?></td>
-                                        <td style="text-align:center;"><?php echo number_format($loan['interest_rate'], 1); ?>%
-                                        </td>
-                                        <td class="amount-cell">
-                                            <?php if (!empty($loan['monthly_payment'])): ?>
-                                                ₱<?php echo number_format($loan['monthly_payment'], 2); ?>
-                                            <?php else: ?>
-                                                <span style="color:#ccc;">—</span>
-                                            <?php endif; ?>
-                                        </td>
-                                        <td class="amount-cell">
-                                            <?php if (isset($loan['outstanding_balance']) && $loan['outstanding_balance'] > 0): ?>
-                                                ₱<?php echo number_format($loan['outstanding_balance'], 2); ?>
-                                            <?php else: ?>
-                                                <span style="color:#ccc;">—</span>
-                                            <?php endif; ?>
-                                        </td>
-                                        <td>
-                                            <span class="ln-status ln-status--<?php echo $loanStatus; ?>">
-                                                <?php echo ucfirst($loan['status']); ?>
-                                            </span>
-                                        </td>
-                                        <td class="col-action">
-                                            <button class="ln-action-btn"
-                                                onclick="<?php echo $loan['record_type'] === 'application' ? 'viewApplicationDetails(' . $loan['application_id'] . ')' : 'viewLoanDetails(' . $loan['id'] . ')'; ?>"
-                                                title="View Details"><i class="fas fa-eye"></i></button>
-                                            <button class="ln-action-btn ln-action-btn--danger"
-                                                onclick="<?php echo $loan['record_type'] === 'application' ? 'deleteApplication(' . $loan['application_id'] . ')' : 'deleteLoan(' . $loan['id'] . ')'; ?>"
-                                                title="Delete"><i class="fas fa-trash-alt"></i></button>
-                                        </td>
+                    <?php else: ?>
+                        <div class="ln-table-wrapper">
+                            <table class="ln-table" id="loanTable">
+                                <thead>
+                                    <tr>
+                                        <th class="col-type">Type</th>
+                                        <th class="col-loanno">Loan No.</th>
+                                        <th class="col-borrower">Borrower/Applicant</th>
+                                        <th class="col-loantype">Loan Type</th>
+                                        <th class="col-startdate">Start Date</th>
+                                        <th class="col-maturity">Maturity</th>
+                                        <th class="col-amount">Loan Amount</th>
+                                        <th class="col-rate">Rate</th>
+                                        <th class="col-monthly">Monthly</th>
+                                        <th class="col-outstanding">Outstanding</th>
+                                        <th class="col-status">Status</th>
+                                        <th class="col-action">Action</th>
                                     </tr>
-                                <?php endforeach; ?>
-                            </tbody>
-                        </table>
-                    </div>
-
-                    <!-- Pagination -->
-                    <div class="ln-pagination">
-                        <div class="ln-pagination__info">
-                            Showing <?php echo count($loans); ?> of <?php echo number_format($totalLoans); ?> results
+                                </thead>
+                                <tbody>
+                                    <?php foreach ($loans as $index => $loan):
+                                        $avatarColor = ($index % 6) + 1;
+                                        $initials = '';
+                                        $nameParts = explode(' ', $loan['borrower_name'] ?? '');
+                                        if (count($nameParts) >= 2) {
+                                            $initials = strtoupper(substr($nameParts[0], 0, 1) . substr($nameParts[1], 0, 1));
+                                        } elseif (count($nameParts) == 1) {
+                                            $initials = strtoupper(substr($nameParts[0], 0, 2));
+                                        }
+                                        $loanStatus = strtolower($loan['status'] ?? 'pending');
+                                        ?>
+                                        <tr data-status="<?php echo htmlspecialchars($loanStatus); ?>">
+                                            <td>
+                                                <?php if ($loan['record_type'] === 'application'): ?>
+                                                    <span class="ln-type-badge ln-type-badge--app">APP</span>
+                                                <?php else: ?>
+                                                    <span class="ln-type-badge ln-type-badge--loan">LOAN</span>
+                                                <?php endif; ?>
+                                            </td>
+                                            <td class="journal-no"><?php echo htmlspecialchars($loan['loan_number']); ?></td>
+                                            <td>
+                                                <div class="ln-borrower">
+                                                    <div class="ln-avatar ln-avatar--<?php echo $avatarColor; ?>">
+                                                        <?php echo $initials; ?>
+                                                    </div>
+                                                    <span
+                                                        class="ln-borrower__name"><?php echo htmlspecialchars($loan['borrower_name']); ?></span>
+                                                </div>
+                                            </td>
+                                            <td><?php echo htmlspecialchars($loan['loan_type_name'] ?? 'N/A'); ?></td>
+                                            <td class="date-cell"><?php echo date('M d, Y', strtotime($loan['start_date'])); ?>
+                                            </td>
+                                            <td class="date-cell">
+                                                <?php if (!empty($loan['maturity_date'])): ?>
+                                                    <?php echo date('M d, Y', strtotime($loan['maturity_date'])); ?>
+                                                <?php elseif (!empty($loan['due_date'])): ?>
+                                                    <?php echo date('M d, Y', strtotime($loan['due_date'])); ?>
+                                                <?php else: ?>
+                                                    <span style="color:#ccc;">—</span>
+                                                <?php endif; ?>
+                                            </td>
+                                            <td class="amount-cell">₱<?php echo number_format($loan['loan_amount'], 2); ?></td>
+                                            <td style="text-align:center;">
+                                                <?php echo number_format($loan['interest_rate'], 1); ?>%
+                                            </td>
+                                            <td class="amount-cell">
+                                                <?php if (!empty($loan['monthly_payment'])): ?>
+                                                    ₱<?php echo number_format($loan['monthly_payment'], 2); ?>
+                                                <?php else: ?>
+                                                    <span style="color:#ccc;">—</span>
+                                                <?php endif; ?>
+                                            </td>
+                                            <td class="amount-cell">
+                                                <?php if (isset($loan['outstanding_balance']) && $loan['outstanding_balance'] > 0): ?>
+                                                    ₱<?php echo number_format($loan['outstanding_balance'], 2); ?>
+                                                <?php else: ?>
+                                                    <span style="color:#ccc;">—</span>
+                                                <?php endif; ?>
+                                            </td>
+                                            <td>
+                                                <span class="ln-status ln-status--<?php echo $loanStatus; ?>">
+                                                    <?php echo ucfirst($loan['status']); ?>
+                                                </span>
+                                            </td>
+                                            <td class="col-action">
+                                                <button class="ln-action-btn"
+                                                    onclick="<?php echo $loan['record_type'] === 'application' ? 'viewApplicationDetails(' . $loan['application_id'] . ')' : 'viewLoanDetails(' . $loan['id'] . ')'; ?>"
+                                                    title="View Details"><i class="fas fa-eye"></i></button>
+                                                <button class="ln-action-btn ln-action-btn--danger"
+                                                    onclick="<?php echo $loan['record_type'] === 'application' ? 'deleteApplication(' . $loan['application_id'] . ')' : 'deleteLoan(' . $loan['id'] . ')'; ?>"
+                                                    title="Delete"><i class="fas fa-trash-alt"></i></button>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
                         </div>
-                        <div class="ln-pagination__pages">
-                            <button class="ln-page-btn">Previous</button>
-                            <button class="ln-page-btn active">1</button>
-                            <?php if ($totalLoans > 20): ?>
-                                <button class="ln-page-btn">2</button>
-                                <button class="ln-page-btn">3</button>
-                            <?php endif; ?>
-                            <button class="ln-page-btn">Next</button>
+
+                        <!-- Pagination -->
+                        <div class="ln-pagination">
+                            <div class="ln-pagination__info">
+                                Showing <?php echo count($loans); ?> of <?php echo number_format($totalLoans); ?> results
+                            </div>
+                            <div class="ln-pagination__pages">
+                                <button class="ln-page-btn">Previous</button>
+                                <button class="ln-page-btn active">1</button>
+                                <?php if ($totalLoans > 20): ?>
+                                    <button class="ln-page-btn">2</button>
+                                    <button class="ln-page-btn">3</button>
+                                <?php endif; ?>
+                                <button class="ln-page-btn">Next</button>
+                            </div>
                         </div>
+                    <?php endif; ?>
+                </div>
+
+                <!-- Footer -->
+                <div class="ln-footer">
+                    <div class="ln-footer__left">
+                        <i class="fas fa-shield-alt"></i>
+                        Evergreen Accounting & Finance <?php echo date('Y'); ?>
                     </div>
-                <?php endif; ?>
-            </div>
-
-            <!-- Footer -->
-            <div class="ln-footer">
-                <div class="ln-footer__left">
-                    <i class="fas fa-shield-alt"></i>
-                    Evergreen Accounting & Finance <?php echo date('Y'); ?>
-                </div>
-                <div class="ln-footer__links">
-                    <a href="#">Privacy Policy</a>
-                    <a href="#">Support</a>
-                    <a href="#">Terms</a>
-                </div>
-            </div>
-        </div> <!-- Close ln-container -->
-    </div> <!-- Close ln-page -->
+                    <div class="ln-footer__links">
+                        <a href="#">Privacy Policy</a>
+                        <a href="#">Support</a>
+                        <a href="#">Terms</a>
+                    </div>
+                </div> <!-- Close loanReportArea -->
+            </div> <!-- Close ln-container -->
+        </div> <!-- Close ln-page -->
 
 
 
-    <!-- Inline Filter & Search JS -->
-    <script>
-        function applyInlineFilter() {
-            const status = document.getElementById('filterStatus').value;
-            const dateFrom = document.getElementById('filterDateFrom').value;
-            const dateTo = document.getElementById('filterDateTo').value;
+        <!-- Inline Filter & Search JS -->
+        <script>
+            function applyInlineFilter() {
+                const status = document.getElementById('filterStatus').value;
+                const dateFrom = document.getElementById('filterDateFrom').value;
+                const dateTo = document.getElementById('filterDateTo').value;
 
-            const params = new URLSearchParams();
-            if (status) params.set('status', status);
-            if (dateFrom) params.set('date_from', dateFrom);
-            if (dateTo) params.set('date_to', dateTo);
-            
-            if (status || dateFrom || dateTo) {
-                params.set('apply_filters', '1');
+                const params = new URLSearchParams();
+                if (status) params.set('status', status);
+                if (dateFrom) params.set('date_from', dateFrom);
+                if (dateTo) params.set('date_to', dateTo);
+
+                if (status || dateFrom || dateTo) {
+                    params.set('apply_filters', '1');
+                }
+
+                // Redirect to apply server-side filters
+                window.location.href = window.location.pathname + (params.toString() ? ('?' + params.toString()) : '');
             }
 
-            // Redirect to apply server-side filters
-            window.location.href = window.location.pathname + (params.toString() ? ('?' + params.toString()) : '');
-        }
-
-        function filterLoanTable() {
-            // This function is now handled in loan-accounting.js
-        }
-    </script>
+            function filterLoanTable() {
+                // This function is now handled in loan-accounting.js
+            }
+        </script>
 
 
 
 
 
-    <!-- Loan Details Modal -->
-    <div class="modal fade" id="loanDetailsModal" tabindex="-1">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header bg-primary text-white">
-                    <h5 class="modal-title"><i class="fas fa-file-invoice-dollar me-2"></i>Loan Details</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body" id="loanDetailsBody">
-                    <!-- Content loaded via JavaScript -->
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Audit Trail Modal -->
-    <div class="modal fade" id="auditTrailModal" tabindex="-1">
-        <div class="modal-dialog modal-xl">
-            <div class="modal-content">
-                <div class="modal-header bg-primary text-white">
-                    <h5 class="modal-title"><i class="fas fa-history me-2"></i>Loan Audit Trail</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="table-responsive">
-                        <table class="table table-sm table-hover">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>Date & Time</th>
-                                    <th>User</th>
-                                    <th>Action</th>
-                                    <th>Loan No.</th>
-                                    <th>Details</th>
-                                    <th>IP Address</th>
-                                </tr>
-                            </thead>
-                            <tbody id="auditTrailBody">
-                                <!-- Content loaded via JavaScript -->
-                            </tbody>
-                        </table>
+        <!-- Loan Details Modal -->
+        <div class="modal fade" id="loanDetailsModal" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header bg-primary text-white">
+                        <h5 class="modal-title"><i class="fas fa-file-invoice-dollar me-2"></i>Loan Details</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body" id="loanDetailsBody">
+                        <!-- Content loaded via JavaScript -->
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-success" onclick="exportAuditTrail()">
-                        <i class="fas fa-file-excel me-1"></i>Export Audit Trail
-                    </button>
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+
+        <!-- Audit Trail Modal -->
+        <div class="modal fade" id="auditTrailModal" tabindex="-1">
+            <div class="modal-dialog modal-xl">
+                <div class="modal-content">
+                    <div class="modal-header bg-primary text-white">
+                        <h5 class="modal-title"><i class="fas fa-history me-2"></i>Loan Audit Trail</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Date & Time</th>
+                                        <th>User</th>
+                                        <th>Action</th>
+                                        <th>Loan No.</th>
+                                        <th>Details</th>
+                                        <th>IP Address</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="auditTrailBody">
+                                    <!-- Content loaded via JavaScript -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-success" onclick="exportAuditTrail()">
+                            <i class="fas fa-file-excel me-1"></i>Export Audit Trail
+                        </button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- Delete Confirmation Modal -->
-    <div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-labelledby="deleteConfirmModalLabel"
-        aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header bg-danger text-white">
-                    <h5 class="modal-title" id="deleteConfirmModalLabel">
-                        <i class="fas fa-exclamation-triangle me-2"></i>Confirm Delete
-                    </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
-                        aria-label="Close"></button>
-                </div>
-                <div class="modal-body" id="deleteConfirmBody">
-                    <p>Are you sure you want to delete this item?</p>
-                    <p class="text-muted small">This action cannot be undone.</p>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-danger" id="confirmDeleteBtn">
-                        <i class="fas fa-trash me-1"></i>Delete
-                    </button>
+        <!-- Delete Confirmation Modal -->
+        <div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-labelledby="deleteConfirmModalLabel"
+            aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header bg-danger text-white">
+                        <h5 class="modal-title" id="deleteConfirmModalLabel">
+                            <i class="fas fa-exclamation-triangle me-2"></i>Confirm Delete
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                            aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body" id="deleteConfirmBody">
+                        <p>Are you sure you want to delete this item?</p>
+                        <p class="text-muted small">This action cannot be undone.</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-danger" id="confirmDeleteBtn">
+                            <i class="fas fa-trash me-1"></i>Delete
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- jQuery -->
-    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-    <!-- Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    <!-- DataTables JS -->
-    <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
-    <script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
-    <!-- Custom JS -->
-    <script src="../assets/js/loan-accounting.js"></script>
-    <script src="../assets/js/notifications.js"></script>
+        <!-- jQuery -->
+        <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+        <!-- Bootstrap JS -->
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+        <!-- DataTables JS -->
+        <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+        <script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
+        <!-- Custom JS -->
+        <script src="../assets/js/loan-accounting.js"></script>
+        <script src="../assets/js/notifications.js"></script>
 </body>
 
 </html>

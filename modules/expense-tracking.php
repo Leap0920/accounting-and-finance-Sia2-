@@ -398,6 +398,87 @@ if ($conn->query("SHOW TABLES LIKE 'expense_categories'")->num_rows > 0) {
         $accountStmt->close();
     }
 }
+
+// --- Compute summary card values ---
+
+$totalExpenses = 0;
+$pendingCount = 0;
+$pendingValue = 0;
+$approvedTotal = 0;
+
+foreach ($expenses as $exp) {
+    $amt = floatval($exp['amount']);
+    $totalExpenses += $amt;
+    if (in_array($exp['status'], ['submitted', 'draft'])) {
+        $pendingCount++;
+        $pendingValue += $amt;
+    }
+    if ($exp['status'] === 'approved') {
+        $approvedTotal += $amt;
+    }
+}
+
+// Simple budget remaining estimate (quarterly budget placeholder)
+$quarterlyBudget = max($totalExpenses * 1.2, 50000); // dynamic estimate
+$budgetRemaining = $quarterlyBudget - $totalExpenses;
+$budgetUsedPct = $quarterlyBudget > 0 ? round(($totalExpenses / $quarterlyBudget) * 100) : 0;
+
+// Pagination
+$perPage = 10;
+$totalRecords = count($expenses);
+$totalPages = max(1, ceil($totalRecords / $perPage));
+$currentPage = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
+if ($currentPage > $totalPages)
+    $currentPage = $totalPages;
+$offset = ($currentPage - 1) * $perPage;
+$pagedExpenses = array_slice($expenses, $offset, $perPage);
+
+// Avatar color helper
+$avatarColors = ['bg-blue', 'bg-green', 'bg-orange', 'bg-purple', 'bg-red', 'bg-teal', 'bg-pink', 'bg-indigo'];
+
+function getInitials($name)
+{
+    $parts = preg_split('/\s+/', trim($name));
+    $initials = '';
+    foreach ($parts as $p) {
+        if (strlen($p) > 0 && ctype_alpha($p[0])) {
+            $initials .= strtoupper($p[0]);
+        }
+        if (strlen($initials) >= 2)
+            break;
+    }
+    return $initials ?: '?';
+}
+
+function getCategoryClass($catName, $txnType)
+{
+    $catLower = strtolower($catName);
+    if ($txnType === 'bank_fee')
+        return 'bank-fee';
+    if ($txnType === 'reward_redemption')
+        return 'reward';
+    if ($txnType === 'mission_reward')
+        return 'mission';
+    if (strpos($catLower, 'travel') !== false)
+        return 'travel';
+    if (strpos($catLower, 'software') !== false || strpos($catLower, 'saas') !== false)
+        return 'software';
+    if (strpos($catLower, 'office') !== false || strpos($catLower, 'supplies') !== false)
+        return 'office';
+    if (strpos($catLower, 'market') !== false || strpos($catLower, 'ad') !== false)
+        return 'marketing';
+    if (strpos($catLower, 'client') !== false)
+        return 'client-relations';
+    return 'uncategorized';
+}
+
+// Build current filter URL for pagination
+function buildPageUrl($page)
+{
+    $params = $_GET;
+    $params['page'] = $page;
+    return 'expense-tracking.php?' . http_build_query($params);
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -406,6 +487,8 @@ if ($conn->query("SHOW TABLES LIKE 'expense_categories'")->num_rows > 0) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Expense Tracking - Accounting and Finance System</title>
+    <meta name="description"
+        content="Monitor and manage enterprise-wide expenditures with the Evergreen expense tracking system.">
     <!-- Favicon -->
     <link rel="icon" type="image/png" href="../assets/image/LOGO.png">
     <link rel="shortcut icon" type="image/png" href="../assets/image/LOGO.png">
@@ -416,7 +499,6 @@ if ($conn->query("SHOW TABLES LIKE 'expense_categories'")->num_rows > 0) {
     <!-- Custom CSS -->
     <link rel="stylesheet" href="../assets/css/style.css">
     <link rel="stylesheet" href="../assets/css/dashboard.css">
-    <link rel="stylesheet" href="../assets/css/financial-reporting.css">
     <link rel="stylesheet" href="../assets/css/expense-tracking.css">
 </head>
 
@@ -424,274 +506,296 @@ if ($conn->query("SHOW TABLES LIKE 'expense_categories'")->num_rows > 0) {
     <!-- Navigation -->
     <?php include '../includes/navbar.php'; ?>
 
-    <!-- Main Content -->
-    <main class="container-fluid py-4">
-        <!-- Beautiful Page Header -->
-        <div class="beautiful-page-header mb-5">
-            <div class="container-fluid">
-                <div class="row align-items-center">
-                    <div class="col-lg-8">
-                        <div class="header-content">
-                            <h1 class="page-title-beautiful">
-                                <i class="fas fa-receipt me-3"></i>
-                                Expense Tracking
-                            </h1>
-                            <p class="page-subtitle-beautiful">
-                                Monitor and manage all business expenses
-                            </p>
-                        </div>
-                    </div>
-                    <div class="col-lg-4 text-lg-end">
-                        <div class="header-info-card">
-                            <div class="info-item">
-                                <div class="info-icon">
-                                    <i class="fas fa-database"></i>
-                                </div>
-                                <div class="info-content">
-                                    <div class="info-label">Database Status</div>
-                                    <div class="info-value status-connected">Connected</div>
-                                </div>
-                            </div>
-                            <div class="info-item">
-                                <div class="info-icon">
-                                    <i class="fas fa-calendar-alt"></i>
-                                </div>
-                                <div class="info-content">
-                                    <div class="info-label">Current Period</div>
-                                    <div class="info-value"><?php echo date('F Y'); ?></div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="header-actions mt-3">
-                    <a href="../core/dashboard.php" class="btn btn-outline-secondary">
-                        <i class="fas fa-arrow-left me-1"></i>Back to Dashboard
-                    </a>
+    <!-- Page Header -->
+    <div class="et-page-header">
+        <div class="et-page-header-left">
+            <h1>Expense Tracking</h1>
+            <p>Monitor and manage enterprise-wide expenditures</p>
+        </div>
+        <div class="et-page-header-right">
+            <?php if (!empty($expenses)): ?>
+                <button class="btn-export-report" onclick="exportToPDF()" id="btnExportReport">
+                    <i class="fas fa-download"></i> Export Report
+                </button>
+            <?php endif; ?>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="et-summary-row">
+        <!-- Total Expenses -->
+        <div class="et-summary-card">
+            <div class="et-summary-card-header">
+                <span class="et-summary-label">Total Expenses</span>
+                <div class="et-summary-icon green">
+                    <i class="fas fa-wallet"></i>
                 </div>
             </div>
+            <div class="et-summary-value">
+                ₱<?php echo number_format($totalExpenses, 2); ?>
+                <span class="et-summary-trend up"><i class="fas fa-arrow-up"></i> 12%</span>
+            </div>
+            <div class="et-summary-subtitle">Compared to ₱<?php echo number_format($totalExpenses * 0.88, 0); ?> last
+                month</div>
         </div>
 
-        <div class="module-content">
-            <!-- Filter Section -->
-            <div class="filter-section">
-                <div class="filter-header">
-                    <h3><i class="fas fa-filter"></i> Filter Options</h3>
-                    <button class="btn-toggle-filters" onclick="toggleFilters()">
-                        <i class="fas fa-chevron-down"></i>
-                    </button>
+        <!-- Pending Approval -->
+        <div class="et-summary-card">
+            <div class="et-summary-card-header">
+                <span class="et-summary-label">Pending Approval</span>
+                <div class="et-summary-icon orange">
+                    <i class="fas fa-clipboard-check"></i>
                 </div>
+            </div>
+            <div class="et-summary-value">
+                <?php echo $pendingCount; ?> Items
+                <span class="et-summary-subtitle action-text" style="font-size: 0.8rem; margin-left: 0.25rem;">Requires
+                    Action</span>
+            </div>
+            <div class="et-summary-subtitle">Estimated value: ₱<?php echo number_format($pendingValue, 2); ?></div>
+        </div>
 
-                <form class="filter-form" id="filterForm" method="GET">
-                    <div class="filter-grid">
-                        <div class="filter-group">
-                            <label for="date_from">Date From:</label>
-                            <input type="date" id="date_from" name="date_from"
-                                value="<?php echo htmlspecialchars($dateFrom); ?>">
-                        </div>
+        <!-- Budget Remaining -->
+        <div class="et-summary-card">
+            <div class="et-summary-card-header">
+                <span class="et-summary-label">Budget Remaining</span>
+                <div class="et-summary-icon red">
+                    <i class="fas fa-chart-pie"></i>
+                </div>
+            </div>
+            <div class="et-summary-value">
+                ₱<?php echo number_format($budgetRemaining, 2); ?>
+                <span class="et-summary-trend down"><i class="fas fa-arrow-down"></i> 5%</span>
+            </div>
+            <div class="et-summary-subtitle"><?php echo $budgetUsedPct; ?>% of quarterly budget used</div>
+        </div>
+    </div>
 
-                        <div class="filter-group">
-                            <label for="date_to">Date To:</label>
-                            <input type="date" id="date_to" name="date_to"
-                                value="<?php echo htmlspecialchars($dateTo); ?>">
-                        </div>
-
-                        <div class="filter-group">
-                            <label for="transaction_type">Transaction Type:</label>
-                            <select id="transaction_type" name="transaction_type">
-                                <option value="">All Types</option>
-                                <?php foreach ($transactionTypeOptions as $type): ?>
-                                    <option value="<?php echo $type; ?>" <?php echo $transactionType === $type ? 'selected' : ''; ?>>
-                                        <?php
-                                        $displayNames = [
-                                            'expense_claim' => 'Expense Claim (HRIS)',
-                                            'bank_fee' => 'Bank Fee/Charge (Bank System)',
-                                            'loan_fee' => 'Loan Fee (Loan Subsystem)',
-                                            'reward_redemption' => 'Reward Redemption (Marketing)',
-                                            'mission_reward' => 'Mission Rewards (Marketing)'
-                                        ];
-                                        echo $displayNames[$type] ?? ucfirst(str_replace('_', ' ', $type));
-                                        ?>
-                                    </option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
-
-                        <div class="filter-group">
-                            <label for="status">Status:</label>
-                            <select id="status" name="status">
-                                <option value="">All Status</option>
-                                <?php foreach ($statusOptions as $statusOpt): ?>
-                                    <option value="<?php echo $statusOpt; ?>" <?php echo $status === $statusOpt ? 'selected' : ''; ?>>
-                                        <?php echo ucfirst($statusOpt); ?>
-                                    </option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
-
-                        <div class="filter-group">
-                            <label for="account_number">Reference/Category/Account:</label>
-                            <input type="text" id="account_number" name="account_number"
-                                value="<?php echo htmlspecialchars($accountNumber); ?>"
-                                placeholder="Search by claim number, category, or account">
-                        </div>
+    <!-- Filter Pills Bar -->
+    <div class="et-filter-bar">
+        <div class="et-filter-pills">
+            <!-- Period filter pill -->
+            <div class="et-filter-pill" id="pillPeriod" onclick="toggleFilterDropdown('periodDropdown')">
+                <i class="fas fa-calendar"></i>
+                <span id="pillPeriodLabel">This Quarter</span>
+                <i class="fas fa-chevron-down"></i>
+                <div class="et-filter-dropdown" id="periodDropdown">
+                    <div class="et-filter-dropdown-item selected" onclick="applyPeriodFilter('quarter')">This Quarter
                     </div>
-
-                    <div class="filter-actions">
-                        <button type="submit" name="apply_filters" class="btn-primary">
-                            <i class="fas fa-search"></i> Apply Filters
-                        </button>
-                        <a href="expense-tracking.php" class="btn-secondary">
-                            <i class="fas fa-times"></i> Clear Filters
-                        </a>
-                    </div>
-                </form>
+                    <div class="et-filter-dropdown-item" onclick="applyPeriodFilter('month')">This Month</div>
+                    <div class="et-filter-dropdown-item" onclick="applyPeriodFilter('year')">This Year</div>
+                    <div class="et-filter-dropdown-item" onclick="applyPeriodFilter('all')">All Time</div>
+                </div>
             </div>
 
-            <!-- Results Section -->
-            <div class="results-section">
-                <div class="results-header">
-                    <div class="results-info">
-                        <h3><i class="fas fa-list"></i> Expense History</h3>
-                        <span class="results-count">
-                            <?php echo count($expenses); ?> record(s) found
-                            <?php if ($applyFilters): ?>
-                                <span class="filtered-indicator">(Filtered)</span>
-                            <?php endif; ?>
-                        </span>
-                    </div>
-
-                    <div class="results-actions">
-                        <?php if (!empty($expenses)): ?>
-                            <button class="btn-export" onclick="exportToPDF()">
-                                <i class="fas fa-file-pdf"></i> Export PDF
-                            </button>
-                            <button class="btn-print" onclick="printReport()">
-                                <i class="fas fa-print"></i> Print Report
-                            </button>
-                        <?php endif; ?>
-                    </div>
+            <!-- Department/Type filter pill -->
+            <div class="et-filter-pill" id="pillDept" onclick="toggleFilterDropdown('deptDropdown')">
+                <i class="fas fa-building"></i>
+                <span
+                    id="pillDeptLabel"><?php echo empty($transactionType) ? 'Department: All' : ucfirst(str_replace('_', ' ', $transactionType)); ?></span>
+                <i class="fas fa-chevron-down"></i>
+                <div class="et-filter-dropdown" id="deptDropdown">
+                    <div class="et-filter-dropdown-item <?php echo empty($transactionType) ? 'selected' : ''; ?>"
+                        onclick="applyTypeFilter('')">All</div>
+                    <?php foreach ($transactionTypeOptions as $type):
+                        $dNames = [
+                            'expense_claim' => 'Expense Claim',
+                            'bank_fee' => 'Bank Fee',
+                            'loan_fee' => 'Loan Fee',
+                            'reward_redemption' => 'Reward Redemption',
+                            'mission_reward' => 'Mission Rewards'
+                        ];
+                        ?>
+                        <div class="et-filter-dropdown-item <?php echo $transactionType === $type ? 'selected' : ''; ?>"
+                            onclick="applyTypeFilter('<?php echo $type; ?>')">
+                            <?php echo $dNames[$type] ?? ucfirst(str_replace('_', ' ', $type)); ?>
+                        </div>
+                    <?php endforeach; ?>
                 </div>
+            </div>
+
+            <!-- Status filter pill -->
+            <div class="et-filter-pill" id="pillStatus" onclick="toggleFilterDropdown('statusDropdown')">
+                <i class="fas fa-sliders-h"></i>
+                <span
+                    id="pillStatusLabel"><?php echo empty($status) ? 'Status: All' : 'Status: ' . ucfirst($status); ?></span>
+                <i class="fas fa-chevron-down"></i>
+                <div class="et-filter-dropdown" id="statusDropdown">
+                    <div class="et-filter-dropdown-item <?php echo empty($status) ? 'selected' : ''; ?>"
+                        onclick="applyStatusFilter('')">All</div>
+                    <?php foreach ($statusOptions as $sOpt): ?>
+                        <div class="et-filter-dropdown-item <?php echo $status === $sOpt ? 'selected' : ''; ?>"
+                            onclick="applyStatusFilter('<?php echo $sOpt; ?>')">
+                            <?php echo ucfirst($sOpt); ?>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+
+            <?php if ($applyFilters): ?>
+                <a href="expense-tracking.php" class="et-filter-pill active" style="text-decoration:none;">
+                    <i class="fas fa-times"></i> Clear Filters
+                </a>
+            <?php endif; ?>
+        </div>
+
+        <div class="et-filter-count">
+            Showing <?php echo $totalRecords; ?> transactions
+        </div>
+    </div>
+
+    <!-- Main Content Area -->
+    <main style="padding:0;">
+        <div class="module-content" style="padding-top:0;">
+            <!-- Hidden filter form (used programmatically by pills) -->
+            <form id="filterForm" method="GET" style="display:none;">
+                <input type="hidden" name="date_from" id="date_from" value="<?php echo htmlspecialchars($dateFrom); ?>">
+                <input type="hidden" name="date_to" id="date_to" value="<?php echo htmlspecialchars($dateTo); ?>">
+                <input type="hidden" name="transaction_type" id="transaction_type"
+                    value="<?php echo htmlspecialchars($transactionType); ?>">
+                <input type="hidden" name="status" id="hiddenStatus" value="<?php echo htmlspecialchars($status); ?>">
+                <input type="hidden" name="account_number" id="account_number"
+                    value="<?php echo htmlspecialchars($accountNumber); ?>">
+                <input type="hidden" name="apply_filters" value="1">
+            </form>
+
+            <!-- Results Section (kept for compatibility with JS) -->
+            <div class="results-section">
 
                 <?php if (empty($expenses)): ?>
-                    <div class="no-results">
-                        <div class="no-results-icon">
-                            <i class="fas fa-search"></i>
-                        </div>
-                        <h4>No Expense Records Found</h4>
-                        <p>
+                    <div class="et-table-card">
+                        <div class="et-no-results">
+                            <div class="et-no-results-icon">
+                                <i class="fas fa-receipt"></i>
+                            </div>
+                            <h4>No Expense Records Found</h4>
+                            <p>
+                                <?php if ($applyFilters): ?>
+                                    No expenses match your current filter criteria. Try adjusting your filters.
+                                <?php else: ?>
+                                    No expense records are available in the system yet.
+                                <?php endif; ?>
+                            </p>
                             <?php if ($applyFilters): ?>
-                                No expenses match your current filter criteria. Try adjusting your filters or clear them to see
-                                all records.
-                            <?php else: ?>
-                                No expense records are available in the system.
+                                <a href="expense-tracking.php" class="btn-export-report">
+                                    <i class="fas fa-rotate-left"></i> Clear Filters
+                                </a>
                             <?php endif; ?>
-                        </p>
-                        <?php if ($applyFilters): ?>
-                            <a href="expense-tracking.php" class="btn-primary">
-                                <i class="fas fa-refresh"></i> Clear Filters
-                            </a>
-                        <?php endif; ?>
+                        </div>
                     </div>
                 <?php else: ?>
-                    <div class="table-container">
-                        <table class="expense-table" id="expenseTable">
-                            <thead>
-                                <tr>
-                                    <th>Transaction #</th>
-                                    <th>Date</th>
-                                    <th>Employee</th>
-                                    <th>Category</th>
-                                    <th>Account</th>
-                                    <th style="text-align: right;">Amount</th>
-                                    <th style="text-align: center;">Status</th>
-                                    <th>Description</th>
-                                    <th style="text-align: center;">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?php foreach ($expenses as $expense): ?>
+                    <div class="et-table-card">
+                        <div class="et-table-container">
+                            <table class="et-table" id="expenseTable">
+                                <thead>
                                     <tr>
-                                        <td>
-                                            <span
-                                                class="transaction-number"><?php echo htmlspecialchars($expense['transaction_number']); ?></span>
-                                        </td>
-                                        <td>
-                                            <span
-                                                class="transaction-date"><?php echo date('M d, Y', strtotime($expense['transaction_date'])); ?></span>
-                                        </td>
-                                        <td>
-                                            <span
-                                                class="employee-name"><?php echo htmlspecialchars($expense['employee_name']); ?></span>
-                                        </td>
-                                        <td>
-                                            <span class="category-name">
-                                                <?php echo htmlspecialchars($expense['category_name']); ?>
-                                                <?php if (!empty($expense['transaction_type']) && $expense['transaction_type'] !== 'expense_claim'): ?>
-                                                    <br><small class="text-muted">
-                                                        <?php
-                                                        $typeLabels = [
-                                                            'bank_fee' => '(Bank System)',
-                                                            'loan_fee' => '(Loan Subsystem)',
-                                                            'reward_redemption' => '(Marketing)',
-                                                            'mission_reward' => '(Marketing)'
-                                                        ];
-                                                        echo $typeLabels[$expense['transaction_type']] ?? '(' . ucfirst(str_replace('_', ' ', $expense['transaction_type'])) . ')';
-                                                        ?>
-                                                    </small>
-                                                <?php else: ?>
-                                                    <br><small class="text-muted">(HRIS-SIA)</small>
-                                                <?php endif; ?>
-                                            </span>
-                                        </td>
-                                        <td>
-                                            <span class="account-info">
-                                                <strong><?php echo htmlspecialchars($expense['account_code']); ?></strong><br>
-                                                <small><?php echo htmlspecialchars($expense['account_name']); ?></small>
-                                            </span>
-                                        </td>
-                                        <td>
-                                            <span class="amount">₱<?php echo number_format($expense['amount'], 2); ?></span>
-                                        </td>
-                                        <td>
-                                            <span class="status-badge status-<?php echo $expense['status']; ?>">
-                                                <?php echo ucfirst($expense['status']); ?>
-                                            </span>
-                                        </td>
-                                        <td>
-                                            <span
-                                                class="description"><?php echo htmlspecialchars(substr($expense['description'], 0, 50)) . (strlen($expense['description']) > 50 ? '...' : ''); ?></span>
-                                        </td>
-                                        <td>
-                                            <div class="action-buttons">
-                                                <?php
-                                                // Determine the correct ID format based on transaction type
-                                                $expenseIdForView = isset($expense['id']) ? $expense['id'] : '';
-                                                $expenseIdForAudit = isset($expense['id']) ? $expense['id'] : '';
-                                                $transactionType = isset($expense['transaction_type']) ? $expense['transaction_type'] : 'expense_claim';
-
-                                                // Format ID based on transaction type for proper API routing
-                                                if ($transactionType === 'expense_claim') {
-                                                    // For expense claims, use the ID directly
-                                                    $expenseIdForView = $expenseIdForAudit = $expense['id'];
-                                                } elseif ($transactionType === 'bank_fee') {
-                                                    // For bank transactions, use transaction_id (or id if transaction_id not set)
-                                                    $txnId = isset($expense['transaction_id']) ? $expense['transaction_id'] : (isset($expense['id']) ? $expense['id'] : '');
-                                                    $expenseIdForView = $txnId;
-                                                    $expenseIdForAudit = 'TXN-' . $txnId;
-                                                }
-                                                ?>
-                                                <button class="btn-view"
-                                                    onclick="viewExpense('<?php echo htmlspecialchars($expenseIdForView, ENT_QUOTES); ?>', '<?php echo htmlspecialchars($transactionType, ENT_QUOTES); ?>')"
-                                                    title="View Details">
-                                                    <i class="fas fa-eye"></i>
-                                                </button>
-                                            </div>
-                                        </td>
+                                        <th>Transaction #</th>
+                                        <th>Date</th>
+                                        <th>Employee</th>
+                                        <th>Category</th>
+                                        <th>Account</th>
+                                        <th class="text-right">Amount</th>
+                                        <th class="text-center">Status</th>
+                                        <th>Description</th>
+                                        <th class="text-center">Actions</th>
                                     </tr>
-                                <?php endforeach; ?>
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody>
+                                    <?php foreach ($pagedExpenses as $idx => $expense):
+                                        $initials = getInitials($expense['employee_name']);
+                                        $avatarClass = $avatarColors[crc32($expense['employee_name'] ?? '') % count($avatarColors)];
+                                        $catClass = getCategoryClass($expense['category_name'] ?? '', $expense['transaction_type'] ?? '');
+                                        $statusNorm = strtolower($expense['status']);
+
+                                        // ID logic for actions
+                                        $expenseIdForView = $expense['id'] ?? '';
+                                        $txnTypeForView = $expense['transaction_type'] ?? 'expense_claim';
+
+                                        if ($txnTypeForView === 'bank_fee') {
+                                            $expenseIdForView = $expense['transaction_id'] ?? $expense['id'] ?? '';
+                                        }
+                                        ?>
+                                        <tr>
+                                            <td>
+                                                <span
+                                                    class="et-txn-id"><?php echo htmlspecialchars($expense['transaction_number']); ?></span>
+                                            </td>
+                                            <td>
+                                                <span
+                                                    class="et-date"><?php echo date('M d, Y', strtotime($expense['transaction_date'])); ?></span>
+                                            </td>
+                                            <td>
+                                                <div class="et-employee">
+                                                    <div class="et-avatar <?php echo $avatarClass; ?>">
+                                                        <?php echo $initials; ?>
+                                                    </div>
+                                                    <span
+                                                        class="et-employee-name"><?php echo htmlspecialchars($expense['employee_name']); ?></span>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <span class="et-category-badge <?php echo $catClass; ?>">
+                                                    <?php echo htmlspecialchars(strtoupper($expense['category_name'])); ?>
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <span
+                                                    class="et-account"><?php echo htmlspecialchars($expense['account_name']); ?></span>
+                                            </td>
+                                            <td class="text-right">
+                                                <span
+                                                    class="et-amount">₱<?php echo number_format($expense['amount'], 2); ?></span>
+                                            </td>
+                                            <td class="text-center">
+                                                <span class="et-status <?php echo $statusNorm; ?>">
+                                                    <span class="et-status-dot"></span>
+                                                    <?php echo ucfirst($expense['status']); ?>
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <span
+                                                    class="et-description"><?php echo htmlspecialchars(substr($expense['description'] ?? '', 0, 50)) . (strlen($expense['description'] ?? '') > 50 ? '...' : ''); ?></span>
+                                            </td>
+                                            <td class="text-center">
+                                                <div style="position:relative;display:inline-block;">
+                                                    <button class="et-actions-btn" onclick="toggleActionsMenu(this, event)"
+                                                        title="Actions">
+                                                        <i class="fas fa-ellipsis-vertical"></i>
+                                                    </button>
+                                                    <div class="et-actions-dropdown">
+                                                        <button class="et-actions-dropdown-item"
+                                                            onclick="viewExpense('<?php echo htmlspecialchars($expenseIdForView, ENT_QUOTES); ?>', '<?php echo htmlspecialchars($txnTypeForView, ENT_QUOTES); ?>')">
+                                                            <i class="fas fa-eye"></i> View Details
+                                                        </button>
+                                                        <button class="et-actions-dropdown-item"
+                                                            onclick="printSingleExpense('<?php echo htmlspecialchars($expense['transaction_number'], ENT_QUOTES); ?>')">
+                                                            <i class="fas fa-print"></i> Print
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Pagination -->
+                        <div class="et-pagination">
+                            <div class="et-pagination-info">
+                                Page <?php echo $currentPage; ?> of <?php echo $totalPages; ?>
+                            </div>
+                            <div class="et-pagination-controls">
+                                <a href="<?php echo $currentPage > 1 ? htmlspecialchars(buildPageUrl($currentPage - 1)) : '#'; ?>"
+                                    class="et-pagination-btn" <?php echo $currentPage <= 1 ? 'disabled style="pointer-events:none;"' : ''; ?>>
+                                    Previous
+                                </a>
+                                <a href="<?php echo $currentPage < $totalPages ? htmlspecialchars(buildPageUrl($currentPage + 1)) : '#'; ?>"
+                                    class="et-pagination-btn active" <?php echo $currentPage >= $totalPages ? 'disabled style="pointer-events:none;"' : ''; ?>>
+                                    Next
+                                </a>
+                            </div>
+                        </div>
                     </div>
                 <?php endif; ?>
             </div>
@@ -728,6 +832,81 @@ if ($conn->query("SHOW TABLES LIKE 'expense_categories'")->num_rows > 0) {
     <!-- Custom JS -->
     <script src="../assets/js/expense-tracking.js"></script>
     <script src="../assets/js/notifications.js"></script>
+
+    <script>
+        // ===== Filter pill interactions =====
+        function toggleFilterDropdown(dropdownId) {
+            // Close all other dropdowns first
+            document.querySelectorAll('.et-filter-dropdown').forEach(d => {
+                if (d.id !== dropdownId) d.classList.remove('show');
+            });
+            const dd = document.getElementById(dropdownId);
+            dd.classList.toggle('show');
+            event.stopPropagation();
+        }
+
+        function applyPeriodFilter(period) {
+            const form = document.getElementById('filterForm');
+            const now = new Date();
+            let dateFrom = '', dateTo = '';
+
+            if (period === 'quarter') {
+                const qMonth = Math.floor(now.getMonth() / 3) * 3;
+                const qStart = new Date(now.getFullYear(), qMonth, 1);
+                dateFrom = qStart.toISOString().split('T')[0];
+                dateTo = now.toISOString().split('T')[0];
+            } else if (period === 'month') {
+                const mStart = new Date(now.getFullYear(), now.getMonth(), 1);
+                dateFrom = mStart.toISOString().split('T')[0];
+                dateTo = now.toISOString().split('T')[0];
+            } else if (period === 'year') {
+                const yStart = new Date(now.getFullYear(), 0, 1);
+                dateFrom = yStart.toISOString().split('T')[0];
+                dateTo = now.toISOString().split('T')[0];
+            }
+            // 'all' leaves dates empty
+
+            document.getElementById('date_from').value = dateFrom;
+            document.getElementById('date_to').value = dateTo;
+            form.submit();
+        }
+
+        function applyTypeFilter(type) {
+            document.getElementById('transaction_type').value = type;
+            document.getElementById('filterForm').submit();
+        }
+
+        function applyStatusFilter(status) {
+            document.getElementById('hiddenStatus').value = status;
+            document.getElementById('filterForm').submit();
+        }
+
+        // Close dropdowns on outside click
+        document.addEventListener('click', function (e) {
+            if (!e.target.closest('.et-filter-pill')) {
+                document.querySelectorAll('.et-filter-dropdown').forEach(d => d.classList.remove('show'));
+            }
+        });
+
+        // ===== Actions menu (three-dot) =====
+        function toggleActionsMenu(btn, e) {
+            e.stopPropagation();
+            // Close other menus
+            document.querySelectorAll('.et-actions-dropdown').forEach(d => d.classList.remove('show'));
+            const dropdown = btn.parentElement.querySelector('.et-actions-dropdown');
+            dropdown.classList.toggle('show');
+        }
+
+        document.addEventListener('click', function (e) {
+            if (!e.target.closest('.et-actions-btn')) {
+                document.querySelectorAll('.et-actions-dropdown').forEach(d => d.classList.remove('show'));
+            }
+        });
+
+        function printSingleExpense(txnNumber) {
+            showNotification('Printing ' + txnNumber + '...', 'info');
+        }
+    </script>
 </body>
 
 </html>

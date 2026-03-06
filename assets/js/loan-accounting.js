@@ -521,61 +521,55 @@
                 </div>
             </div>
             
-            ${(app.proof_of_income || app.coe_document || app.file_name || app.pdf_path) ? `
             <div class="loan-detail-section mt-4">
                 <h6 class="text-primary mb-3"><i class="fas fa-file-upload me-2"></i>Supporting Documents</h6>
                 <div class="row">
-                    ${app.file_name ? `
-                    <div class="col-md-6 mb-2">
-                        <div class="loan-detail-row">
-                            <span class="loan-detail-label">Valid ID:</span>
-                            <span class="loan-detail-value">
-                                <a href="../../LoanSubsystem/${app.file_name}" target="_blank" class="btn btn-sm btn-outline-primary">
-                                    <i class="fas fa-file me-1"></i>View File
-                                </a>
-                            </span>
-                        </div>
-                    </div>
-                    ` : ''}
-                    ${app.proof_of_income ? `
-                    <div class="col-md-6 mb-2">
-                        <div class="loan-detail-row">
-                            <span class="loan-detail-label">Proof of Income:</span>
-                            <span class="loan-detail-value">
-                                <a href="../../LoanSubsystem/${app.proof_of_income}" target="_blank" class="btn btn-sm btn-outline-primary">
-                                    <i class="fas fa-file me-1"></i>View File
-                                </a>
-                            </span>
-                        </div>
-                    </div>
-                    ` : ''}
-                    ${app.coe_document ? `
-                    <div class="col-md-6 mb-2">
-                        <div class="loan-detail-row">
-                            <span class="loan-detail-label">Certificate of Employment:</span>
-                            <span class="loan-detail-value">
-                                <a href="../../LoanSubsystem/${app.coe_document}" target="_blank" class="btn btn-sm btn-outline-primary">
-                                    <i class="fas fa-file me-1"></i>View File
-                                </a>
-                            </span>
-                        </div>
-                    </div>
-                    ` : ''}
-                    ${app.pdf_path ? `
-                    <div class="col-md-6 mb-2">
-                        <div class="loan-detail-row">
-                            <span class="loan-detail-label">Application PDF:</span>
-                            <span class="loan-detail-value">
-                                <a href="../../LoanSubsystem/${app.pdf_path}" target="_blank" class="btn btn-sm btn-outline-success">
-                                    <i class="fas fa-file-pdf me-1"></i>View PDF
-                                </a>
-                            </span>
-                        </div>
-                    </div>
-                    ` : ''}
+                    ${(() => {
+                const hasValidFile = (file) => file &&
+                    file !== 'N/A' &&
+                    file !== 'null' &&
+                    file !== 'none' &&
+                    file !== 'undefined' &&
+                    file.trim() !== '' &&
+                    !file.includes('undefined') &&
+                    !file.includes('null');
+
+                const docs = [
+                    { label: 'Valid ID', file: app.file_name, btn: 'btn-outline-primary', icon: 'fa-file' },
+                    { label: 'Proof of Income', file: app.proof_of_income, btn: 'btn-outline-primary', icon: 'fa-file' },
+                    { label: 'Certificate of Employment', file: app.coe_document, btn: 'btn-outline-primary', icon: 'fa-file' },
+                    { label: 'Application PDF', file: app.pdf_path, btn: 'btn-outline-success', icon: 'fa-file-pdf', isPdf: true }
+                ].filter(d => hasValidFile(d.file));
+
+                if (docs.length === 0) {
+                    return `
+                                <div class="col-12">
+                                    <div class="alert alert-light border d-flex align-items-center mb-0" style="background: #f9fafb; border-radius: 10px;">
+                                        <i class="fas fa-info-circle text-muted me-3" style="font-size: 1.25rem;"></i>
+                                        <div>
+                                            <p class="mb-0 fw-medium text-secondary">No Attached Documents</p>
+                                            <p class="mb-0 small text-muted">There are no supporting images or PDF files attached to this application.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                }
+
+                return docs.map(d => `
+                            <div class="col-md-6 mb-3">
+                                <div class="loan-detail-row">
+                                    <span class="loan-detail-label">${d.label}:</span>
+                                    <span class="loan-detail-value">
+                                        <a href="../../LoanSubsystem/${d.file}" target="_blank" class="btn btn-sm ${d.btn}">
+                                            <i class="fas ${d.icon} me-1"></i>View ${d.isPdf ? 'PDF' : 'File'}
+                                        </a>
+                                    </span>
+                                </div>
+                            </div>
+                        `).join('');
+            })()}
                 </div>
             </div>
-            ` : ''}
         `;
 
         modalBody.innerHTML = html;

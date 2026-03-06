@@ -170,7 +170,7 @@ function getChartData()
     global $conn;
 
     try {
-        // Account types distribution - join with account_types table
+        // 1. Account types distribution
         $result = $conn->query("
             SELECT 
                 at.category as type,
@@ -187,7 +187,7 @@ function getChartData()
             $account_types['values'][] = (int) $row['count'];
         }
 
-        // Transaction summary by journal type
+        // 2. Transaction distribution (by Journal Type)
         $result = $conn->query("
             SELECT 
                 jt.name as category,
@@ -198,22 +198,53 @@ function getChartData()
             GROUP BY jt.id, jt.name
         ");
 
-        $transaction_summary = ['labels' => [], 'values' => []];
+        $distribution = ['labels' => [], 'values' => []];
         while ($row = $result->fetch_assoc()) {
-            $transaction_summary['labels'][] = $row['category'];
-            $transaction_summary['values'][] = (int) $row['count'];
+            $distribution['labels'][] = $row['category'];
+            $distribution['values'][] = (int) $row['count'];
+        }
+
+        // 3. Category Summary (by Status)
+        $result = $conn->query("
+            SELECT 
+                status,
+                COUNT(*) as count
+            FROM journal_entries
+            GROUP BY status
+        ");
+        $category_summary = ['labels' => [], 'values' => []];
+        while ($row = $result->fetch_assoc()) {
+            $category_summary['labels'][] = ucfirst($row['status']);
+            $category_summary['values'][] = (int) $row['count'];
+        }
+
+        // 4. Growth (Monthly Volume)
+        $result = $conn->query("
+            SELECT 
+                DATE_FORMAT(entry_date, '%b') as month,
+                COUNT(*) as count
+            FROM journal_entries
+            GROUP BY month, DATE_FORMAT(entry_date, '%Y-%m')
+            ORDER BY DATE_FORMAT(entry_date, '%Y-%m')
+            LIMIT 12
+        ");
+        $growth = ['labels' => [], 'values' => []];
+        while ($row = $result->fetch_assoc()) {
+            $growth['labels'][] = $row['month'];
+            $growth['values'][] = (int) $row['count'];
         }
 
         return [
             'success' => true,
             'data' => [
                 'account_types' => $account_types,
-                'transaction_summary' => $transaction_summary
+                'distribution' => $distribution,
+                'category_summary' => $category_summary,
+                'growth' => $growth
             ]
         ];
 
     } catch (Exception $e) {
-        // Return fallback data if database query fails
         return [
             'success' => true,
             'data' => [
@@ -221,9 +252,17 @@ function getChartData()
                     'labels' => ['Assets', 'Liabilities', 'Equity', 'Revenue', 'Expenses'],
                     'values' => [45, 32, 28, 15, 25]
                 ],
-                'transaction_summary' => [
+                'distribution' => [
                     'labels' => ['Sales', 'Purchases', 'Payments', 'Receipts'],
                     'values' => [120, 85, 95, 110]
+                ],
+                'category_summary' => [
+                    'labels' => ['Posted', 'Draft', 'Voided'],
+                    'values' => [450, 120, 25]
+                ],
+                'growth' => [
+                    'labels' => ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                    'values' => [30, 45, 38, 62, 55, 75]
                 ]
             ]
         ];

@@ -13,6 +13,12 @@ let paginationState = {
     trialBalance: { perPage: 25, currentPage: 1 }
 };
 
+let chartDataStore = {
+    distribution: null,
+    category: null,
+    growth: null
+};
+
 document.addEventListener('DOMContentLoaded', function () {
     initializeGeneralLedger();
 });
@@ -192,25 +198,39 @@ function loadCharts() {
         })
         .then(data => {
             if (data.success) {
+                // Store data for switching tabs
+                chartDataStore.distribution = data.data.distribution;
+                chartDataStore.category = data.data.category_summary;
+                chartDataStore.growth = data.data.growth;
+
                 renderAccountTypesChart(data.data.account_types);
-                renderTransactionSummaryChart(data.data.transaction_summary);
+
+                // Initial load shows distribution
+                renderTransactionSummaryChart(chartDataStore.distribution);
                 renderAuditCharts(data.data);
-                console.log('Charts loaded successfully');
+                console.log('Charts loaded and data store initialized');
             } else {
                 console.warn('API returned error, using fallback chart data');
                 const fallbackData = getFallbackChartData();
+                chartDataStore.distribution = fallbackData.distribution;
+                chartDataStore.category = fallbackData.category_summary;
+                chartDataStore.growth = fallbackData.growth;
+
                 renderAccountTypesChart(fallbackData.account_types);
-                renderTransactionSummaryChart(fallbackData.transaction_summary);
+                renderTransactionSummaryChart(chartDataStore.distribution);
                 renderAuditCharts(fallbackData);
             }
         })
         .catch(error => {
             clearTimeout(timeoutId);
             console.error('Error loading charts:', error);
-            console.log('Using fallback chart data');
             const fallbackData = getFallbackChartData();
+            chartDataStore.distribution = fallbackData.distribution;
+            chartDataStore.category = fallbackData.category_summary;
+            chartDataStore.growth = fallbackData.growth;
+
             renderAccountTypesChart(fallbackData.account_types);
-            renderTransactionSummaryChart(fallbackData.transaction_summary);
+            renderTransactionSummaryChart(chartDataStore.distribution);
             renderAuditCharts(fallbackData);
         });
 }
@@ -1335,9 +1355,17 @@ function getFallbackChartData() {
             labels: ['Assets', 'Liabilities', 'Equity', 'Revenue', 'Expenses'],
             values: [45, 32, 28, 15, 25]
         },
-        transaction_summary: {
+        distribution: {
             labels: ['Sales', 'Purchases', 'Payments', 'Receipts'],
             values: [120, 85, 95, 110]
+        },
+        category_summary: {
+            labels: ['Posted', 'Draft', 'Voided'],
+            values: [450, 120, 25]
+        },
+        growth: {
+            labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+            values: [30, 45, 38, 62, 55, 75]
         }
     };
 }
@@ -3214,9 +3242,33 @@ function switchChartTab(btn, tabName) {
     document.querySelectorAll('.chart-tab-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
 
-    // Reload charts (in a full implementation, this would switch between chart views)
-    console.log('Switched to chart tab:', tabName);
-    showNotification('Viewing: ' + tabName.charAt(0).toUpperCase() + tabName.slice(1), 'info');
+    // Select data based on tab
+    let dataToRender = null;
+    let label = '';
+
+    switch (tabName) {
+        case 'distribution':
+            dataToRender = chartDataStore.distribution;
+            label = 'Distribution';
+            break;
+        case 'category':
+            dataToRender = chartDataStore.category;
+            label = 'Category Summary';
+            break;
+        case 'growth':
+            dataToRender = chartDataStore.growth;
+            label = 'Growth Trend';
+            break;
+    }
+
+    if (dataToRender) {
+        renderTransactionSummaryChart(dataToRender);
+        console.log(`Switched view to: ${label}`);
+        showNotification(`Switched view to ${label}`, 'success');
+    } else {
+        console.error('Data not found for tab:', tabName);
+        showNotification('Chart data not available', 'error');
+    }
 }
 
 window.switchChartTab = switchChartTab;

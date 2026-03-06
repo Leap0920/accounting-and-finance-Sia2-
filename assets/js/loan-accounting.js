@@ -52,31 +52,35 @@
                 dataTable = table.DataTable({
                     responsive: true,
                     pageLength: 25,
-                    order: [[4, 'desc']], // Order by start date descending (index 4)
-                    language: {
-                        info: "Showing _START_ to _END_ of _TOTAL_ loans",
-                        infoEmpty: "Showing 0 to 0 of 0 loans",
-                        infoFiltered: "(filtered from _MAX_ total loans)",
-                        lengthMenu: "Show _MENU_ loans per page",
-                        search: "Search loans:",
-                        zeroRecords: "No matching loans found",
-                        emptyTable: "No loan data available"
-                    },
-                    columnDefs: [
-                        { orderable: false, targets: [11] }, // Actions column not sortable (index 11)
-                        { type: 'date', targets: [4, 5] }, // Date columns (index 4, 5)
-                        { className: 'text-end', targets: [6, 8, 9] }, // Amount columns right-aligned (index 6, 8, 9)
-                        { className: 'text-center', targets: [0, 7, 10] } // Type, Rate, Status centered
-                    ],
-                    dom: '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>>rtip'
+                    ordering: false, // Disables all sorting icons
+                    paging: false,   // Disables paging
+                    info: false,     // Disables "Showing 1 to X of Y"
+                    searching: true, // We will use this internally or via search API
+                    dom: 't'         // Only table
                 });
                 console.log('DataTable initialized successfully');
             } else {
-                console.warn('Column count mismatch. Expected 10, found:', columnCount);
+                console.warn('Column count mismatch. Expected 12, found:', columnCount);
                 console.log('Skipping DataTable initialization to prevent errors');
             }
         }
     }
+
+    /**
+     * Internal search proxy for DataTables
+     */
+    window.filterLoanTable = function () {
+        const query = document.getElementById('loanSearchInput').value.toLowerCase();
+        if (dataTable) {
+            dataTable.search(query).draw();
+        } else {
+            const rows = document.querySelectorAll('#loanTable tbody tr');
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(query) ? '' : 'none';
+            });
+        }
+    };
 
     /**
      * Initialize all event handlers
@@ -167,16 +171,17 @@
 
         rows.forEach(row => {
             const cells = row.querySelectorAll('td');
-            if (cells.length >= 9) {
-                const loanNo = cells[0].textContent.trim();
-                const borrower = cells[1].textContent.trim();
-                const loanType = cells[2].textContent.trim();
-                const startDate = cells[3].textContent.trim();
-                const maturityDate = cells[4].textContent.trim();
-                const loanAmountStr = cells[5].textContent.trim().replace(/[₱,]/g, '');
-                const interestRate = cells[6].textContent.trim();
-                const outstandingStr = cells[7].textContent.trim().replace(/[₱,]/g, '');
-                const status = cells[8].textContent.trim();
+            if (cells.length >= 11) {
+                // Type is index 0
+                const loanNo = cells[1].textContent.trim();
+                const borrower = cells[2].textContent.trim(); // contains avatar and name
+                const loanType = cells[3].textContent.trim();
+                const startDate = cells[4].textContent.trim();
+                const maturityDate = cells[5].textContent.trim();
+                const loanAmountStr = cells[6].textContent.trim().replace(/[₱,]/g, '');
+                const interestRate = cells[7].textContent.trim();
+                const outstandingStr = cells[9].textContent.trim().replace(/[₱,]/g, ''); // index 9 is outstanding
+                const status = cells[10].textContent.trim(); // index 10 is status
 
                 const loanAmount = parseFloat(loanAmountStr) || 0;
                 const outstanding = parseFloat(outstandingStr) || 0;

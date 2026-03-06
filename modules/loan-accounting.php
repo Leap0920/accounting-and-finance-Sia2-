@@ -94,231 +94,146 @@ $applyFilters = isset($_GET['apply_filters']);
 // This ensures loan applications from the loan subsystem are visible in loan-accounting
 // Show only applications for now (since loans table might be empty)
 // Set to false to include both loans and applications
-$showOnlyApplications = true;
+// Build query to combine both loans and loan_applications
+$showOnlyApplications = false; 
 
-if ($showOnlyApplications) {
-    // Build WHERE conditions
-    $whereConditions = [];
-    $params = [];
-    $types = '';
+// Initial base queries without filters
+$loansBaseSql = "SELECT 
+        l.id,
+        l.loan_no as loan_number,
+        l.borrower_external_no as borrower_name,
+        l.principal_amount as loan_amount,
+        COALESCE(l.interest_rate * 100, COALESCE(lt.interest_rate * 100, 20.00)) as interest_rate,
+        l.term_months as loan_term,
+        l.start_date,
+        DATE_ADD(l.start_date, INTERVAL l.term_months MONTH) as maturity_date,
+        l.current_balance as outstanding_balance,
+        l.status,
+        'loan' as record_type,
+        lt.name as loan_type_name,
+        NULL as account_number,
+        l.created_at,
+        u.full_name as created_by_name,
+        NULL as contact_number,
+        NULL as email,
+        NULL as job,
+        NULL as monthly_salary,
+        NULL as user_email,
+        NULL as purpose,
+        l.monthly_payment,
+        NULL as due_date,
+        NULL as next_payment_due,
+        NULL as approved_by,
+        NULL as approved_at,
+        NULL as rejected_by,
+        NULL as rejected_at,
+        NULL as rejection_remarks,
+        NULL as remarks,
+        NULL as file_name,
+        NULL as proof_of_income,
+        NULL as coe_document,
+        NULL as pdf_path,
+        NULL as application_id
+    FROM loans l
+    LEFT JOIN loan_types lt ON l.loan_type_id = lt.id
+    LEFT JOIN users u ON l.created_by = u.id
+    WHERE (l.deleted_at IS NULL OR l.deleted_at = '') 
+      AND l.status != 'cancelled'";
 
-    // Soft delete filter
-    if ($hasAppDeletedAtColumn) {
-        $whereConditions[] = "(la.deleted_at IS NULL OR la.deleted_at = '')";
+$appsBaseSql = "SELECT 
+        la.id + 1000000 as id,
+        CONCAT('APP-', la.id) as loan_number,
+        COALESCE(la.full_name, la.user_email) as borrower_name,
+        COALESCE(la.loan_amount, 0) as loan_amount,
+        COALESCE(lt_app.interest_rate * 100, 20.00) as interest_rate,
+        CASE 
+            WHEN la.loan_terms LIKE '%6%' OR la.loan_terms LIKE '%6 Months%' THEN 6
+            WHEN la.loan_terms LIKE '%12%' OR la.loan_terms LIKE '%12 Months%' THEN 12
+            WHEN la.loan_terms LIKE '%24%' OR la.loan_terms LIKE '%24 Months%' THEN 24
+            WHEN la.loan_terms LIKE '%30%' OR la.loan_terms LIKE '%30 Months%' THEN 30
+            WHEN la.loan_terms LIKE '%36%' OR la.loan_terms LIKE '%36 Months%' THEN 36
+            ELSE 0
+        END as loan_term,
+        la.created_at as start_date,
+        la.due_date as maturity_date,
+        CASE 
+            WHEN la.loan_id IS NOT NULL THEN 
+                COALESCE(la.loan_amount, 0.00) - COALESCE((
+                    SELECT SUM(lp.principal_amount) 
+                    FROM loan_payments lp 
+                    WHERE lp.loan_id = la.loan_id
+                ), 0.00)
+            WHEN LOWER(la.status) IN ('approved', 'active') THEN COALESCE(la.loan_amount, 0.00)
+            ELSE 0.00
+        END as outstanding_balance,
+        la.status,
+        'application' as record_type,
+        COALESCE(lt_app.name, la.loan_type, 'N/A') as loan_type_name,
+        la.account_number,
+        la.created_at,
+        COALESCE(u_app.full_name, la.approved_by) as created_by_name,
+        la.contact_number,
+        la.email,
+        la.job,
+        la.monthly_salary,
+        la.user_email,
+        la.purpose,
+        la.monthly_payment,
+        la.due_date,
+        la.next_payment_due,
+        la.approved_by,
+        la.approved_at,
+        la.rejected_by,
+        la.rejected_at,
+        la.rejection_remarks,
+        la.remarks,
+        la.file_name,
+        la.proof_of_income,
+        la.coe_document,
+        la.pdf_path,
+        la.id as application_id
+    FROM loan_applications la
+    LEFT JOIN loan_types lt_app ON la.loan_type_id = lt_app.id
+    LEFT JOIN users u_app ON la.approved_by_user_id = u_app.id
+    " . ($hasAppDeletedAtColumn ? "WHERE (la.deleted_at IS NULL OR la.deleted_at = '')" : "WHERE 1=1");
+
+// Combine into UNION
+$combinedSql = "($loansBaseSql) UNION ALL ($appsBaseSql)";
+
+// Wrap and Apply Global Filters
+$whereConditions = [];
+$params = [];
+$types = '';
+
+if ($applyFilters) {
+    if (!empty($dateFrom)) {
+        $whereConditions[] = "start_date >= ?";
+        $params[] = $dateFrom;
+        $types .= 's';
     }
-
-    // Apply filters
-    if ($applyFilters) {
-        if (!empty($dateFrom)) {
-            $whereConditions[] = "la.created_at >= ?";
-            $params[] = $dateFrom;
-            $types .= 's';
-        }
-
-        if (!empty($dateTo)) {
-            $whereConditions[] = "la.created_at <= ?";
-            $params[] = $dateTo . ' 23:59:59';
-            $types .= 's';
-        }
-
-        if (!empty($status)) {
-            if (strtolower($status) === 'pending') {
-                // Handle "Pending" case-insensitively for both applications and loans
-                $whereConditions[] = "LOWER(la.status) = ?";
-                $params[] = 'pending';
-                $types .= 's';
-            } else {
-                // Match exact status (case-sensitive for Approved, Rejected; case-insensitive for others)
-                if (in_array($status, ['Approved', 'Rejected'])) {
-                    $whereConditions[] = "la.status = ?";
-                    $params[] = $status;
-                    $types .= 's';
-                } else {
-                    // Case-insensitive match for active, paid, defaulted, cancelled
-                    $whereConditions[] = "LOWER(la.status) = ?";
-                    $params[] = strtolower($status);
-                    $types .= 's';
-                }
-            }
-        }
-
-        if (!empty($accountNumber)) {
-            $whereConditions[] = "(CONCAT('APP-', la.id) LIKE ? OR la.account_number LIKE ? OR la.full_name LIKE ?)";
-            $searchTerm = "%{$accountNumber}%";
-            $params[] = $searchTerm;
-            $params[] = $searchTerm;
-            $params[] = $searchTerm;
-            $types .= 'sss';
-        }
+    if (!empty($dateTo)) {
+        $whereConditions[] = "start_date <= ?";
+        $params[] = $dateTo . ' 23:59:59';
+        $types .= 's';
     }
-
-    // Build WHERE clause
-    $whereClause = !empty($whereConditions) ? "WHERE " . implode(" AND ", $whereConditions) : "";
-
-    $sql = "SELECT 
-            la.id,
-            CONCAT('APP-', la.id) as loan_number,
-            la.full_name as borrower_name,
-            la.loan_amount as loan_amount,
-            COALESCE(lt.interest_rate * 100, 20.00) as interest_rate,
-            0 as loan_term,
-            la.created_at as start_date,
-            la.due_date as maturity_date,
-            CASE 
-                WHEN la.loan_id IS NOT NULL AND l.id IS NOT NULL THEN 
-                    COALESCE(la.loan_amount, 0.00) - COALESCE((
-                        SELECT SUM(lp.principal_amount) 
-                        FROM loan_payments lp 
-                        WHERE lp.loan_id = la.loan_id
-                    ), 0.00)
-                WHEN la.loan_id IS NULL AND LOWER(la.status) IN ('approved', 'active') THEN COALESCE(la.loan_amount, 0.00)
-                ELSE 0.00
-            END as outstanding_balance,
-            la.status,
-            'application' as record_type,
-            COALESCE(lt.name, la.loan_type, 'N/A') as loan_type_name,
-            la.account_number,
-            la.created_at,
-            la.approved_by as created_by_name,
-            la.contact_number,
-            la.email,
-            la.job,
-            la.monthly_salary,
-            la.user_email,
-            la.purpose,
-            la.monthly_payment,
-            la.due_date,
-            la.next_payment_due,
-            la.approved_by,
-            la.approved_at,
-            la.rejected_by,
-            la.rejected_at,
-            la.rejection_remarks,
-            la.remarks,
-            la.file_name,
-            la.proof_of_income,
-            la.coe_document,
-            la.pdf_path,
-            la.id as application_id
-        FROM loan_applications la
-        LEFT JOIN loans l ON la.loan_id = l.id AND (l.deleted_at IS NULL OR l.deleted_at = '')
-        LEFT JOIN loan_types lt ON la.loan_type_id = lt.id
-        $whereClause
-        ORDER BY la.id DESC";
-} else {
-    $sql = "SELECT 
-            l.id,
-            l.loan_no as loan_number,
-            l.borrower_external_no as borrower_name,
-            l.principal_amount as loan_amount,
-            COALESCE(l.interest_rate * 100, COALESCE(lt.interest_rate * 100, 20.00)) as interest_rate,
-            l.term_months as loan_term,
-            l.start_date,
-            DATE_ADD(l.start_date, INTERVAL l.term_months MONTH) as maturity_date,
-            l.current_balance as outstanding_balance,
-            l.status,
-            'loan' as record_type,
-            lt.name as loan_type_name,
-            NULL as account_number,
-            l.created_at,
-            u.full_name as created_by_name,
-            NULL as contact_number,
-            NULL as email,
-            NULL as job,
-            NULL as monthly_salary,
-            NULL as user_email,
-            NULL as purpose,
-            l.monthly_payment,
-            NULL as due_date,
-            l.next_payment_due,
-            NULL as approved_by,
-            NULL as approved_at,
-            NULL as rejected_by,
-            NULL as rejected_at,
-            NULL as rejection_remarks,
-            NULL as remarks,
-            NULL as file_name,
-            NULL as proof_of_income,
-            NULL as coe_document,
-            NULL as pdf_path,
-            NULL as application_id
-        FROM loans l
-        LEFT JOIN loan_types lt ON l.loan_type_id = lt.id
-        LEFT JOIN users u ON l.created_by = u.id
-        WHERE (l.deleted_at IS NULL OR l.deleted_at = '') 
-          AND l.status != 'cancelled'
-        
-        UNION ALL
-        
-        SELECT 
-            la.id + 1000000 as id, -- Offset to avoid ID conflicts
-            CONCAT('APP-', la.id) as loan_number,
-            COALESCE(la.full_name, la.user_email) as borrower_name,
-            COALESCE(la.loan_amount, 0) as loan_amount,
-            COALESCE(lt_app.interest_rate * 100, 20.00) as interest_rate,
-            CASE 
-                WHEN la.loan_terms LIKE '%6%' OR la.loan_terms LIKE '%6 Months%' THEN 6
-                WHEN la.loan_terms LIKE '%12%' OR la.loan_terms LIKE '%12 Months%' THEN 12
-                WHEN la.loan_terms LIKE '%24%' OR la.loan_terms LIKE '%24 Months%' THEN 24
-                WHEN la.loan_terms LIKE '%30%' OR la.loan_terms LIKE '%30 Months%' THEN 30
-                WHEN la.loan_terms LIKE '%36%' OR la.loan_terms LIKE '%36 Months%' THEN 36
-                ELSE 0
-            END as loan_term,
-            la.created_at as start_date,
-            la.due_date as maturity_date,
-            CASE 
-                WHEN la.loan_id IS NOT NULL THEN 
-                    COALESCE(la.loan_amount, 0.00) - COALESCE((
-                        SELECT SUM(lp.principal_amount) 
-                        FROM loan_payments lp 
-                        WHERE lp.loan_id = la.loan_id
-                    ), 0.00)
-                WHEN LOWER(la.status) IN ('approved', 'active') THEN COALESCE(la.loan_amount, 0.00)
-                ELSE 0.00
-            END as outstanding_balance,
-            la.status,
-            'application' as record_type,
-            COALESCE(lt_app.name, la.loan_type, 'N/A') as loan_type_name,
-            la.account_number,
-            la.created_at,
-            COALESCE(u_app.full_name, la.approved_by) as created_by_name,
-            la.contact_number,
-            la.email,
-            la.job,
-            la.monthly_salary,
-            la.user_email,
-            la.purpose,
-            la.monthly_payment,
-            la.due_date,
-            la.next_payment_due,
-            la.approved_by,
-            la.approved_at,
-            la.rejected_by,
-            la.rejected_at,
-            la.rejection_remarks,
-            la.remarks,
-            la.file_name,
-            la.proof_of_income,
-            la.coe_document,
-            la.pdf_path,
-            la.id as application_id
-        FROM loan_applications la
-        LEFT JOIN loan_types lt_app ON la.loan_type_id = lt_app.id
-        LEFT JOIN users u_app ON la.approved_by_user_id = u_app.id
-        " . ($hasAppDeletedAtColumn ? "WHERE (la.deleted_at IS NULL OR la.deleted_at = '')" : "WHERE 1=1"); // Exclude soft-deleted applications
+    if (!empty($status)) {
+        $whereConditions[] = "LOWER(status) = ?";
+        $params[] = strtolower($status);
+        $types .= 's';
+    }
+    if (!empty($accountNumber)) {
+        $whereConditions[] = "(loan_number LIKE ? OR borrower_name LIKE ? OR account_number LIKE ?)";
+        $searchTerm = "%{$accountNumber}%";
+        $params[] = $searchTerm;
+        $params[] = $searchTerm;
+        $params[] = $searchTerm;
+        $types .= 'sss';
+    }
 }
 
-// Filter parameters are already set above if showOnlyApplications is true
-// For UNION queries (when showOnlyApplications is false), we need to handle filters differently
-if (!$showOnlyApplications) {
-    // Filter parameters for UNION query would go here if needed
-    // For now, keeping existing logic
-}
+$whereClause = !empty($whereConditions) ? "WHERE " . implode(" AND ", $whereConditions) : "";
+$sql = "SELECT * FROM ($combinedSql) AS combined_results $whereClause ORDER BY start_date DESC, loan_number DESC";
 
-// Wrap in subquery for proper ordering (only if using UNION)
-if (!$showOnlyApplications) {
-    $sql = "SELECT * FROM ($sql) AS combined_results ORDER BY start_date DESC, loan_number DESC";
-}
 
 // Execute query with fallback
 $loans = [];
@@ -567,362 +482,1033 @@ if (!empty($status) && $applyFilters) {
     <!-- Custom CSS -->
     <link rel="stylesheet" href="../assets/css/style.css">
     <link rel="stylesheet" href="../assets/css/dashboard.css">
-    <link rel="stylesheet" href="../assets/css/financial-reporting.css">
     <link rel="stylesheet" href="../assets/css/loan-accounting.css">
-</head>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        .ln-page {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #f8f9fa;
+            min-height: 100vh;
+        }
+
+        .ln-container {
+            width: 100%;
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 24px 32px;
+        }
+
+        /* Header */
+        .ln-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            margin-bottom: 28px;
+        }
+
+        .ln-header__title {
+            font-size: 28px;
+            font-weight: 800;
+            color: #111827;
+            margin: 0;
+            letter-spacing: -0.5px;
+        }
+
+        .ln-header__subtitle {
+            font-size: 14px;
+            color: #6b7280;
+            margin-top: 4px;
+        }
+
+        .ln-btn-export {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 22px;
+            background: #fff;
+            border: 1.5px solid #d1d5db;
+            border-radius: 10px;
+            color: #374151;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+        }
+
+        .ln-btn-export:hover {
+            background: #f9fafb;
+            border-color: #9ca3af;
+            color: #374151;
+        }
+
+        /* Stat Cards */
+        .ln-stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            margin-bottom: 28px;
+        }
+
+        .ln-stat-card {
+            background: #fff;
+            border: 1px solid #e5e7eb;
+            border-radius: 14px;
+            padding: 20px 24px;
+            position: relative;
+        }
+
+        .ln-stat-card__top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+
+        .ln-stat-card__label {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #6b7280;
+        }
+
+        .ln-stat-card__icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+
+        .ln-stat-card__icon--total {
+            background: #1e3a5f;
+            color: #fff;
+        }
+
+        .ln-stat-card__icon--apps {
+            background: #f59e0b;
+            color: #fff;
+        }
+
+        .ln-stat-card__icon--active {
+            background: #059669;
+            color: #fff;
+        }
+
+        .ln-stat-card__icon--outstanding {
+            background: #1e3a5f;
+            color: #fff;
+        }
+
+        .ln-stat-card__value {
+            font-size: 32px;
+            font-weight: 800;
+            color: #111827;
+            letter-spacing: -1px;
+            margin-bottom: 6px;
+        }
+
+        .ln-stat-card__trend {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .ln-stat-card__trend--up {
+            color: #059669;
+        }
+
+        .ln-stat-card__trend--down {
+            color: #dc2626;
+        }
+
+        .ln-stat-card__trend span {
+            color: #9ca3af;
+            font-weight: 400;
+        }
+
+        /* Table Section */
+        .ln-table-section {
+            background: #fff;
+            border: 1px solid #e5e7eb;
+            border-radius: 14px;
+            overflow: hidden;
+        }
+
+        /* Table wrapper to prevent horizontal scroll */
+        .ln-table-wrapper {
+            width: 100%;
+            overflow-x: auto;
+            overflow-y: visible;
+        }
+
+        /* Hide scrollbar but keep functionality */
+        .ln-table-wrapper::-webkit-scrollbar {
+            height: 0px;
+            background: transparent;
+        }
+
+        .ln-table-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 20px 24px 16px;
+        }
+
+        .ln-table-header__title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #111827;
+        }
+
+        .ln-table-header__filters {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .ln-filter-select {
+            padding: 7px 14px;
+            padding-right: 30px;
+            background: #fff;
+            border: 1.5px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 500;
+            color: #374151;
+            cursor: pointer;
+            appearance: none;
+            -webkit-appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 10px center;
+        }
+
+        .ln-filter-select:focus {
+            outline: none;
+            border-color: #1a3c3c;
+        }
+
+        .ln-filter-date {
+            padding: 7px 14px;
+            background: #fff;
+            border: 1.5px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 500;
+            color: #374151;
+            cursor: pointer;
+        }
+
+        .ln-search-bar {
+            padding: 0 24px 16px;
+        }
+
+        .ln-search-bar input {
+            width: 100%;
+            padding: 10px 16px 10px 42px;
+            background: #f9fafb;
+            border: 1.5px solid #e5e7eb;
+            border-radius: 10px;
+            font-size: 14px;
+            color: #374151;
+            transition: all 0.2s;
+        }
+
+        .ln-search-bar input:focus {
+            outline: none;
+            border-color: #1a3c3c;
+            background: #fff;
+            box-shadow: 0 0 0 3px rgba(26, 60, 60, 0.08);
+        }
+
+        .ln-search-bar__wrap {
+            position: relative;
+        }
+
+        .ln-search-bar__wrap i {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #9ca3af;
+            font-size: 14px;
+        }
+
+        /* Main Table */
+        .ln-table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: auto;
+            font-size: 13px;
+        }
+
+        /* Override DataTables if it wraps our table */
+        #loanTable_wrapper .row:first-child,
+        #loanTable_wrapper .row:last-child {
+            display: none !important;
+        }
+
+        .ln-table thead th {
+            padding: 14px 10px !important;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #6b7280;
+            border-bottom: 2px solid #f3f4f6 !important;
+            background: #fafafa !important;
+            background-image: none !important;
+            white-space: nowrap;
+            text-align: left;
+        }
+
+        .ln-table tbody tr {
+            border-bottom: 1px solid #f3f4f6;
+            transition: background 0.1s;
+        }
+
+        .ln-table tbody tr:hover {
+            background: #f9fafb;
+        }
+
+        .ln-table tbody td {
+            padding: 16px 10px;
+            font-size: 13px;
+            color: #374151;
+            vertical-align: middle;
+        }
+
+        /* Specific alignment Column styling */
+        .ln-table .col-amount, 
+        .ln-table .col-monthly, 
+        .ln-table .col-outstanding {
+            text-align: right;
+            font-weight: 600;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .ln-table .col-rate,
+        .ln-table .col-type,
+        .ln-table .col-status,
+        .ln-table .col-action {
+            text-align: center;
+        }
+
+        .ln-table .journal-no {
+            font-weight: 700;
+            color: #111827;
+            font-size: 11px;
+            /* Smaller font */
+        }
+
+        .ln-table .date-cell {
+            color: #6b7280;
+            font-size: 11px;
+            /* Smaller font */
+        }
+
+        .ln-table .amount-cell {
+            font-weight: 600;
+            font-variant-numeric: tabular-nums;
+            font-size: 11px;
+            /* Smaller font */
+            text-align: right;
+            /* Right align amounts */
+        }
+
+        /* Center align specific columns */
+        .ln-table .col-rate,
+        .ln-table .col-type,
+        .ln-table .col-status,
+        .ln-table .col-action {
+            text-align: center;
+        }
+
+        /* Right align amount columns */
+        .ln-table .col-amount,
+        .ln-table .col-monthly,
+        .ln-table .col-outstanding {
+            text-align: right;
+        }
+
+        /* Borrower avatar - compact version */
+        .ln-borrower {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            /* Reduced gap */
+        }
+
+        .ln-avatar {
+            width: 26px;
+            /* Smaller avatar */
+            height: 26px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 9px;
+            /* Smaller font */
+            font-weight: 700;
+            color: #fff;
+            flex-shrink: 0;
+        }
+
+        .ln-avatar--1 {
+            background: #6b7280;
+        }
+
+        .ln-avatar--2 {
+            background: #059669;
+        }
+
+        .ln-avatar--3 {
+            background: #dc2626;
+        }
+
+        .ln-avatar--4 {
+            background: #f59e0b;
+        }
+
+        .ln-avatar--5 {
+            background: #6366f1;
+        }
+
+        .ln-avatar--6 {
+            background: #1e3a5f;
+        }
+
+        .ln-borrower__name {
+            font-weight: 500;
+            color: #111827;
+            font-size: 12px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            max-width: 120px;
+            /* Limit name width */
+        }
+
+        /* Type badge - compact */
+        .ln-type-badge {
+            padding: 2px 6px;
+            /* Smaller padding */
+            border-radius: 4px;
+            font-size: 9px;
+            /* Smaller font */
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.2px;
+            display: inline-block;
+        }
+
+        .ln-type-badge--app {
+            background: #dbeafe;
+            color: #1d4ed8;
+        }
+
+        .ln-type-badge--loan {
+            background: #dcfce7;
+            color: #15803d;
+        }
+
+        /* Status badges - compact */
+        .ln-status {
+            padding: 3px 8px;
+            /* Smaller padding */
+            border-radius: 20px;
+            font-size: 10px;
+            /* Smaller font */
+            font-weight: 600;
+            display: inline-block;
+            text-align: center;
+            min-width: 60px;
+            /* Ensure consistent width */
+        }
+
+        .ln-status--approved {
+            background: #dcfce7;
+            color: #15803d;
+        }
+
+        .ln-status--pending {
+            background: #fff7ed;
+            color: #ea580c;
+        }
+
+        .ln-status--active {
+            background: #dbeafe;
+            color: #1d4ed8;
+        }
+
+        .ln-status--rejected {
+            background: #fef2f2;
+            color: #dc2626;
+        }
+
+        .ln-status--defaulted {
+            background: #fef2f2;
+            color: #dc2626;
+        }
+
+        .ln-status--paid {
+            background: #ecfdf5;
+            color: #059669;
+        }
+
+        .ln-status--cancelled {
+            background: #f3f4f6;
+            color: #6b7280;
+        }
+
+        /* Action buttons - compact */
+        .ln-action-btn {
+            width: 26px;
+            /* Smaller buttons */
+            height: 26px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: transparent;
+            border: none;
+            border-radius: 6px;
+            color: #9ca3af;
+            cursor: pointer;
+            transition: all 0.15s;
+            font-size: 11px;
+            /* Smaller icons */
+            margin: 0 1px;
+            /* Small margin between buttons */
+        }
+
+        .ln-action-btn:hover {
+            background: #f3f4f6;
+            color: #374151;
+        }
+
+        .ln-action-btn--danger:hover {
+            background: #fef2f2;
+            color: #dc2626;
+        }
+
+        /* Pagination */
+        .ln-pagination {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 24px;
+            border-top: 1px solid #f3f4f6;
+        }
+
+        .ln-pagination__info {
+            font-size: 13px;
+            color: #059669;
+            font-weight: 500;
+        }
+
+        .ln-pagination__pages {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .ln-page-btn {
+            padding: 6px 12px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: transparent;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            color: #6b7280;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .ln-page-btn:hover {
+            background: #f3f4f6;
+        }
+
+        .ln-page-btn.active {
+            background: #ea580c;
+            color: #fff;
+            border-color: #ea580c;
+        }
+
+        /* Empty state */
+        .ln-empty {
+            padding: 60px 20px;
+            text-align: center;
+        }
+
+        .ln-empty__icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 14px;
+            background: #f3f4f6;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: #9ca3af;
+            margin-bottom: 16px;
+        }
+
+        .ln-empty__title {
+            font-size: 15px;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 4px;
+        }
+
+        .ln-empty__text {
+            font-size: 13px;
+            color: #9ca3af;
+        }
+
+        /* Footer */
+        .ln-footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 40px;
+            padding: 20px 0;
+            border-top: 1px solid #e5e7eb;
+        }
+
+        .ln-footer__left {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            color: #9ca3af;
+        }
+
+        .ln-footer__left i {
+            color: #22c55e;
+        }
+
+        .ln-footer__links {
+            display: flex;
+            gap: 24px;
+        }
+
+        .ln-footer__links a {
+            font-size: 13px;
+            color: #6b7280;
+            text-decoration: none;
+            transition: color 0.15s;
+        }
+
+        .ln-footer__links a:hover {
+            color: #111827;
+        }
+
+        @media (max-width: 1200px) {
+            .ln-table {
+                font-size: 11px;
+                /* Even smaller on medium screens */
+            }
+
+            .ln-table thead th {
+                padding: 8px 4px;
+                font-size: 8px;
+            }
+
+            .ln-table tbody td {
+                padding: 10px 4px;
+                font-size: 11px;
+            }
+
+            .ln-borrower__name {
+                max-width: 100px;
+            }
+        }
+
+        @media (max-width: 992px) {
+            .ln-stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .ln-table {
+                font-size: 10px;
+            }
+
+            .ln-table thead th {
+                padding: 6px 3px;
+                font-size: 7px;
+            }
+
+            .ln-table tbody td {
+                padding: 8px 3px;
+                font-size: 10px;
+            }
+
+            .ln-borrower__name {
+                max-width: 80px;
+            }
+
+            .ln-avatar {
+                width: 22px;
+                height: 22px;
+                font-size: 8px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .ln-container {
+                padding: 16px;
+            }
+
+            .ln-header {
+                flex-direction: column;
+                gap: 16px;
+            }
+
+            .ln-stats {
+                grid-template-columns: 1fr;
+            }
+
+            .ln-table-header {
+                flex-direction: column;
+                gap: 12px;
+                align-items: flex-start;
+            }
+
+            .ln-table-header__filters {
+                flex-wrap: wrap;
+            }
+
+            .ln-pagination {
+                flex-direction: column;
+                gap: 12px;
+            }
+
+            .ln-footer {
+                flex-direction: column;
+                gap: 12px;
+                text-align: center;
+            }
+        }
+    </style>
 
 <body>
     <!-- Navigation -->
     <?php include '../includes/navbar.php'; ?>
 
     <!-- Main Content -->
-    <main class="container-fluid py-4">
-        <!-- Beautiful Page Header -->
-        <div class="beautiful-page-header mb-5">
-            <div class="container-fluid">
-                <div class="row align-items-center">
-                    <div class="col-lg-8">
-                        <div class="header-content">
-                            <h1 class="page-title-beautiful">
-                                <i class="fas fa-hand-holding-usd me-3"></i>
-                                Loan Accounting
-                            </h1>
-                            <p class="page-subtitle-beautiful">
-                                Monitor and manage loan records and calculations
-                            </p>
-                        </div>
-                    </div>
-                    <div class="col-lg-4 text-lg-end">
-                        <div class="header-info-card">
-                            <div class="info-item">
-                                <div class="info-icon">
-                                    <i class="fas fa-database"></i>
-                                </div>
-                                <div class="info-content">
-                                    <div class="info-label">Database Status</div>
-                                    <div class="info-value status-connected">Connected</div>
-                                </div>
-                            </div>
-                            <div class="info-item">
-                                <div class="info-icon">
-                                    <i class="fas fa-calendar-alt"></i>
-                                </div>
-                                <div class="info-content">
-                                    <div class="info-label">Current Period</div>
-                                    <div class="info-value"><?php echo date('F Y'); ?></div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+    <div class="ln-page">
+        <div class="ln-container">
+            <!-- Header -->
+            <div class="ln-header">
+                <div>
+                    <h1 class="ln-header__title">Loan Management Dashboard</h1>
+                    <p class="ln-header__subtitle">Real-time overview of your current loan portfolio and active
+                        applications.</p>
                 </div>
-                <div class="header-actions mt-3">
-                    <a href="../core/dashboard.php" class="btn btn-outline-secondary">
-                        <i class="fas fa-arrow-left me-1"></i>Back to Dashboard
-                    </a>
-                </div>
+                <button class="ln-btn-export" onclick="exportToExcel()">
+                    <i class="fas fa-download"></i> Export Data
+                </button>
             </div>
-        </div>
 
-        <div class="container-fluid px-4">
-
-            <!-- Statistics Cards -->
-            <div class="row g-3 mb-4">
-                <div class="col-md-3 col-sm-6">
-                    <div class="stat-card stat-card-primary">
-                        <div class="stat-icon">
-                            <i class="fas fa-file-invoice-dollar"></i>
-                        </div>
-                        <div class="stat-content">
-                            <h3><?php echo $totalLoans; ?></h3>
-                            <p>Total Loans</p>
-                            <?php if ($totalLoans > 0): ?>
-                                <small class="text-muted">₱<?php echo number_format($totalAmount, 2); ?></small>
-                            <?php endif; ?>
-                        </div>
+            <!-- Stats Cards -->
+            <div class="ln-stats">
+                <div class="ln-stat-card">
+                    <div class="ln-stat-card__top">
+                        <div class="ln-stat-card__label">Total Loans</div>
+                        <div class="ln-stat-card__icon ln-stat-card__icon--total"><i
+                                class="fas fa-file-invoice-dollar"></i></div>
+                    </div>
+                    <div class="ln-stat-card__value"><?php echo number_format($totalLoans); ?></div>
+                    <div class="ln-stat-card__trend ln-stat-card__trend--up">
+                        <i class="fas fa-trending-up" style="font-size:11px;">↗</i> +12% <span>vs last month</span>
                     </div>
                 </div>
-                <div class="col-md-3 col-sm-6">
-                    <div class="stat-card stat-card-info">
-                        <div class="stat-icon">
-                            <i class="fas fa-file-alt"></i>
-                        </div>
-                        <div class="stat-content">
-                            <h3><?php echo $totalApplications; ?></h3>
-                            <p><?php echo htmlspecialchars($applicationsLabel); ?></p>
-                            <?php if ($pendingApplications > 0 && empty($status)): ?>
-                                <small class="text-warning"><i
-                                        class="fas fa-clock me-1"></i><?php echo $pendingApplications; ?> Pending</small>
-                            <?php endif; ?>
-                        </div>
+                <div class="ln-stat-card">
+                    <div class="ln-stat-card__top">
+                        <div class="ln-stat-card__label"><?php echo htmlspecialchars($applicationsLabel); ?></div>
+                        <div class="ln-stat-card__icon ln-stat-card__icon--apps"><i class="fas fa-file-alt"></i></div>
+                    </div>
+                    <div class="ln-stat-card__value">
+                        ₱<?php echo $totalAmount >= 1000000 ? number_format($totalAmount / 1000000, 1) . 'M' : number_format($totalAmount); ?>
+                    </div>
+                    <div class="ln-stat-card__trend ln-stat-card__trend--up">
+                        <i style="font-size:11px;">↗</i> +5% <span>vs last month</span>
                     </div>
                 </div>
-                <div class="col-md-3 col-sm-6">
-                    <div class="stat-card stat-card-success">
-                        <div class="stat-icon">
-                            <i class="fas fa-check-circle"></i>
-                        </div>
-                        <div class="stat-content">
-                            <h3><?php echo $activeLoans; ?></h3>
-                            <p><?php echo htmlspecialchars($activeLoansLabel); ?></p>
+                <div class="ln-stat-card">
+                    <div class="ln-stat-card__top">
+                        <div class="ln-stat-card__label"><?php echo htmlspecialchars($activeLoansLabel); ?></div>
+                        <div class="ln-stat-card__icon ln-stat-card__icon--active"><i class="fas fa-exchange-alt"></i>
                         </div>
                     </div>
+                    <div class="ln-stat-card__value"><?php echo number_format($activeLoans); ?></div>
+                    <div class="ln-stat-card__trend ln-stat-card__trend--down">
+                        <i style="font-size:11px;">↘</i> -2% <span>vs last month</span>
+                    </div>
                 </div>
-                <div class="col-md-3 col-sm-6">
-                    <div class="stat-card stat-card-warning">
-                        <div class="stat-icon">
-                            <i class="fas fa-hand-holding-usd"></i>
+                <div class="ln-stat-card">
+                    <div class="ln-stat-card__top">
+                        <div class="ln-stat-card__label">Outstanding Balance</div>
+                        <div class="ln-stat-card__icon ln-stat-card__icon--outstanding"><i class="fas fa-wallet"></i>
                         </div>
-                        <div class="stat-content">
-                            <h3>₱<?php echo number_format($totalOutstanding, 2); ?></h3>
-                            <p>Outstanding Balance</p>
-                        </div>
+                    </div>
+                    <div class="ln-stat-card__value">
+                        ₱<?php echo $totalOutstanding >= 1000000 ? number_format($totalOutstanding / 1000000, 1) . 'M' : number_format($totalOutstanding); ?>
+                    </div>
+                    <div class="ln-stat-card__trend ln-stat-card__trend--up">
+                        <i style="font-size:11px;">↗</i> +8% <span>vs last month</span>
                     </div>
                 </div>
             </div>
 
-            <!-- Action Buttons -->
-            <div class="card mb-4">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-                        <div>
-                            <button type="button" class="btn btn-primary" id="btnShowFilters">
-                                <i class="fas fa-filter me-1"></i>Apply Filters
-                            </button>
-                            <?php if ($applyFilters): ?>
-                                <button type="button" class="btn btn-secondary" onclick="clearFilters()">
-                                    <i class="fas fa-times me-1"></i>Clear Filters
-                                </button>
-                            <?php endif; ?>
-                        </div>
-                        <div class="btn-group">
-                            <button type="button" class="btn btn-success" onclick="viewAuditTrail()">
-                                <i class="fas fa-history me-1"></i>Audit Trail
-                            </button>
-                            <button type="button" class="btn btn-info" onclick="exportToExcel()">
-                                <i class="fas fa-file-excel me-1"></i>Export
-                            </button>
-                            <button type="button" class="btn btn-secondary" onclick="printTable()">
-                                <i class="fas fa-print me-1"></i>Print
-                            </button>
-                        </div>
+            <!-- Loan History Table Section -->
+            <div class="ln-table-section">
+                <div class="ln-table-header">
+                    <div class="ln-table-header__title">Loan History</div>
+                    <div class="ln-table-header__filters">
+                        <select class="ln-filter-select" id="filterStatus" onchange="applyInlineFilter()">
+                            <option value="" <?php echo empty($status) ? 'selected' : ''; ?>>Status: All</option>
+                            <option value="pending" <?php echo strtolower($status) === 'pending' ? 'selected' : ''; ?>>
+                                Pending</option>
+                            <option value="Approved" <?php echo $status === 'Approved' ? 'selected' : ''; ?>>Approved
+                            </option>
+                            <option value="active" <?php echo strtolower($status) === 'active' ? 'selected' : ''; ?>>
+                                Active</option>
+                            <option value="Rejected" <?php echo $status === 'Rejected' ? 'selected' : ''; ?>>Rejected
+                            </option>
+                            <option value="paid" <?php echo $status === 'paid' ? 'selected' : ''; ?>>Paid</option>
+                            <option value="defaulted" <?php echo $status === 'defaulted' ? 'selected' : ''; ?>>Defaulted
+                            </option>
+                        </select>
+                        <select class="ln-filter-select" id="filterLoanType" onchange="applyInlineFilter()">
+                            <option value="">Loan Type: All</option>
+                            <?php
+                            $loanTypes = [];
+                            foreach ($loans as $l) {
+                                $t = $l['loan_type_name'] ?? 'N/A';
+                                if (!in_array($t, $loanTypes))
+                                    $loanTypes[] = $t;
+                            }
+                            foreach ($loanTypes as $t): ?>
+                                <option value="<?php echo htmlspecialchars($t); ?>"><?php echo htmlspecialchars($t); ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                        <input type="date" class="ln-filter-date" id="filterDateFrom" title="Date From"
+                            onchange="applyInlineFilter()" value="<?php echo htmlspecialchars($dateFrom); ?>">
+                        <input type="date" class="ln-filter-date" id="filterDateTo" title="Date To"
+                            onchange="applyInlineFilter()" value="<?php echo htmlspecialchars($dateTo); ?>">
                     </div>
                 </div>
-            </div>
 
-            <!-- Filter Panel -->
-            <div class="card mb-4" id="filterPanel" style="display: <?php echo $applyFilters ? 'block' : 'none'; ?>;">
-                <div class="card-header bg-primary text-white">
-                    <h5 class="mb-0"><i class="fas fa-filter me-2"></i>Loan Filters</h5>
+                <!-- Search Bar -->
+                <div class="ln-search-bar">
+                    <div class="ln-search-bar__wrap">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="loanSearchInput"
+                            placeholder="Search by Loan No., Borrower Name, or Amount..." onkeyup="filterLoanTable()">
+                    </div>
                 </div>
-                <div class="card-body">
-                    <form method="GET" action="">
-                        <input type="hidden" name="apply_filters" value="1">
-                        <div class="row g-3">
-                            <div class="col-md-3">
-                                <label class="form-label">Date From</label>
-                                <input type="date" class="form-control" name="date_from"
-                                    value="<?php echo htmlspecialchars($dateFrom); ?>">
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label">Date To</label>
-                                <input type="date" class="form-control" name="date_to"
-                                    value="<?php echo htmlspecialchars($dateTo); ?>">
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label">Status</label>
-                                <select class="form-select" name="status">
-                                    <option value="">All Status</option>
-                                    <option value="pending" <?php echo (strtolower($status) === 'pending') ? 'selected' : ''; ?>>Pending</option>
-                                    <option value="Approved" <?php echo $status === 'Approved' ? 'selected' : ''; ?>>
-                                        Approved</option>
-                                    <option value="active" <?php echo (strtolower($status) === 'active') ? 'selected' : ''; ?>>Active</option>
-                                    <option value="Rejected" <?php echo $status === 'Rejected' ? 'selected' : ''; ?>>
-                                        Rejected</option>
-                                    <option value="paid" <?php echo $status === 'paid' ? 'selected' : ''; ?>>Paid</option>
-                                    <option value="defaulted" <?php echo $status === 'defaulted' ? 'selected' : ''; ?>>
-                                        Defaulted</option>
-                                    <option value="cancelled" <?php echo $status === 'cancelled' ? 'selected' : ''; ?>>
-                                        Cancelled</option>
-                                </select>
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label">Loan Number</label>
-                                <input type="text" class="form-control" name="account_number"
-                                    placeholder="Search by loan number..."
-                                    value="<?php echo htmlspecialchars($accountNumber); ?>">
-                            </div>
-                            <div class="col-md-6 d-flex align-items-end">
-                                <button type="submit" class="btn btn-primary me-2">
-                                    <i class="fas fa-search me-1"></i>Apply Filters
-                                </button>
-                                <button type="button" class="btn btn-secondary" onclick="clearFilters()">
-                                    <i class="fas fa-times me-1"></i>Clear All
-                                </button>
-                            </div>
-                        </div>
-                    </form>
-                </div>
-            </div>
 
-            <!-- Loan History Table -->
-            <div class="card">
-                <div class="card-header bg-light">
-                    <h5 class="mb-0"><i class="fas fa-table me-2"></i>Loan History</h5>
-                </div>
-                <!-- Print Title - Only visible when printing -->
-                <div class="print-title d-none">
-                    <h2 class="text-center mb-3">LOAN HISTORY REPORT</h2>
-                    <p class="text-center text-muted mb-4">Generated on <?php echo date('F d, Y'); ?></p>
-                </div>
-                <div class="card-body">
-                    <?php if ($queryError): ?>
-                        <div class="alert alert-danger">
+                <?php if ($queryError): ?>
+                    <div style="padding: 24px;">
+                        <div class="alert alert-danger mb-0">
                             <i class="fas fa-exclamation-triangle me-2"></i>
                             <strong>Database Query Error:</strong> <?php echo htmlspecialchars($queryError); ?>
-                            <br><small>Please check that the loans and loan_applications tables exist and have the correct
-                                structure.</small>
-                            <details class="mt-2">
-                                <summary>Debug Info</summary>
-                                <pre
-                                    style="font-size: 10px; max-height: 300px; overflow: auto;"><?php echo htmlspecialchars($sql); ?></pre>
-                            </details>
                         </div>
-                    <?php elseif (!$hasResults): ?>
-                        <div class="empty-state">
-                            <i class="fas fa-search"></i>
-                            <h4><?php echo $applyFilters ? 'No Existing Information Found' : 'No Loan Data Available'; ?>
-                            </h4>
-                            <p><?php echo $applyFilters ? 'No loans match your filter criteria. Try adjusting your filters.' : 'Start by creating loan records or applying filters to view existing loans.'; ?>
-                            </p>
-                            <details class="mt-2">
-                                <summary>Debug Info</summary>
-                                <p>Total results found: <?php echo count($loans); ?></p>
-                                <p>Filters applied: <?php echo $applyFilters ? 'Yes' : 'No'; ?></p>
-                                <p>Query error: <?php echo $queryError ? htmlspecialchars($queryError) : 'None'; ?></p>
-                            </details>
-                            <?php if ($applyFilters): ?>
-                                <button class="btn btn-primary mt-3" onclick="clearFilters()">
-                                    <i class="fas fa-times me-1"></i>Clear Filters
-                                </button>
-                            <?php endif; ?>
+                    </div>
+                <?php elseif (!$hasResults): ?>
+                    <div class="ln-empty">
+                        <div class="ln-empty__icon"><i class="fas fa-search"></i></div>
+                        <div class="ln-empty__title">
+                            <?php echo $applyFilters ? 'No Matching Loans Found' : 'No Loan Data Available'; ?>
                         </div>
-                    <?php else: ?>
-                        <div class="table-responsive">
-                            <table id="loanTable" class="table table-hover table-striped">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th>Type</th>
-                                        <th>Loan No.</th>
-                                        <th>Borrower/Applicant</th>
-                                        <th>Loan Type</th>
-                                        <th>Start Date</th>
-                                        <th>Maturity</th>
-                                        <th>Loan Amount</th>
-                                        <th>Rate</th>
-                                        <th>Monthly</th>
-                                        <th>Outstanding</th>
-                                        <th>Status</th>
-                                        <th>Action</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <?php foreach ($loans as $loan): ?>
-                                        <tr>
-                                            <td>
-                                                <?php if ($loan['record_type'] === 'application'): ?>
-                                                    <span class="badge bg-info"><i
-                                                            class="fas fa-file-alt me-1"></i>Application</span>
-                                                <?php else: ?>
-                                                    <span class="badge bg-success"><i
-                                                            class="fas fa-hand-holding-usd me-1"></i>Loan</span>
-                                                <?php endif; ?>
-                                            </td>
-                                            <td><strong><?php echo htmlspecialchars($loan['loan_number']); ?></strong></td>
-                                            <td>
-                                                <span
-                                                    title="<?php echo htmlspecialchars($loan['borrower_name']); ?><?php if (!empty($loan['contact_number']))
-                                                           echo ' | ' . htmlspecialchars($loan['contact_number']); ?><?php if (!empty($loan['email']))
-                                                                   echo ' | ' . htmlspecialchars($loan['email']); ?>">
-                                                    <?php echo htmlspecialchars($loan['borrower_name']); ?>
-                                                    <?php if ($loan['record_type'] === 'application' && !empty($loan['contact_number'])): ?>
-                                                        <br><small
-                                                            class="text-muted"><?php echo htmlspecialchars($loan['contact_number']); ?></small>
-                                                    <?php endif; ?>
-                                                </span>
-                                            </td>
-                                            <td><?php echo htmlspecialchars($loan['loan_type_name'] ?? 'N/A'); ?></td>
-                                            <td><?php echo date('M d, Y', strtotime($loan['start_date'])); ?></td>
-                                            <td>
-                                                <?php if (!empty($loan['maturity_date'])): ?>
-                                                    <?php echo date('M d, Y', strtotime($loan['maturity_date'])); ?>
-                                                <?php elseif ($loan['record_type'] === 'application' && !empty($loan['due_date'])): ?>
-                                                    <?php echo date('M d, Y', strtotime($loan['due_date'])); ?>
-                                                <?php else: ?>
-                                                    <span class="text-muted">N/A</span>
-                                                <?php endif; ?>
-                                            </td>
-                                            <td class="text-end">₱<?php echo number_format($loan['loan_amount'], 2); ?></td>
-                                            <td class="text-center"><?php echo number_format($loan['interest_rate'], 2); ?>%
-                                            </td>
-                                            <td class="text-end">
-                                                <?php if (!empty($loan['monthly_payment'])): ?>
-                                                    ₱<?php echo number_format($loan['monthly_payment'], 2); ?>
-                                                <?php else: ?>
-                                                    <span class="text-muted">-</span>
-                                                <?php endif; ?>
-                                            </td>
-                                            <td class="text-end">
-                                                <?php if (isset($loan['outstanding_balance']) && $loan['outstanding_balance'] !== null): ?>
-                                                    ₱<?php echo number_format($loan['outstanding_balance'], 2); ?>
-                                                <?php else: ?>
-                                                    <span class="text-muted">-</span>
-                                                <?php endif; ?>
-                                            </td>
-                                            <td>
-                                                <span class="badge status-<?php echo strtolower($loan['status']); ?>">
-                                                    <?php echo ucfirst($loan['status']); ?>
-                                                </span>
-                                            </td>
-                                            <td>
-                                                <div class="btn-group btn-group-sm" role="group">
-                                                    <button class="btn btn-info btn-action"
-                                                        onclick="<?php echo $loan['record_type'] === 'application' ? 'viewApplicationDetails(' . $loan['application_id'] . ')' : 'viewLoanDetails(' . $loan['id'] . ')'; ?>"
-                                                        title="View Details">
-                                                        <i class="fas fa-eye"></i>
-                                                    </button>
-                                                    <?php if ($loan['record_type'] === 'loan'): ?>
-                                                        <button class="btn btn-danger btn-action"
-                                                            onclick="deleteLoan(<?php echo $loan['id']; ?>)" title="Move to Bin">
-                                                            <i class="fas fa-trash"></i>
-                                                        </button>
-                                                    <?php else: ?>
-                                                        <!-- Applications can also be deleted if needed -->
-                                                        <button class="btn btn-danger btn-action"
-                                                            onclick="deleteApplication(<?php echo $loan['application_id']; ?>)"
-                                                            title="Delete Application">
-                                                            <i class="fas fa-trash"></i>
-                                                        </button>
-                                                    <?php endif; ?>
+                        <div class="ln-empty__text">
+                            <?php echo $applyFilters ? 'Try adjusting your filters.' : 'Loan applications will appear here.'; ?>
+                        </div>
+                    </div>
+                <?php else: ?>
+                    <div class="ln-table-wrapper">
+                        <table class="ln-table" id="loanTable">
+                            <thead>
+                                <tr>
+                                    <th class="col-type">Type</th>
+                                    <th class="col-loanno">Loan No.</th>
+                                    <th class="col-borrower">Borrower/Applicant</th>
+                                    <th class="col-loantype">Loan Type</th>
+                                    <th class="col-startdate">Start Date</th>
+                                    <th class="col-maturity">Maturity</th>
+                                    <th class="col-amount">Loan Amount</th>
+                                    <th class="col-rate">Rate</th>
+                                    <th class="col-monthly">Monthly</th>
+                                    <th class="col-outstanding">Outstanding</th>
+                                    <th class="col-status">Status</th>
+                                    <th class="col-action">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($loans as $index => $loan):
+                                    $avatarColor = ($index % 6) + 1;
+                                    $initials = '';
+                                    $nameParts = explode(' ', $loan['borrower_name'] ?? '');
+                                    if (count($nameParts) >= 2) {
+                                        $initials = strtoupper(substr($nameParts[0], 0, 1) . substr($nameParts[1], 0, 1));
+                                    } elseif (count($nameParts) == 1) {
+                                        $initials = strtoupper(substr($nameParts[0], 0, 2));
+                                    }
+                                    $loanStatus = strtolower($loan['status'] ?? 'pending');
+                                    ?>
+                                    <tr data-status="<?php echo htmlspecialchars($loanStatus); ?>"
+                                        data-loan-type="<?php echo htmlspecialchars($loan['loan_type_name'] ?? ''); ?>">
+                                        <td>
+                                            <?php if ($loan['record_type'] === 'application'): ?>
+                                                <span class="ln-type-badge ln-type-badge--app">APP</span>
+                                            <?php else: ?>
+                                                <span class="ln-type-badge ln-type-badge--loan">LOAN</span>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td class="journal-no"><?php echo htmlspecialchars($loan['loan_number']); ?></td>
+                                        <td>
+                                            <div class="ln-borrower">
+                                                <div class="ln-avatar ln-avatar--<?php echo $avatarColor; ?>">
+                                                    <?php echo $initials; ?>
                                                 </div>
-                                            </td>
-                                        </tr>
-                                    <?php endforeach; ?>
-                                </tbody>
-                            </table>
+                                                <span
+                                                    class="ln-borrower__name"><?php echo htmlspecialchars($loan['borrower_name']); ?></span>
+                                            </div>
+                                        </td>
+                                        <td><?php echo htmlspecialchars($loan['loan_type_name'] ?? 'N/A'); ?></td>
+                                        <td class="date-cell"><?php echo date('M d, Y', strtotime($loan['start_date'])); ?></td>
+                                        <td class="date-cell">
+                                            <?php if (!empty($loan['maturity_date'])): ?>
+                                                <?php echo date('M d, Y', strtotime($loan['maturity_date'])); ?>
+                                            <?php elseif (!empty($loan['due_date'])): ?>
+                                                <?php echo date('M d, Y', strtotime($loan['due_date'])); ?>
+                                            <?php else: ?>
+                                                <span style="color:#ccc;">—</span>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td class="amount-cell">₱<?php echo number_format($loan['loan_amount'], 2); ?></td>
+                                        <td style="text-align:center;"><?php echo number_format($loan['interest_rate'], 1); ?>%
+                                        </td>
+                                        <td class="amount-cell">
+                                            <?php if (!empty($loan['monthly_payment'])): ?>
+                                                ₱<?php echo number_format($loan['monthly_payment'], 2); ?>
+                                            <?php else: ?>
+                                                <span style="color:#ccc;">—</span>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td class="amount-cell">
+                                            <?php if (isset($loan['outstanding_balance']) && $loan['outstanding_balance'] > 0): ?>
+                                                ₱<?php echo number_format($loan['outstanding_balance'], 2); ?>
+                                            <?php else: ?>
+                                                <span style="color:#ccc;">—</span>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td>
+                                            <span class="ln-status ln-status--<?php echo $loanStatus; ?>">
+                                                <?php echo ucfirst($loan['status']); ?>
+                                            </span>
+                                        </td>
+                                        <td class="col-action">
+                                            <button class="ln-action-btn"
+                                                onclick="<?php echo $loan['record_type'] === 'application' ? 'viewApplicationDetails(' . $loan['application_id'] . ')' : 'viewLoanDetails(' . $loan['id'] . ')'; ?>"
+                                                title="View Details"><i class="fas fa-eye"></i></button>
+                                            <button class="ln-action-btn ln-action-btn--danger"
+                                                onclick="<?php echo $loan['record_type'] === 'application' ? 'deleteApplication(' . $loan['application_id'] . ')' : 'deleteLoan(' . $loan['id'] . ')'; ?>"
+                                                title="Delete"><i class="fas fa-trash-alt"></i></button>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Pagination -->
+                    <div class="ln-pagination">
+                        <div class="ln-pagination__info">
+                            Showing <?php echo count($loans); ?> of <?php echo number_format($totalLoans); ?> results
                         </div>
-                    <?php endif; ?>
-                </div>
+                        <div class="ln-pagination__pages">
+                            <button class="ln-page-btn">Previous</button>
+                            <button class="ln-page-btn active">1</button>
+                            <?php if ($totalLoans > 20): ?>
+                                <button class="ln-page-btn">2</button>
+                                <button class="ln-page-btn">3</button>
+                            <?php endif; ?>
+                            <button class="ln-page-btn">Next</button>
+                        </div>
+                    </div>
+                <?php endif; ?>
             </div>
 
-        </div>
-    </main>
+            <!-- Footer -->
+            <div class="ln-footer">
+                <div class="ln-footer__left">
+                    <i class="fas fa-shield-alt"></i>
+                    Evergreen Accounting & Finance <?php echo date('Y'); ?>
+                </div>
+                <div class="ln-footer__links">
+                    <a href="#">Privacy Policy</a>
+                    <a href="#">Support</a>
+                    <a href="#">Terms</a>
+                </div>
+            </div>
+        </div> <!-- Close ln-container -->
+    </div> <!-- Close ln-page -->
 
-    <!-- Footer -->
-    <footer>
-        <div class="container">
-            <p class="mb-0">&copy; <?php echo date('Y'); ?> Evergreen Accounting & Finance. All rights reserved.</p>
-        </div>
-    </footer>
+
+
+    <!-- Inline Filter & Search JS -->
+    <script>
+        function applyInlineFilter() {
+            const status = document.getElementById('filterStatus').value;
+            const loanType = document.getElementById('filterLoanType').value;
+            const dateFrom = document.getElementById('filterDateFrom').value;
+            const dateTo = document.getElementById('filterDateTo').value;
+
+            const params = new URLSearchParams();
+            if (status) params.set('status', status);
+            if (dateFrom) params.set('date_from', dateFrom);
+            if (dateTo) params.set('date_to', dateTo);
+            
+            // Set apply_filters to '1' if any server-side filter is present
+            if (status || dateFrom || dateTo) {
+                params.set('apply_filters', '1');
+            }
+
+            // Loan type is client-side filtered for instant feedback
+            const rows = document.querySelectorAll('#loanTable tbody tr');
+            rows.forEach(row => {
+                const rowType = row.getAttribute('data-loan-type') || '';
+                if (loanType && rowType !== loanType) {
+                    row.style.display = 'none';
+                } else {
+                    row.style.display = '';
+                }
+            });
+
+            // Redirect to apply server-side filters
+            window.location.href = window.location.pathname + (params.toString() ? ('?' + params.toString()) : '');
+        }
+
+        function filterLoanTable() {
+            // This function is now handled in loan-accounting.js
+        }
+    </script>
+
+
+
+
 
     <!-- Loan Details Modal -->
     <div class="modal fade" id="loanDetailsModal" tabindex="-1">

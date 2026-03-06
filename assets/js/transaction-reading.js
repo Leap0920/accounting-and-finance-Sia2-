@@ -74,220 +74,210 @@
     };
 
     /**
-     * Export table data to Excel with professional formatting
+     * Export table data to PDF with professional formatting
      */
-    window.exportToExcel = function () {
-        // Get table data
+    window.exportToPDF = function () {
         const table = document.getElementById('transactionTable');
-        const rows = table.querySelectorAll('tbody tr:not([colspan])');
+        const rows = table.querySelectorAll('tbody tr[data-transaction-id]');
 
         if (rows.length === 0) {
             showNotification('No data available to export', 'warning');
             return;
         }
 
-        // Show loading
-        showLoading('Preparing Excel export...');
+        showLoading('Generating PDF...');
 
-        // Get filter information
-        const urlParams = new URLSearchParams(window.location.search);
-        const dateFrom = urlParams.get('date_from') || '';
-        const dateTo = urlParams.get('date_to') || '';
-        const typeFilter = urlParams.get('type') || '';
-        const statusFilter = urlParams.get('status') || '';
-        const accountFilter = urlParams.get('account') || '';
-        const hasFilters = dateFrom || dateTo || typeFilter || statusFilter || accountFilter;
+        try {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('portrait', 'mm', 'a4');
+            const primaryColor = [27, 62, 62];
 
-        // Calculate totals
-        let totalDebit = 0;
-        let totalCredit = 0;
-        const statusCounts = {};
-        const typeCounts = {};
-        const transactions = [];
+            // Header bar
+            doc.setFillColor(...primaryColor);
+            doc.rect(0, 0, 210, 30, 'F');
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(20);
+            doc.setFont('helvetica', 'bold');
+            doc.text('EVERGREEN', 14, 15);
+            doc.setFontSize(9);
+            doc.setFont('helvetica', 'normal');
+            doc.text('Secure. Invest. Achieve', 14, 22);
 
-        rows.forEach(row => {
-            const cells = row.querySelectorAll('td');
-            if (cells.length >= 9) {
-                const journalNo = cells[0].textContent.trim();
-                const date = cells[1].textContent.trim();
-                const typeFull = cells[2].textContent.trim().replace(/\n/g, ' ').replace(/\s+/g, ' ');
-                const typeCode = typeFull.split(' ')[0];
-                const typeName = typeFull.substring(typeCode.length).trim();
-                const description = cells[3].textContent.trim();
-                const reference = cells[4].textContent.trim();
-                const debitStr = cells[5].textContent.trim().replace(/,/g, '');
-                const creditStr = cells[6].textContent.trim().replace(/,/g, '');
-                const status = cells[7].textContent.trim();
-                const createdBy = cells[8].textContent.trim();
+            doc.setFontSize(14);
+            doc.setFont('helvetica', 'bold');
+            doc.text('Transaction Report', 210 - 14, 15, { align: 'right' });
+            doc.setFontSize(9);
+            doc.setFont('helvetica', 'normal');
+            doc.text('Generated: ' + new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }), 210 - 14, 22, { align: 'right' });
 
-                const debit = parseFloat(debitStr) || 0;
-                const credit = parseFloat(creditStr) || 0;
+            // Collect data
+            let totalDebit = 0;
+            let totalCredit = 0;
+            const statusCounts = {};
+            const tableData = [];
 
-                totalDebit += debit;
-                totalCredit += credit;
+            rows.forEach(row => {
+                const cells = row.querySelectorAll('td');
+                if (cells.length >= 8) {
+                    const journalNo = cells[0].textContent.trim();
+                    const date = cells[1].textContent.trim();
+                    const type = cells[2].textContent.trim();
+                    const description = cells[3].textContent.trim();
+                    const reference = cells[4].textContent.trim();
+                    const debit = parseFloat(cells[5].textContent.trim().replace(/[$,]/g, '')) || 0;
+                    const credit = parseFloat(cells[6].textContent.trim().replace(/[$,]/g, '')) || 0;
+                    const status = cells[7].textContent.trim();
 
-                statusCounts[status] = (statusCounts[status] || 0) + 1;
-                typeCounts[typeCode] = (typeCounts[typeCode] || 0) + 1;
+                    totalDebit += debit;
+                    totalCredit += credit;
+                    statusCounts[status] = (statusCounts[status] || 0) + 1;
 
-                transactions.push({
-                    journalNo,
-                    date,
-                    typeCode,
-                    typeName,
-                    description,
-                    reference,
-                    debit,
-                    credit,
-                    status,
-                    createdBy
-                });
-            }
-        });
+                    tableData.push([
+                        journalNo, date, type,
+                        description.length > 30 ? description.substring(0, 27) + '...' : description,
+                        reference,
+                        '$' + debit.toLocaleString('en-US', { minimumFractionDigits: 2 }),
+                        '$' + credit.toLocaleString('en-US', { minimumFractionDigits: 2 }),
+                        status
+                    ]);
+                }
+            });
 
-        // Build professional CSV content
-        let csvContent = '';
+            // Summary
+            doc.setTextColor(0, 0, 0);
+            doc.setFontSize(12);
+            doc.setFont('helvetica', 'bold');
+            doc.text('Summary', 14, 40);
+            doc.setFontSize(10);
+            doc.setFont('helvetica', 'normal');
+            const summaryParts = ['Total: ' + rows.length];
+            Object.entries(statusCounts).forEach(([s, c]) => { summaryParts.push(s + ': ' + c); });
+            doc.text(summaryParts.join('    '), 14, 47);
+            doc.setFont('courier', 'bold');
+            doc.text('Debit: $' + totalDebit.toLocaleString('en-US', { minimumFractionDigits: 2 }) + '    Credit: $' + totalCredit.toLocaleString('en-US', { minimumFractionDigits: 2 }), 14, 54);
 
-        // Header Section
-        csvContent += 'EVERGREEN ACCOUNTING & FINANCE SYSTEM\n';
-        csvContent += 'TRANSACTION RECORDING REPORT\n';
-        csvContent += '\n';
-        csvContent += `Report Generated: ${new Date().toLocaleString('en-US', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-        })}\n`;
-        csvContent += '\n';
+            // Table
+            doc.autoTable({
+                startY: 60,
+                head: [['Journal No.', 'Date', 'Type', 'Description', 'Ref', 'Debit', 'Credit', 'Status']],
+                body: tableData,
+                theme: 'grid',
+                headStyles: { fillColor: primaryColor, textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 8, halign: 'center', cellPadding: 3 },
+                bodyStyles: { fontSize: 8, cellPadding: 3, lineColor: [200, 200, 200], lineWidth: 0.3 },
+                columnStyles: {
+                    0: { halign: 'left', cellWidth: 22 },
+                    1: { halign: 'left', cellWidth: 22 },
+                    2: { halign: 'center', cellWidth: 16 },
+                    3: { halign: 'left', cellWidth: 40 },
+                    4: { halign: 'left', cellWidth: 20 },
+                    5: { halign: 'right', cellWidth: 22, font: 'courier' },
+                    6: { halign: 'right', cellWidth: 22, font: 'courier' },
+                    7: { halign: 'center', cellWidth: 18 }
+                },
+                alternateRowStyles: { fillColor: [255, 255, 255] },
+                styles: { lineColor: [180, 180, 180], lineWidth: 0.3 },
+                margin: { left: 14, right: 14 },
+                didDrawPage: function (data) {
+                    doc.setFontSize(8);
+                    doc.setTextColor(128, 128, 128);
+                    doc.text('Page ' + data.pageNumber, 105, doc.internal.pageSize.height - 10, { align: 'center' });
+                    doc.text('\u00a9 2025 Evergreen Accounting & Finance', 14, doc.internal.pageSize.height - 10);
+                }
+            });
 
-        // Report Parameters Section
-        csvContent += 'REPORT PARAMETERS\n';
-        csvContent += '\n';
-        if (hasFilters) {
-            csvContent += 'Filter Criteria Applied:\n';
-            if (dateFrom) csvContent += `  Date From: ${dateFrom}\n`;
-            if (dateTo) csvContent += `  Date To: ${dateTo}\n`;
-            if (typeFilter) csvContent += `  Transaction Type: ${typeFilter}\n`;
-            if (statusFilter) csvContent += `  Status: ${statusFilter.toUpperCase()}\n`;
-            if (accountFilter) csvContent += `  Account: ${accountFilter}\n`;
-        } else {
-            csvContent += '  All Transactions (No Filters Applied)\n';
+            // Total row
+            const finalY = doc.lastAutoTable.finalY + 5;
+            doc.setFillColor(...primaryColor);
+            doc.rect(14, finalY, 182, 10, 'F');
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(9);
+            doc.setFont('helvetica', 'bold');
+            doc.text('TOTAL', 20, finalY + 7);
+            doc.setFont('courier', 'bold');
+            doc.text('Debit: $' + totalDebit.toLocaleString('en-US', { minimumFractionDigits: 2 }) + '   Credit: $' + totalCredit.toLocaleString('en-US', { minimumFractionDigits: 2 }), 182, finalY + 7, { align: 'right' });
+
+            doc.save('Transaction_Report_' + new Date().toISOString().split('T')[0] + '.pdf');
+            hideLoading();
+            showNotification('PDF exported successfully!', 'success');
+        } catch (error) {
+            hideLoading();
+            console.error('PDF export error:', error);
+            showNotification('Failed to generate PDF: ' + error.message, 'error');
         }
-        csvContent += '\n';
-        csvContent += '\n';
-
-        // Executive Summary Section
-        csvContent += 'EXECUTIVE SUMMARY\n';
-        csvContent += '\n';
-        csvContent += 'Metric,Value\n';
-        csvContent += `Total Transactions,${rows.length}\n`;
-        csvContent += `Total Debit Amount,${totalDebit.toFixed(2)}\n`;
-        csvContent += `Total Credit Amount,${totalCredit.toFixed(2)}\n`;
-        csvContent += `Balance Difference,${(totalDebit - totalCredit).toFixed(2)}\n`;
-        csvContent += '\n';
-
-        // Summary by Status
-        csvContent += 'SUMMARY BY STATUS\n';
-        csvContent += '\n';
-        csvContent += 'Status,Count,Percentage (%)\n';
-        Object.keys(statusCounts).sort().forEach(status => {
-            const count = statusCounts[status];
-            const percentage = ((count / rows.length) * 100).toFixed(2);
-            csvContent += `"${status.toUpperCase()}",${count},${percentage}%\n`;
-        });
-        csvContent += '\n';
-
-        // Summary by Type
-        csvContent += 'SUMMARY BY TRANSACTION TYPE\n';
-        csvContent += '\n';
-        csvContent += 'Type Code,Count,Percentage (%)\n';
-        Object.keys(typeCounts).sort().forEach(typeCode => {
-            const count = typeCounts[typeCode];
-            const percentage = ((count / rows.length) * 100).toFixed(2);
-            csvContent += `"${typeCode}",${count},${percentage}%\n`;
-        });
-        csvContent += '\n';
-        csvContent += '\n';
-        csvContent += '\n';
-
-        // Transaction Details Section
-        csvContent += 'TRANSACTION DETAILS\n';
-        csvContent += '\n';
-        csvContent += 'Journal No.,Date,Type Code,Type Name,Description,Reference No.,Debit Amount,Credit Amount,Status,Created By\n';
-
-        transactions.forEach(trans => {
-            csvContent += `"${trans.journalNo}",`;
-            csvContent += `"${trans.date}",`;
-            csvContent += `"${trans.typeCode}",`;
-            csvContent += `"${trans.typeName.replace(/"/g, '""')}",`;
-            csvContent += `"${trans.description.replace(/"/g, '""')}",`;
-            csvContent += `"${trans.reference || '-'}",`;
-            csvContent += `${trans.debit.toFixed(2)},`;
-            csvContent += `${trans.credit.toFixed(2)},`;
-            csvContent += `"${trans.status.toUpperCase()}",`;
-            csvContent += `"${trans.createdBy}"\n`;
-        });
-
-        // Totals Row
-        csvContent += '\n';
-        csvContent += '"TOTAL","","","","","",';
-        csvContent += `${totalDebit.toFixed(2)},`;
-        csvContent += `${totalCredit.toFixed(2)},`;
-        csvContent += '"",""\n';
-        csvContent += '\n';
-        csvContent += '\n';
-
-        // Footer Section
-        csvContent += 'REPORT INFORMATION\n';
-        csvContent += '\n';
-        csvContent += '"This report was generated by the Evergreen Accounting & Finance System"\n';
-        csvContent += `"Report Period: ${hasFilters ? 'Filtered Data' : 'All Available Data'}"\n`;
-        csvContent += `"Total Transactions: ${rows.length} transaction(s)"\n`;
-        csvContent += `"Total Debit: ${totalDebit.toFixed(2)}"\n`;
-        csvContent += `"Total Credit: ${totalCredit.toFixed(2)}"\n`;
-        csvContent += `"Balance Check: ${totalDebit === totalCredit ? 'BALANCED' : 'UNBALANCED'}"\n`;
-        csvContent += `"Export Date: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}"\n`;
-        csvContent += '\n';
-        csvContent += '"© ' + new Date().getFullYear() + ' Evergreen Accounting & Finance. All rights reserved."\n';
-
-        // Create and download file
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement('a');
-        const url = URL.createObjectURL(blob);
-
-        const dateStr = new Date().toISOString().split('T')[0];
-        const filename = `transaction_report_${dateStr}.csv`;
-        link.setAttribute('href', url);
-        link.setAttribute('download', filename);
-        link.style.visibility = 'hidden';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-
-        hideLoading();
-        showNotification('Excel file exported successfully!', 'success');
     };
 
+
+
     /**
-     * Print transaction table
+     * Print transaction table only (strictly hides everything else)
      */
     window.printTable = function () {
-        // Hide filter panel before printing
-        const filterPanel = document.getElementById('filterPanel');
-        const originalDisplay = filterPanel ? filterPanel.style.display : '';
-
-        if (filterPanel) {
-            filterPanel.style.display = 'none';
-        }
-
-        // Print
+        const printStyle = document.createElement('style');
+        printStyle.id = 'tr-print-styles';
+        printStyle.textContent = `
+            @media print {
+                @page { 
+                    size: landscape; 
+                    margin: 10mm;
+                }
+                
+                /* Hide everything except target */
+                body > *:not(.tr-container), 
+                .tr-container > *:not(.tr-table-section),
+                .tr-toolbar, .tr-filter-panel, .tr-pagination, .tr-action-btn,
+                nav, .navbar, .sidebar, footer, .modal,
+                .tr-table th:last-child, .tr-table td:last-child {
+                    display: none !important;
+                }
+                
+                /* Ensure container and table section are visible and clean */
+                .tr-container { 
+                    padding: 0 !important; 
+                    margin: 0 !important; 
+                    max-width: 100% !important; 
+                    width: 100% !important;
+                }
+                .tr-table-section { 
+                    border: none !important; 
+                    box-shadow: none !important; 
+                    width: 100% !important;
+                    overflow: visible !important;
+                }
+                
+                /* Table styling for print */
+                .tr-table { 
+                    font-size: 8pt !important; 
+                    border: 0.5pt solid #ccc !important;
+                    width: 100% !important;
+                    table-layout: auto !important;
+                }
+                .tr-table thead th { 
+                    background-color: #f8f9fa !important; 
+                    color: #000 !important;
+                    font-weight: bold !important;
+                    border-bottom: 1pt solid #000 !important;
+                    -webkit-print-color-adjust: exact;
+                    print-color-adjust: exact;
+                }
+                .tr-table tbody td { 
+                    padding: 4pt 6pt !important;
+                    border-bottom: 0.2pt solid #eee !important;
+                    word-break: break-word !important;
+                }
+                .tr-type-badge {
+                    border: 0.5pt solid #ddd !important;
+                    padding: 0.5pt 3pt !important;
+                    background: transparent !important;
+                    color: #000 !important;
+                }
+            }
+        `;
+        document.head.appendChild(printStyle);
         window.print();
-
-        // Restore filter panel display
-        if (filterPanel) {
-            filterPanel.style.display = originalDisplay;
-        }
+        setTimeout(() => {
+            const el = document.getElementById('tr-print-styles');
+            if (el) el.remove();
+        }, 1000);
     };
 
     /**

@@ -1289,20 +1289,6 @@ if (!empty($status) && $applyFilters) {
                             <option value="defaulted" <?php echo $status === 'defaulted' ? 'selected' : ''; ?>>Defaulted
                             </option>
                         </select>
-                        <select class="ln-filter-select" id="filterLoanType" onchange="applyInlineFilter()">
-                            <option value="">Loan Type: All</option>
-                            <?php
-                            $loanTypes = [];
-                            foreach ($loans as $l) {
-                                $t = $l['loan_type_name'] ?? 'N/A';
-                                if (!in_array($t, $loanTypes))
-                                    $loanTypes[] = $t;
-                            }
-                            foreach ($loanTypes as $t): ?>
-                                <option value="<?php echo htmlspecialchars($t); ?>"><?php echo htmlspecialchars($t); ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
                         <input type="date" class="ln-filter-date" id="filterDateFrom" title="Date From"
                             onchange="applyInlineFilter()" value="<?php echo htmlspecialchars($dateFrom); ?>">
                         <input type="date" class="ln-filter-date" id="filterDateTo" title="Date To"
@@ -1367,8 +1353,7 @@ if (!empty($status) && $applyFilters) {
                                     }
                                     $loanStatus = strtolower($loan['status'] ?? 'pending');
                                     ?>
-                                    <tr data-status="<?php echo htmlspecialchars($loanStatus); ?>"
-                                        data-loan-type="<?php echo htmlspecialchars($loan['loan_type_name'] ?? ''); ?>">
+                                    <tr data-status="<?php echo htmlspecialchars($loanStatus); ?>">
                                         <td>
                                             <?php if ($loan['record_type'] === 'application'): ?>
                                                 <span class="ln-type-badge ln-type-badge--app">APP</span>
@@ -1472,7 +1457,6 @@ if (!empty($status) && $applyFilters) {
     <script>
         function applyInlineFilter() {
             const status = document.getElementById('filterStatus').value;
-            const loanType = document.getElementById('filterLoanType').value;
             const dateFrom = document.getElementById('filterDateFrom').value;
             const dateTo = document.getElementById('filterDateTo').value;
 
@@ -1481,21 +1465,9 @@ if (!empty($status) && $applyFilters) {
             if (dateFrom) params.set('date_from', dateFrom);
             if (dateTo) params.set('date_to', dateTo);
             
-            // Set apply_filters to '1' if any server-side filter is present
             if (status || dateFrom || dateTo) {
                 params.set('apply_filters', '1');
             }
-
-            // Loan type is client-side filtered for instant feedback
-            const rows = document.querySelectorAll('#loanTable tbody tr');
-            rows.forEach(row => {
-                const rowType = row.getAttribute('data-loan-type') || '';
-                if (loanType && rowType !== loanType) {
-                    row.style.display = 'none';
-                } else {
-                    row.style.display = '';
-                }
-            });
 
             // Redirect to apply server-side filters
             window.location.href = window.location.pathname + (params.toString() ? ('?' + params.toString()) : '');

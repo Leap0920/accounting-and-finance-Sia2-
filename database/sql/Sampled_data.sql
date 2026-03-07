@@ -1815,6 +1815,248 @@ SET @oct_2025 = (SELECT id FROM fiscal_periods WHERE period_name = 'October 2025
 SET @nov_2025 = (SELECT id FROM fiscal_periods WHERE period_name = 'November 2025');
 SET @dec_2025 = (SELECT id FROM fiscal_periods WHERE period_name = 'December 2025');
 
+-- 2026 Fiscal Period Variables
+SET @fiscal_q1_2026 = (SELECT id FROM fiscal_periods WHERE period_name = 'FY2026-Q1');
+SET @jan_2026 = (SELECT id FROM fiscal_periods WHERE period_name = 'January 2026');
+SET @feb_2026 = (SELECT id FROM fiscal_periods WHERE period_name = 'February 2026');
+SET @mar_2026 = (SELECT id FROM fiscal_periods WHERE period_name = 'March 2026');
+
+-- Additional journal type variables
+SET @sal_type = (SELECT id FROM journal_types WHERE code = 'SAL');
+SET @pur_type = (SELECT id FROM journal_types WHERE code = 'PUR');
+SET @bank_type = (SELECT id FROM journal_types WHERE code = 'BANK');
+
+-- ========================================
+-- 8.5 BANKING & REPORTING DATA
+-- ========================================
+
+-- Populate transaction_types
+INSERT INTO transaction_types (type_name, description) VALUES
+('Deposit', 'Cash or check deposit into account'),
+('Withdrawal', 'Cash withdrawal from account'),
+('Transfer In', 'Incoming transfer from another account'),
+('Transfer Out', 'Outgoing transfer to another account'),
+('Fee', 'Service charge or bank fee'),
+('Interest Payment', 'Interest earned on deposits'),
+('Loan Payment', 'Payment towards an active loan')
+ON DUPLICATE KEY UPDATE description = VALUES(description);
+
+-- Populate bank_customers (using employee names for consistency)
+INSERT INTO bank_customers (customer_id, first_name, last_name, email, phone, address) VALUES
+(1, 'Juan Carlos', 'Santos', 'juan.santos@company.com', '09171234567', 'Makati City, Metro Manila'),
+(2, 'Maria Elena', 'Rodriguez', 'maria.rodriguez@company.com', '09171234568', 'BGC, Taguig City'),
+(3, 'Jose Miguel', 'Cruz', 'jose.cruz@company.com', '09171234569', 'Ortigas, Pasig City'),
+(4, 'Ana Patricia', 'Lopez', 'ana.lopez@company.com', '09171234570', 'Mandaluyong City'),
+(5, 'Roberto Antonio', 'Garcia', 'roberto.garcia@company.com', '09171234571', 'Quezon City'),
+(6, 'Carmen Sofia', 'Martinez', 'carmen.martinez@company.com', '09171234572', 'San Juan City'),
+(7, 'Fernando Luis', 'Torres', 'fernando.torres@company.com', '09171234573', 'Pasay City'),
+(8, 'Isabella Rose', 'Flores', 'isabella.flores@company.com', '09171234574', 'Makati City'),
+(9, 'Miguel Angel', 'Reyes', 'miguel.reyes@company.com', '09171234575', 'Taguig City'),
+(10, 'Sofia Grace', 'Villanueva', 'sofia.villanueva@company.com', '09171234576', 'Mandaluyong City'),
+(11, 'Carlos Eduardo', 'Mendoza', 'carlos.mendoza@company.com', '09171234577', 'Pasig City'),
+(12, 'Patricia Isabel', 'Gutierrez', 'patricia.gutierrez@company.com', '09171234578', 'Quezon City'),
+(13, 'Ricardo Manuel', 'Herrera', 'ricardo.herrera@company.com', '09171234579', 'Manila City'),
+(14, 'Gabriela Alejandra', 'Morales', 'gabriela.morales@company.com', '09171234580', 'Makati City'),
+(15, 'Diego Fernando', 'Ramos', 'diego.ramos@company.com', '09171234581', 'Taguig City')
+ON DUPLICATE KEY UPDATE first_name = VALUES(first_name);
+
+-- Populate customer_accounts
+INSERT INTO customer_accounts (account_id, customer_id, account_number, account_type, balance, status) VALUES
+(1, 1, 'SA-2025-001', 'savings', 185000.00, 'active'),
+(2, 1, 'CA-2025-001', 'checking', 92000.00, 'active'),
+(3, 2, 'SA-2025-002', 'savings', 520000.00, 'active'),
+(4, 2, 'BZ-2025-001', 'business', 1250000.00, 'active'),
+(5, 3, 'SA-2025-003', 'savings', 310000.00, 'active'),
+(6, 4, 'SA-2025-004', 'savings', 175000.00, 'active'),
+(7, 5, 'SA-2025-005', 'savings', 420000.00, 'active'),
+(8, 5, 'CA-2025-005', 'checking', 88000.00, 'active'),
+(9, 6, 'SA-2025-006', 'savings', 95000.00, 'active'),
+(10, 7, 'SA-2025-007', 'savings', 130000.00, 'active'),
+(11, 8, 'SA-2025-008', 'savings', 72000.00, 'active'),
+(12, 9, 'SA-2025-009', 'savings', 245000.00, 'active'),
+(13, 10, 'SA-2025-010', 'savings', 68000.00, 'active'),
+(14, 11, 'SA-2025-011', 'savings', 110000.00, 'active'),
+(15, 12, 'SA-2025-012', 'savings', 55000.00, 'active'),
+(16, 13, 'SA-2025-013', 'savings', 85000.00, 'active'),
+(17, 14, 'SA-2025-014', 'savings', 42000.00, 'active'),
+(18, 15, 'SA-2025-015', 'savings', 78000.00, 'active'),
+(19, 3, 'CA-2025-003', 'checking', 195000.00, 'active'),
+(20, 7, 'BZ-2025-007', 'business', 350000.00, 'active')
+ON DUPLICATE KEY UPDATE balance = VALUES(balance);
+
+-- Populate bank_transactions (realistic accounting transactions)
+INSERT INTO bank_transactions (transaction_ref, account_id, transaction_type_id, amount, description, created_at) VALUES
+-- January 2025 - Deposits (Salary deposits, client payments)
+('TXN-2025-0001', 1, 1, 65000.00, 'Cash in - Salary deposit January 2025', '2025-01-15 10:00:00'),
+('TXN-2025-0002', 3, 1, 200000.00, 'Cash in - Salary deposit January 2025', '2025-01-15 10:05:00'),
+('TXN-2025-0003', 5, 1, 220000.00, 'Cash in - Salary deposit January 2025', '2025-01-15 10:10:00'),
+('TXN-2025-0004', 4, 1, 850000.00, 'Cash in - Client payment ABC Corp Invoice INV-2025-001', '2025-01-20 14:30:00'),
+('TXN-2025-0005', 7, 1, 200000.00, 'Cash in - Salary deposit January 2025', '2025-01-15 10:15:00'),
+('TXN-2025-0006', 20, 1, 450000.00, 'Cash in - Sales collection from XYZ Trading', '2025-01-25 11:00:00'),
+-- January 2025 - Withdrawals (Operating expenses)
+('TXN-2025-0007', 2, 2, 100000.00, 'Cash out - Office rent payment January', '2025-01-05 09:00:00'),
+('TXN-2025-0008', 2, 2, 75000.00, 'Cash out - Utilities payment January', '2025-01-10 14:00:00'),
+('TXN-2025-0009', 8, 2, 50000.00, 'Cash out - Office supplies purchase', '2025-01-12 11:30:00'),
+-- January 2025 - Transfers
+('TXN-2025-0010', 4, 3, 500000.00, 'Transfer money in - From BDO main account', '2025-01-08 09:30:00'),
+('TXN-2025-0011', 2, 4, 500000.00, 'Transfer money out - To BPI operations', '2025-01-08 09:30:00'),
+-- January 2025 - Interest
+('TXN-2025-0012', 3, 6, 4500.00, 'Interest earned - Savings account Jan', '2025-01-31 23:59:00'),
+('TXN-2025-0013', 7, 6, 3200.00, 'Interest earned - Savings account Jan', '2025-01-31 23:59:00'),
+-- January 2025 - Fees
+('TXN-2025-0014', 2, 5, 500.00, 'Bank service fee - January', '2025-01-31 23:00:00'),
+
+-- February 2025
+('TXN-2025-0015', 1, 1, 65000.00, 'Cash in - Salary deposit February 2025', '2025-02-14 10:00:00'),
+('TXN-2025-0016', 3, 1, 200000.00, 'Cash in - Salary deposit February 2025', '2025-02-14 10:05:00'),
+('TXN-2025-0017', 4, 1, 620000.00, 'Cash in - Client payment DEF Industries INV-2025-012', '2025-02-18 15:00:00'),
+('TXN-2025-0018', 20, 1, 380000.00, 'Cash in - Sales collection from LMN Corp', '2025-02-22 10:30:00'),
+('TXN-2025-0019', 2, 2, 100000.00, 'Cash out - Office rent payment February', '2025-02-03 09:00:00'),
+('TXN-2025-0020', 2, 2, 80000.00, 'Cash out - Utilities payment February', '2025-02-08 14:00:00'),
+('TXN-2025-0021', 8, 2, 150000.00, 'Cash out - Marketing campaign payment', '2025-02-15 11:00:00'),
+('TXN-2025-0022', 3, 6, 5200.00, 'Interest earned - Savings account Feb', '2025-02-28 23:59:00'),
+('TXN-2025-0023', 2, 5, 500.00, 'Bank service fee - February', '2025-02-28 23:00:00'),
+-- February 2025 - Loan Payment
+('TXN-2025-0024', 1, 7, 4500.00, 'Paid loan - Salary loan installment LN-1001', '2025-02-01 10:00:00'),
+('TXN-2025-0025', 5, 7, 8000.00, 'Paid loan - Housing loan installment LN-1004', '2025-02-01 10:00:00'),
+
+-- March 2025
+('TXN-2025-0026', 1, 1, 65000.00, 'Cash in - Salary deposit March 2025', '2025-03-14 10:00:00'),
+('TXN-2025-0027', 4, 1, 950000.00, 'Cash in - Major client payment GHI Group INV-2025-020', '2025-03-10 14:00:00'),
+('TXN-2025-0028', 6, 1, 120000.00, 'Cash in - Salary deposit March 2025', '2025-03-14 10:05:00'),
+('TXN-2025-0029', 2, 2, 100000.00, 'Cash out - Office rent payment March', '2025-03-03 09:00:00'),
+('TXN-2025-0030', 2, 2, 78000.00, 'Cash out - Utilities payment March', '2025-03-07 14:00:00'),
+('TXN-2025-0031', 8, 2, 80000.00, 'Cash out - Professional fees legal consultation', '2025-03-20 16:00:00'),
+('TXN-2025-0032', 4, 3, 300000.00, 'Transfer money in - From Security Bank investment', '2025-03-15 10:00:00'),
+('TXN-2025-0033', 8, 4, 300000.00, 'Transfer money out - To BPI operations', '2025-03-15 10:00:00'),
+('TXN-2025-0034', 3, 6, 5800.00, 'Interest earned - Savings account Mar', '2025-03-31 23:59:00'),
+('TXN-2025-0035', 1, 7, 4500.00, 'Paid loan - Salary loan installment LN-1001', '2025-03-01 10:00:00'),
+
+-- April 2025 - Q2
+('TXN-2025-0036', 4, 1, 720000.00, 'Cash in - Client payment JKL Solutions INV-2025-031', '2025-04-08 11:00:00'),
+('TXN-2025-0037', 20, 1, 550000.00, 'Cash in - Sales collection April batch', '2025-04-20 14:00:00'),
+('TXN-2025-0038', 1, 1, 65000.00, 'Cash in - Salary deposit April 2025', '2025-04-15 10:00:00'),
+('TXN-2025-0039', 2, 2, 100000.00, 'Cash out - Office rent payment April', '2025-04-02 09:00:00'),
+('TXN-2025-0040', 2, 2, 82000.00, 'Cash out - Utilities payment April', '2025-04-10 14:00:00'),
+('TXN-2025-0041', 8, 2, 35000.00, 'Cash out - Office equipment purchase', '2025-04-18 11:00:00'),
+('TXN-2025-0042', 3, 6, 5500.00, 'Interest earned - Savings account Apr', '2025-04-30 23:59:00'),
+('TXN-2025-0043', 2, 5, 500.00, 'Bank service fee - April', '2025-04-30 23:00:00'),
+('TXN-2025-0044', 5, 7, 8000.00, 'Paid loan - Housing loan installment LN-1004', '2025-04-01 10:00:00'),
+
+-- May 2025
+('TXN-2025-0045', 4, 1, 680000.00, 'Cash in - Client payment MNO Holdings INV-2025-042', '2025-05-12 10:30:00'),
+('TXN-2025-0046', 20, 1, 420000.00, 'Cash in - Sales collection May batch', '2025-05-22 15:00:00'),
+('TXN-2025-0047', 2, 2, 100000.00, 'Cash out - Office rent payment May', '2025-05-02 09:00:00'),
+('TXN-2025-0048', 2, 2, 85000.00, 'Cash out - Utilities payment May', '2025-05-09 14:00:00'),
+('TXN-2025-0049', 3, 6, 5600.00, 'Interest earned - Savings account May', '2025-05-31 23:59:00'),
+('TXN-2025-0050', 1, 7, 4500.00, 'Paid loan - Salary loan installment LN-1001', '2025-05-01 10:00:00'),
+
+-- June 2025
+('TXN-2025-0051', 4, 1, 890000.00, 'Cash in - Client payment PQR Corp INV-2025-055', '2025-06-10 11:00:00'),
+('TXN-2025-0052', 20, 1, 510000.00, 'Cash in - Sales collection June batch', '2025-06-25 14:00:00'),
+('TXN-2025-0053', 2, 2, 100000.00, 'Cash out - Office rent payment June', '2025-06-02 09:00:00'),
+('TXN-2025-0054', 8, 2, 45000.00, 'Cash out - Training and development costs', '2025-06-15 16:00:00'),
+('TXN-2025-0055', 4, 3, 200000.00, 'Transfer money in - From BDO main account', '2025-06-20 10:00:00'),
+('TXN-2025-0056', 2, 4, 200000.00, 'Transfer money out - To BPI operations', '2025-06-20 10:00:00'),
+('TXN-2025-0057', 3, 6, 6100.00, 'Interest earned - Savings account Jun', '2025-06-30 23:59:00'),
+('TXN-2025-0058', 2, 5, 500.00, 'Bank service fee - June', '2025-06-30 23:00:00'),
+
+-- July 2025 - Q3
+('TXN-2025-0059', 4, 1, 780000.00, 'Cash in - Client payment STU Enterprises INV-2025-068', '2025-07-08 10:00:00'),
+('TXN-2025-0060', 20, 1, 490000.00, 'Cash in - Sales collection July batch', '2025-07-20 14:00:00'),
+('TXN-2025-0061', 2, 2, 100000.00, 'Cash out - Office rent payment July', '2025-07-02 09:00:00'),
+('TXN-2025-0062', 2, 2, 88000.00, 'Cash out - Utilities payment July', '2025-07-08 14:00:00'),
+('TXN-2025-0063', 5, 7, 8000.00, 'Paid loan - Housing loan installment LN-1004', '2025-07-01 10:00:00'),
+
+-- August 2025
+('TXN-2025-0064', 4, 1, 920000.00, 'Cash in - Client payment VWX Corp INV-2025-079', '2025-08-12 11:30:00'),
+('TXN-2025-0065', 20, 1, 530000.00, 'Cash in - Sales collection August batch', '2025-08-25 14:00:00'),
+('TXN-2025-0066', 2, 2, 100000.00, 'Cash out - Office rent payment August', '2025-08-01 09:00:00'),
+('TXN-2025-0067', 8, 2, 120000.00, 'Cash out - IT infrastructure upgrade', '2025-08-20 15:00:00'),
+('TXN-2025-0068', 3, 6, 6500.00, 'Interest earned - Savings account Aug', '2025-08-31 23:59:00'),
+
+-- September 2025
+('TXN-2025-0069', 4, 1, 850000.00, 'Cash in - Client payment YZA Inc INV-2025-088', '2025-09-10 10:00:00'),
+('TXN-2025-0070', 20, 1, 470000.00, 'Cash in - Sales collection September batch', '2025-09-22 14:00:00'),
+('TXN-2025-0071', 2, 2, 100000.00, 'Cash out - Office rent payment September', '2025-09-01 09:00:00'),
+('TXN-2025-0072', 2, 2, 90000.00, 'Cash out - Utilities payment September', '2025-09-09 14:00:00'),
+('TXN-2025-0073', 1, 7, 4500.00, 'Paid loan - Salary loan installment LN-1001', '2025-09-01 10:00:00'),
+('TXN-2025-0074', 3, 6, 6800.00, 'Interest earned - Savings account Sep', '2025-09-30 23:59:00'),
+('TXN-2025-0075', 2, 5, 500.00, 'Bank service fee - September', '2025-09-30 23:00:00'),
+
+-- October 2025 - Q4
+('TXN-2025-0076', 4, 1, 1050000.00, 'Cash in - Major client contract BCD Global INV-2025-095', '2025-10-05 10:00:00'),
+('TXN-2025-0077', 20, 1, 580000.00, 'Cash in - Sales collection October batch', '2025-10-20 14:00:00'),
+('TXN-2025-0078', 2, 2, 100000.00, 'Cash out - Office rent payment October', '2025-10-01 09:00:00'),
+('TXN-2025-0079', 8, 2, 250000.00, 'Cash out - Equipment purchase new workstations', '2025-10-15 11:00:00'),
+('TXN-2025-0080', 5, 7, 8000.00, 'Paid loan - Housing loan installment LN-1004', '2025-10-01 10:00:00'),
+
+-- November 2025
+('TXN-2025-0081', 4, 1, 980000.00, 'Cash in - Client payment EFG Partners INV-2025-103', '2025-11-08 10:30:00'),
+('TXN-2025-0082', 20, 1, 620000.00, 'Cash in - Sales collection November batch', '2025-11-22 14:00:00'),
+('TXN-2025-0083', 2, 2, 100000.00, 'Cash out - Office rent payment November', '2025-11-03 09:00:00'),
+('TXN-2025-0084', 2, 2, 92000.00, 'Cash out - Utilities payment November', '2025-11-07 14:00:00'),
+('TXN-2025-0085', 3, 6, 7200.00, 'Interest earned - Savings account Nov', '2025-11-30 23:59:00'),
+
+-- December 2025
+('TXN-2025-0086', 4, 1, 1200000.00, 'Cash in - Year-end client payment HIJ Corp INV-2025-115', '2025-12-05 10:00:00'),
+('TXN-2025-0087', 20, 1, 700000.00, 'Cash in - Sales collection December batch', '2025-12-18 14:00:00'),
+('TXN-2025-0088', 2, 2, 100000.00, 'Cash out - Office rent payment December', '2025-12-01 09:00:00'),
+('TXN-2025-0089', 8, 2, 180000.00, 'Cash out - Year-end bonuses misc expenses', '2025-12-20 15:00:00'),
+('TXN-2025-0090', 4, 3, 400000.00, 'Transfer money in - Year-end fund reallocation', '2025-12-15 10:00:00'),
+('TXN-2025-0091', 2, 4, 400000.00, 'Transfer money out - To BPI operations year-end', '2025-12-15 10:00:00'),
+('TXN-2025-0092', 3, 6, 7800.00, 'Interest earned - Savings account Dec', '2025-12-31 23:59:00'),
+('TXN-2025-0093', 2, 5, 500.00, 'Bank service fee - December', '2025-12-31 23:00:00'),
+('TXN-2025-0094', 1, 7, 4500.00, 'Paid loan - Final installment salary loan LN-1001', '2025-12-01 10:00:00'),
+('TXN-2025-0095', 5, 7, 8000.00, 'Paid loan - Housing loan installment LN-1004', '2025-12-01 10:00:00'),
+
+-- January 2026
+('TXN-2026-0001', 4, 1, 880000.00, 'Cash in - Client payment KLM Corp INV-2026-001', '2026-01-10 10:00:00'),
+('TXN-2026-0002', 20, 1, 520000.00, 'Cash in - Sales collection January batch', '2026-01-22 14:00:00'),
+('TXN-2026-0003', 1, 1, 65000.00, 'Cash in - Salary deposit January 2026', '2026-01-15 10:00:00'),
+('TXN-2026-0004', 2, 2, 105000.00, 'Cash out - Office rent payment January 2026', '2026-01-03 09:00:00'),
+('TXN-2026-0005', 2, 2, 85000.00, 'Cash out - Utilities payment January 2026', '2026-01-08 14:00:00'),
+('TXN-2026-0006', 3, 6, 7500.00, 'Interest earned - Savings account Jan 2026', '2026-01-31 23:59:00'),
+('TXN-2026-0007', 5, 7, 8000.00, 'Paid loan - Housing loan installment LN-1004', '2026-01-01 10:00:00'),
+('TXN-2026-0008', 2, 5, 500.00, 'Bank service fee - January 2026', '2026-01-31 23:00:00'),
+
+-- February 2026
+('TXN-2026-0009', 4, 1, 760000.00, 'Cash in - Client payment NOP Solutions INV-2026-010', '2026-02-08 11:00:00'),
+('TXN-2026-0010', 20, 1, 480000.00, 'Cash in - Sales collection February batch', '2026-02-20 14:00:00'),
+('TXN-2026-0011', 2, 2, 105000.00, 'Cash out - Office rent payment February 2026', '2026-02-03 09:00:00'),
+('TXN-2026-0012', 8, 2, 95000.00, 'Cash out - Marketing campaign Q1 2026', '2026-02-15 15:00:00'),
+('TXN-2026-0013', 3, 6, 7800.00, 'Interest earned - Savings account Feb 2026', '2026-02-28 23:59:00'),
+
+-- March 2026
+('TXN-2026-0014', 4, 1, 1100000.00, 'Cash in - Major contract QRS Group INV-2026-020', '2026-03-05 10:00:00'),
+('TXN-2026-0015', 20, 1, 590000.00, 'Cash in - Sales collection March batch', '2026-03-22 14:00:00'),
+('TXN-2026-0016', 2, 2, 105000.00, 'Cash out - Office rent payment March 2026', '2026-03-03 09:00:00'),
+('TXN-2026-0017', 2, 2, 88000.00, 'Cash out - Utilities payment March 2026', '2026-03-07 14:00:00'),
+('TXN-2026-0018', 4, 3, 350000.00, 'Transfer money in - Q1 fund reallocation', '2026-03-15 10:00:00'),
+('TXN-2026-0019', 2, 4, 350000.00, 'Transfer money out - To operations Q1', '2026-03-15 10:00:00'),
+('TXN-2026-0020', 3, 6, 8200.00, 'Interest earned - Savings account Mar 2026', '2026-03-31 23:59:00'),
+('TXN-2026-0021', 5, 7, 8000.00, 'Paid loan - Housing loan installment LN-1004', '2026-03-01 10:00:00'),
+('TXN-2026-0022', 2, 5, 500.00, 'Bank service fee - March 2026', '2026-03-31 23:00:00');
+
+-- Populate missions (stub data for rewards system)
+INSERT INTO missions (mission_text, points_value) VALUES
+('Complete first deposit', 100.00),
+('Set up auto-save', 50.00),
+('Refer a friend', 200.00),
+('Pay loan on time 3 months', 150.00),
+('Open business account', 300.00)
+ON DUPLICATE KEY UPDATE mission_text = VALUES(mission_text);
+
+-- Populate report_settings
+INSERT INTO report_settings (setting_key, setting_value) VALUES
+('default_date_format', 'Y-m-d'),
+('currency', 'PHP'),
+('company_name', 'Evergreen Solutions Inc.'),
+('fiscal_year_start', '01-01'),
+('report_logo_path', '/assets/image/logo.png'),
+('decimal_places', '2')
+ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value);
+
 -- ========================================
 -- INITIAL CAPITAL INVESTMENT (January 2025)
 -- ========================================
@@ -2087,6 +2329,238 @@ INSERT IGNORE INTO journal_lines (journal_entry_id, account_id, debit, credit, m
 (@je20, @consulting_revenue, 0.00, 300000.00, 'Consulting revenue');
 
 -- ========================================
+-- ADDITIONAL JOURNAL ENTRIES (Q2 2025 - Q1 2026)
+-- ========================================
+
+-- Q2 2025: April
+INSERT IGNORE INTO journal_entries (journal_no, journal_type_id, entry_date, description, fiscal_period_id, reference_no, total_debit, total_credit, status, posted_by, posted_at, created_by) 
+VALUES ('JE-2025-0021', @cr_type, '2025-04-05', 'Cash in - Client payment JKL Solutions', @apr_2025, 'CR-2025-004', 720000.00, 720000.00, 'posted', 1, '2025-04-05 14:00:00', 1);
+SET @je21 = LAST_INSERT_ID();
+INSERT IGNORE INTO journal_lines (journal_entry_id, account_id, debit, credit, memo) VALUES
+(@je21, @cash_bdo, 720000.00, 0.00, 'Cash received from JKL Solutions'),
+(@je21, @sales_revenue, 0.00, 720000.00, 'Sales revenue - April');
+
+INSERT IGNORE INTO journal_entries (journal_no, journal_type_id, entry_date, description, fiscal_period_id, reference_no, total_debit, total_credit, status, posted_by, posted_at, created_by) 
+VALUES ('JE-2025-0022', @cd_type, '2025-04-10', 'Cash out - Vendor payment ABC Suppliers PO-2025-012', @apr_2025, 'CD-2025-004', 180000.00, 180000.00, 'posted', 1, '2025-04-10 10:00:00', 1);
+SET @je22 = LAST_INSERT_ID();
+INSERT IGNORE INTO journal_lines (journal_entry_id, account_id, debit, credit, memo) VALUES
+(@je22, @ap_trade, 180000.00, 0.00, 'Settled trade payable'),
+(@je22, @cash_bdo, 0.00, 180000.00, 'Cash disbursement');
+
+INSERT IGNORE INTO journal_entries (journal_no, journal_type_id, entry_date, description, fiscal_period_id, reference_no, total_debit, total_credit, status, posted_by, posted_at, created_by) 
+VALUES ('JE-2025-0023', @pr_type, '2025-04-30', 'Payroll disbursement - April 2025', @apr_2025, 'PR-2504', 520000.00, 520000.00, 'posted', 1, '2025-04-30 18:00:00', 1);
+SET @je23 = LAST_INSERT_ID();
+INSERT IGNORE INTO journal_lines (journal_entry_id, account_id, debit, credit, memo) VALUES
+(@je23, @salaries_wages, 420000.00, 0.00, 'Employee salaries April'),
+(@je23, @employee_benefits, 50000.00, 0.00, 'Employee benefits April'),
+(@je23, @payroll_taxes, 50000.00, 0.00, 'Payroll taxes April'),
+(@je23, @sss_payable, 0.00, 19000.00, 'SSS contributions'),
+(@je23, @philhealth_payable, 0.00, 13000.00, 'PhilHealth contributions'),
+(@je23, @pagibig_payable, 0.00, 5000.00, 'Pag-IBIG contributions'),
+(@je23, @wht_payable, 0.00, 16000.00, 'Withholding tax'),
+(@je23, @cash_metro, 0.00, 417000.00, 'Net payroll disbursement'),
+(@je23, @salaries_payable, 0.00, 50000.00, 'Accrued benefits payable');
+
+-- May 2025
+INSERT IGNORE INTO journal_entries (journal_no, journal_type_id, entry_date, description, fiscal_period_id, reference_no, total_debit, total_credit, status, posted_by, posted_at, created_by) 
+VALUES ('JE-2025-0024', @cr_type, '2025-05-12', 'Cash in - Sales collection MNO Holdings', @may_2025, 'CR-2025-005', 680000.00, 680000.00, 'posted', 1, '2025-05-12 11:00:00', 1);
+SET @je24 = LAST_INSERT_ID();
+INSERT IGNORE INTO journal_lines (journal_entry_id, account_id, debit, credit, memo) VALUES
+(@je24, @cash_bpi, 680000.00, 0.00, 'Cash received from MNO Holdings'),
+(@je24, @service_revenue, 0.00, 680000.00, 'Service revenue - May');
+
+INSERT IGNORE INTO journal_entries (journal_no, journal_type_id, entry_date, description, fiscal_period_id, reference_no, total_debit, total_credit, status, posted_by, posted_at, created_by) 
+VALUES ('JE-2025-0025', @cd_type, '2025-05-15', 'Cash out - Insurance premium quarterly payment', @may_2025, 'INS-2025-Q2', 45000.00, 45000.00, 'posted', 1, '2025-05-15 09:00:00', 1);
+SET @je25 = LAST_INSERT_ID();
+INSERT IGNORE INTO journal_lines (journal_entry_id, account_id, debit, credit, memo) VALUES
+(@je25, @insurance_expense, 45000.00, 0.00, 'Insurance premium Q2'),
+(@je25, @cash_bdo, 0.00, 45000.00, 'Cash paid');
+
+INSERT IGNORE INTO journal_entries (journal_no, journal_type_id, entry_date, description, fiscal_period_id, reference_no, total_debit, total_credit, status, posted_by, posted_at, created_by) 
+VALUES ('JE-2025-0026', @aj_type, '2025-05-31', 'Monthly depreciation - May 2025', @may_2025, 'DEP-MAY', 25000.00, 25000.00, 'posted', 1, '2025-05-31 17:00:00', 1);
+SET @je26 = LAST_INSERT_ID();
+INSERT IGNORE INTO journal_lines (journal_entry_id, account_id, debit, credit, memo) VALUES
+(@je26, @depreciation_expense, 25000.00, 0.00, 'Monthly depreciation'),
+(@je26, @accum_dep_equip, 0.00, 12500.00, 'Equipment depreciation'),
+(@je26, @accum_dep_build, 0.00, 12500.00, 'Building depreciation');
+
+-- June 2025
+INSERT IGNORE INTO journal_entries (journal_no, journal_type_id, entry_date, description, fiscal_period_id, reference_no, total_debit, total_credit, status, posted_by, posted_at, created_by) 
+VALUES ('JE-2025-0027', @cr_type, '2025-06-10', 'Cash in - Client payment PQR Corp contract', @jun_2025, 'CR-2025-006', 890000.00, 890000.00, 'posted', 1, '2025-06-10 14:30:00', 1);
+SET @je27 = LAST_INSERT_ID();
+INSERT IGNORE INTO journal_lines (journal_entry_id, account_id, debit, credit, memo) VALUES
+(@je27, @cash_bdo, 890000.00, 0.00, 'Cash received from PQR Corp'),
+(@je27, @sales_revenue, 0.00, 650000.00, 'Product sales'),
+(@je27, @service_revenue, 0.00, 240000.00, 'Service revenue');
+
+INSERT IGNORE INTO journal_entries (journal_no, journal_type_id, entry_date, description, fiscal_period_id, reference_no, total_debit, total_credit, status, posted_by, posted_at, created_by) 
+VALUES ('JE-2025-0028', @cd_type, '2025-06-20', 'Cash out - Paid loan monthly installment LOAN-2024-001', @jun_2025, 'LOAN-PAY-JUN', 5025.00, 5025.00, 'posted', 1, '2025-06-20 10:00:00', 1);
+SET @je28 = LAST_INSERT_ID();
+INSERT IGNORE INTO journal_lines (journal_entry_id, account_id, debit, credit, memo) VALUES
+(@je28, @loan_current, 3935.00, 0.00, 'Loan principal repayment'),
+(@je28, @interest_expense, 1090.00, 0.00, 'Loan interest'),
+(@je28, @cash_bdo, 0.00, 5025.00, 'Cash paid for loan installment');
+
+INSERT IGNORE INTO journal_entries (journal_no, journal_type_id, entry_date, description, fiscal_period_id, reference_no, total_debit, total_credit, status, posted_by, posted_at, created_by) 
+VALUES ('JE-2025-0029', @pr_type, '2025-06-30', 'Payroll disbursement - June 2025', @jun_2025, 'PR-2506', 530000.00, 530000.00, 'posted', 1, '2025-06-30 18:00:00', 1);
+SET @je29 = LAST_INSERT_ID();
+INSERT IGNORE INTO journal_lines (journal_entry_id, account_id, debit, credit, memo) VALUES
+(@je29, @salaries_wages, 430000.00, 0.00, 'Employee salaries June'),
+(@je29, @employee_benefits, 50000.00, 0.00, 'Employee benefits June'),
+(@je29, @payroll_taxes, 50000.00, 0.00, 'Payroll taxes June'),
+(@je29, @sss_payable, 0.00, 19500.00, 'SSS contributions'),
+(@je29, @philhealth_payable, 0.00, 13500.00, 'PhilHealth contributions'),
+(@je29, @pagibig_payable, 0.00, 5000.00, 'Pag-IBIG contributions'),
+(@je29, @wht_payable, 0.00, 17000.00, 'Withholding tax'),
+(@je29, @cash_metro, 0.00, 425000.00, 'Net payroll disbursement'),
+(@je29, @salaries_payable, 0.00, 50000.00, 'Accrued benefits payable');
+
+-- Q3 2025: July-September
+INSERT IGNORE INTO journal_entries (journal_no, journal_type_id, entry_date, description, fiscal_period_id, reference_no, total_debit, total_credit, status, posted_by, posted_at, created_by) 
+VALUES ('JE-2025-0030', @cr_type, '2025-07-08', 'Cash in - Client payment STU Enterprises', @jul_2025, 'CR-2025-007', 780000.00, 780000.00, 'posted', 1, '2025-07-08 11:00:00', 1);
+SET @je30 = LAST_INSERT_ID();
+INSERT IGNORE INTO journal_lines (journal_entry_id, account_id, debit, credit, memo) VALUES
+(@je30, @cash_bdo, 780000.00, 0.00, 'Cash received from STU Enterprises'),
+(@je30, @sales_revenue, 0.00, 780000.00, 'Sales revenue - July');
+
+INSERT IGNORE INTO journal_entries (journal_no, journal_type_id, entry_date, description, fiscal_period_id, reference_no, total_debit, total_credit, status, posted_by, posted_at, created_by) 
+VALUES ('JE-2025-0031', @cd_type, '2025-08-12', 'Cash out - IT infrastructure upgrade', @aug_2025, 'EQUIP-2025-003', 350000.00, 350000.00, 'posted', 1, '2025-08-12 14:00:00', 1);
+SET @je31 = LAST_INSERT_ID();
+INSERT IGNORE INTO journal_lines (journal_entry_id, account_id, debit, credit, memo) VALUES
+(@je31, @equipment, 350000.00, 0.00, 'IT equipment purchased'),
+(@je31, @cash_bdo, 0.00, 350000.00, 'Cash paid');
+
+INSERT IGNORE INTO journal_entries (journal_no, journal_type_id, entry_date, description, fiscal_period_id, reference_no, total_debit, total_credit, status, posted_by, posted_at, created_by) 
+VALUES ('JE-2025-0032', @cr_type, '2025-08-25', 'Cash in - Sales collection August batch', @aug_2025, 'CR-2025-008', 530000.00, 530000.00, 'posted', 1, '2025-08-25 14:00:00', 1);
+SET @je32 = LAST_INSERT_ID();
+INSERT IGNORE INTO journal_lines (journal_entry_id, account_id, debit, credit, memo) VALUES
+(@je32, @cash_bpi, 530000.00, 0.00, 'Cash received - sales batch'),
+(@je32, @service_revenue, 0.00, 530000.00, 'Service revenue - August');
+
+INSERT IGNORE INTO journal_entries (journal_no, journal_type_id, entry_date, description, fiscal_period_id, reference_no, total_debit, total_credit, status, posted_by, posted_at, created_by) 
+VALUES ('JE-2025-0033', @aj_type, '2025-09-30', 'Monthly depreciation - Q3 2025 catch-up', @sep_2025, 'DEP-Q3', 75000.00, 75000.00, 'posted', 1, '2025-09-30 17:00:00', 1);
+SET @je33 = LAST_INSERT_ID();
+INSERT IGNORE INTO journal_lines (journal_entry_id, account_id, debit, credit, memo) VALUES
+(@je33, @depreciation_expense, 75000.00, 0.00, 'Q3 depreciation'),
+(@je33, @accum_dep_equip, 0.00, 25000.00, 'Equipment depreciation'),
+(@je33, @accum_dep_build, 0.00, 25000.00, 'Building depreciation'),
+(@je33, @accum_dep_veh, 0.00, 12500.00, 'Vehicle depreciation'),
+(@je33, @accum_dep_mach, 0.00, 12500.00, 'Machinery depreciation');
+
+-- Q4 2025: October-December
+INSERT IGNORE INTO journal_entries (journal_no, journal_type_id, entry_date, description, fiscal_period_id, reference_no, total_debit, total_credit, status, posted_by, posted_at, created_by) 
+VALUES ('JE-2025-0034', @cr_type, '2025-10-05', 'Cash in - Major contract BCD Global', @oct_2025, 'CR-2025-010', 1050000.00, 1050000.00, 'posted', 1, '2025-10-05 10:00:00', 1);
+SET @je34 = LAST_INSERT_ID();
+INSERT IGNORE INTO journal_lines (journal_entry_id, account_id, debit, credit, memo) VALUES
+(@je34, @cash_bdo, 1050000.00, 0.00, 'Cash received from BCD Global'),
+(@je34, @sales_revenue, 0.00, 800000.00, 'Product sales'),
+(@je34, @consulting_revenue, 0.00, 250000.00, 'Consulting services');
+
+INSERT IGNORE INTO journal_entries (journal_no, journal_type_id, entry_date, description, fiscal_period_id, reference_no, total_debit, total_credit, status, posted_by, posted_at, created_by) 
+VALUES ('JE-2025-0035', @cd_type, '2025-10-15', 'Cash out - Equipment purchase new workstations', @oct_2025, 'PO-2025-015', 250000.00, 250000.00, 'posted', 1, '2025-10-15 11:00:00', 1);
+SET @je35 = LAST_INSERT_ID();
+INSERT IGNORE INTO journal_lines (journal_entry_id, account_id, debit, credit, memo) VALUES
+(@je35, @equipment, 250000.00, 0.00, 'New computer workstations'),
+(@je35, @cash_bdo, 0.00, 250000.00, 'Cash paid');
+
+INSERT IGNORE INTO journal_entries (journal_no, journal_type_id, entry_date, description, fiscal_period_id, reference_no, total_debit, total_credit, status, posted_by, posted_at, created_by) 
+VALUES ('JE-2025-0036', @cr_type, '2025-11-08', 'Cash in - Client payment EFG Partners', @nov_2025, 'CR-2025-011', 980000.00, 980000.00, 'posted', 1, '2025-11-08 10:30:00', 1);
+SET @je36 = LAST_INSERT_ID();
+INSERT IGNORE INTO journal_lines (journal_entry_id, account_id, debit, credit, memo) VALUES
+(@je36, @cash_bdo, 980000.00, 0.00, 'Cash received from EFG Partners'),
+(@je36, @sales_revenue, 0.00, 980000.00, 'Sales revenue - November');
+
+INSERT IGNORE INTO journal_entries (journal_no, journal_type_id, entry_date, description, fiscal_period_id, reference_no, total_debit, total_credit, status, posted_by, posted_at, created_by) 
+VALUES ('JE-2025-0037', @pr_type, '2025-11-30', 'Payroll disbursement - November 2025', @nov_2025, 'PR-2511', 550000.00, 550000.00, 'posted', 1, '2025-11-30 18:00:00', 1);
+SET @je37 = LAST_INSERT_ID();
+INSERT IGNORE INTO journal_lines (journal_entry_id, account_id, debit, credit, memo) VALUES
+(@je37, @salaries_wages, 450000.00, 0.00, 'Employee salaries November'),
+(@je37, @employee_benefits, 50000.00, 0.00, 'Employee benefits November'),
+(@je37, @payroll_taxes, 50000.00, 0.00, 'Payroll taxes November'),
+(@je37, @sss_payable, 0.00, 20000.00, 'SSS contributions'),
+(@je37, @philhealth_payable, 0.00, 14000.00, 'PhilHealth contributions'),
+(@je37, @pagibig_payable, 0.00, 5000.00, 'Pag-IBIG contributions'),
+(@je37, @wht_payable, 0.00, 18000.00, 'Withholding tax'),
+(@je37, @cash_metro, 0.00, 443000.00, 'Net payroll disbursement'),
+(@je37, @salaries_payable, 0.00, 50000.00, 'Accrued benefits payable');
+
+INSERT IGNORE INTO journal_entries (journal_no, journal_type_id, entry_date, description, fiscal_period_id, reference_no, total_debit, total_credit, status, posted_by, posted_at, created_by) 
+VALUES ('JE-2025-0038', @cr_type, '2025-12-05', 'Cash in - Year-end client payment HIJ Corp', @dec_2025, 'CR-2025-012', 1200000.00, 1200000.00, 'posted', 1, '2025-12-05 10:00:00', 1);
+SET @je38 = LAST_INSERT_ID();
+INSERT IGNORE INTO journal_lines (journal_entry_id, account_id, debit, credit, memo) VALUES
+(@je38, @cash_bdo, 1200000.00, 0.00, 'Cash received from HIJ Corp'),
+(@je38, @sales_revenue, 0.00, 900000.00, 'Product sales Q4'),
+(@je38, @service_revenue, 0.00, 300000.00, 'Service revenue Q4');
+
+INSERT IGNORE INTO journal_entries (journal_no, journal_type_id, entry_date, description, fiscal_period_id, reference_no, total_debit, total_credit, status, posted_by, posted_at, created_by) 
+VALUES ('JE-2025-0039', @aj_type, '2025-12-31', 'Year-end depreciation and adjustments', @dec_2025, 'ADJ-YE-2025', 100000.00, 100000.00, 'posted', 1, '2025-12-31 17:00:00', 1);
+SET @je39 = LAST_INSERT_ID();
+INSERT IGNORE INTO journal_lines (journal_entry_id, account_id, debit, credit, memo) VALUES
+(@je39, @depreciation_expense, 100000.00, 0.00, 'Year-end depreciation catch-up'),
+(@je39, @accum_dep_equip, 0.00, 35000.00, 'Equipment depreciation'),
+(@je39, @accum_dep_build, 0.00, 30000.00, 'Building depreciation'),
+(@je39, @accum_dep_veh, 0.00, 20000.00, 'Vehicle depreciation'),
+(@je39, @accum_dep_mach, 0.00, 15000.00, 'Machinery depreciation');
+
+-- Q1 2026: January-March
+INSERT IGNORE INTO journal_entries (journal_no, journal_type_id, entry_date, description, fiscal_period_id, reference_no, total_debit, total_credit, status, posted_by, posted_at, created_by) 
+VALUES ('JE-2026-0001', @cr_type, '2026-01-10', 'Cash in - Client payment KLM Corp new contract', @jan_2026, 'CR-2026-001', 880000.00, 880000.00, 'posted', 1, '2026-01-10 10:00:00', 1);
+SET @je40 = LAST_INSERT_ID();
+INSERT IGNORE INTO journal_lines (journal_entry_id, account_id, debit, credit, memo) VALUES
+(@je40, @cash_bdo, 880000.00, 0.00, 'Cash received from KLM Corp'),
+(@je40, @sales_revenue, 0.00, 880000.00, 'Sales revenue - January 2026');
+
+INSERT IGNORE INTO journal_entries (journal_no, journal_type_id, entry_date, description, fiscal_period_id, reference_no, total_debit, total_credit, status, posted_by, posted_at, created_by) 
+VALUES ('JE-2026-0002', @pr_type, '2026-01-31', 'Payroll disbursement - January 2026', @jan_2026, 'PR-2601', 560000.00, 560000.00, 'posted', 1, '2026-01-31 18:00:00', 1);
+SET @je41 = LAST_INSERT_ID();
+INSERT IGNORE INTO journal_lines (journal_entry_id, account_id, debit, credit, memo) VALUES
+(@je41, @salaries_wages, 460000.00, 0.00, 'Employee salaries January 2026'),
+(@je41, @employee_benefits, 50000.00, 0.00, 'Employee benefits'),
+(@je41, @payroll_taxes, 50000.00, 0.00, 'Payroll taxes'),
+(@je41, @sss_payable, 0.00, 20500.00, 'SSS contributions'),
+(@je41, @philhealth_payable, 0.00, 14500.00, 'PhilHealth contributions'),
+(@je41, @pagibig_payable, 0.00, 5000.00, 'Pag-IBIG contributions'),
+(@je41, @wht_payable, 0.00, 18000.00, 'Withholding tax'),
+(@je41, @cash_metro, 0.00, 452000.00, 'Net payroll disbursement'),
+(@je41, @salaries_payable, 0.00, 50000.00, 'Accrued benefits payable');
+
+INSERT IGNORE INTO journal_entries (journal_no, journal_type_id, entry_date, description, fiscal_period_id, reference_no, total_debit, total_credit, status, posted_by, posted_at, created_by) 
+VALUES ('JE-2026-0003', @cr_type, '2026-02-08', 'Cash in - Client payment NOP Solutions', @feb_2026, 'CR-2026-002', 760000.00, 760000.00, 'posted', 1, '2026-02-08 11:00:00', 1);
+SET @je42 = LAST_INSERT_ID();
+INSERT IGNORE INTO journal_lines (journal_entry_id, account_id, debit, credit, memo) VALUES
+(@je42, @cash_bpi, 760000.00, 0.00, 'Cash received from NOP Solutions'),
+(@je42, @service_revenue, 0.00, 760000.00, 'Service revenue - February 2026');
+
+INSERT IGNORE INTO journal_entries (journal_no, journal_type_id, entry_date, description, fiscal_period_id, reference_no, total_debit, total_credit, status, posted_by, posted_at, created_by) 
+VALUES ('JE-2026-0004', @cd_type, '2026-02-15', 'Cash out - Marketing campaign Q1 2026', @feb_2026, 'MKT-2026-Q1', 95000.00, 95000.00, 'posted', 1, '2026-02-15 15:00:00', 1);
+SET @je43 = LAST_INSERT_ID();
+INSERT IGNORE INTO journal_lines (journal_entry_id, account_id, debit, credit, memo) VALUES
+(@je43, @marketing_advertising, 95000.00, 0.00, 'Marketing campaign Q1 2026'),
+(@je43, @cash_bdo, 0.00, 95000.00, 'Cash paid');
+
+INSERT IGNORE INTO journal_entries (journal_no, journal_type_id, entry_date, description, fiscal_period_id, reference_no, total_debit, total_credit, status, posted_by, posted_at, created_by) 
+VALUES ('JE-2026-0005', @cr_type, '2026-03-05', 'Cash in - Major contract QRS Group', @mar_2026, 'CR-2026-003', 1100000.00, 1100000.00, 'posted', 1, '2026-03-05 10:00:00', 1);
+SET @je44 = LAST_INSERT_ID();
+INSERT IGNORE INTO journal_lines (journal_entry_id, account_id, debit, credit, memo) VALUES
+(@je44, @cash_bdo, 1100000.00, 0.00, 'Cash received from QRS Group'),
+(@je44, @sales_revenue, 0.00, 850000.00, 'Product sales Q1 2026'),
+(@je44, @consulting_revenue, 0.00, 250000.00, 'Consulting services Q1 2026');
+
+INSERT IGNORE INTO journal_entries (journal_no, journal_type_id, entry_date, description, fiscal_period_id, reference_no, total_debit, total_credit, status, posted_by, posted_at, created_by) 
+VALUES ('JE-2026-0006', @pr_type, '2026-03-31', 'Payroll disbursement - March 2026', @mar_2026, 'PR-2603', 570000.00, 570000.00, 'posted', 1, '2026-03-31 18:00:00', 1);
+SET @je45 = LAST_INSERT_ID();
+INSERT IGNORE INTO journal_lines (journal_entry_id, account_id, debit, credit, memo) VALUES
+(@je45, @salaries_wages, 470000.00, 0.00, 'Employee salaries March 2026'),
+(@je45, @employee_benefits, 50000.00, 0.00, 'Employee benefits'),
+(@je45, @payroll_taxes, 50000.00, 0.00, 'Payroll taxes'),
+(@je45, @sss_payable, 0.00, 21000.00, 'SSS contributions'),
+(@je45, @philhealth_payable, 0.00, 15000.00, 'PhilHealth contributions'),
+(@je45, @pagibig_payable, 0.00, 5000.00, 'Pag-IBIG contributions'),
+(@je45, @wht_payable, 0.00, 19000.00, 'Withholding tax'),
+(@je45, @cash_metro, 0.00, 460000.00, 'Net payroll disbursement'),
+(@je45, @salaries_payable, 0.00, 50000.00, 'Accrued benefits payable');
+
+-- ========================================
 -- 10. COMPREHENSIVE LOANS DATA
 -- ========================================
 
@@ -2155,27 +2629,71 @@ INSERT IGNORE INTO loan_applications (
     next_payment_due, rejected_by, rejected_at, rejection_remarks, 
     proof_of_income, coe_document, pdf_path, pdf_approved, pdf_active, pdf_rejected
 ) VALUES
-(24, 3, 'Kurt Realisan', '1001234567', '09123456789', 'kurtrealisan@gmail.com', NULL, NULL, 'kurtrealisan@gmail.com', 'Home Loan', '24 Months', 5000.00, '0', NULL, NULL, 'Active', 'sdfsdfsdfsd', 'uploads/the-dark-knight-mixed-art-fvy9jfrmv7np7z0r.jpg', '2025-11-01 17:18:39', 'Jerome Malunes', '2025-11-02 17:55:21', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
-(25, 3, 'Kurt Realisan', '1001234567', '09123456789', 'kurtrealisan@gmail.com', 'Data Analyst', 20000.00, 'kurtrealisan@gmail.com', 'Home Loan', '12 Months', 60000.00, 'For house building purposes', 5558.07, '2026-11-02', 'Rejected', 'Invalid ID', 'uploads/download.jpg', '2025-11-02 04:00:24', NULL, NULL, NULL, 'Jerome Malunes', '2025-11-02 17:29:08', 'Invalid ID', NULL, NULL, NULL, NULL, NULL, NULL),
-(26, 2, 'Kurt Realisan', '1001234567', '09123456789', 'kurtrealisan@gmail.com', 'Data Analyst', 20000.00, '', 'Car Loan', '24 Months', 50000.00, 'For personal car purposes ', 2544.79, '2027-11-02', 'Active', 'Thank You!', 'uploads/download.jpg', '2025-11-02 10:44:49', 'Jerome Malunes', '2025-11-02 17:15:51', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
-(27, 3, 'Kurt Realisan', '1001234567', '09123456789', 'kurtrealisan@gmail.com', 'Data Analyst', 20000.00, '', 'Home Loan', '24 Months', 7000.00, 'For family house ni Carspeso', 356.27, '2027-11-02', 'Rejected', 'The ID is not valid', 'uploads/images.jpg', '2025-11-02 10:55:26', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
-(28, 1, 'Kurt Realisan', '1001234567', '09123456789', 'kurtrealisan@gmail.com', 'Data Analyst', 20000.00, '', 'Personal Loan', '6 Months', 6000.00, 'For study purposes ', 1059.14, '2026-05-02', 'Rejected', 'sffsdfsd', 'uploads/Jespic.jpg', '2025-11-02 12:45:51', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
-(29, 3, 'Kurt Realisan', '1001234567', '09123456789', 'kurtrealisan@gmail.com', 'Data Analyst', 20000.00, '', 'Home Loan', '30 Months', 6000.00, 'For housing purposes', 255.78, '2028-05-02', 'Active', 'Thank You!', 'uploads/Jespic.jpg', '2025-11-02 12:47:59', 'Jerome Malunes', '2025-11-02 16:44:48', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
-(30, 4, 'Kurt Realisan', '1001234567', '09123456789', 'kurtrealisan@gmail.com', 'Data Analyst', 20000.00, '', 'Multi-Purpose Loan', '6 Months', 5000.00, 'For multi purpose only', 882.61, '2026-05-02', 'Approved', 'sdfsdfsd', 'uploads/Jespic.jpg', '2025-11-02 13:38:07', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
-(31, 4, 'Kurt Realisan', '1001234567', '09123456789', 'kurtrealisan@gmail.com', 'Data Analyst', 20000.00, '', 'Multi-Purpose Loan', '6 Months', 7000.00, 'For purposes only', 1235.66, '2026-05-02', 'Active', 'OK', 'uploads/Jespic.jpg', '2025-11-02 17:01:28', 'Jerome Malunes', '2025-11-03 01:04:11', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
-(32, 2, 'Clarence Carpeso', '1006789012', '09678901234', 'clarencecarpeso@gmail.com', 'Crossfire Developer', 20000.00, '', 'Car Loan', '6 Months', 10000.00, 'For purposes', 1765.23, '2026-05-02', 'Rejected', 'Invalid ID', 'uploads/Jespic.jpg', '2025-11-02 21:29:52', NULL, NULL, NULL, 'Jerome Malunes', '2025-11-03 05:30:50', 'Invalid ID', NULL, NULL, NULL, NULL, NULL, NULL),
-(33, 3, 'Clarence Carpeso', '1006789012', '09678901234', 'clarencecarpeso@gmail.com', 'Crossfire Developer', 20000.00, '', 'Home Loan', '6 Months', 5000.00, 'For buying house parts', 882.61, '2026-05-02', 'Active', 'Thank you!', 'uploads/Jespic.jpg', '2025-11-02 21:47:34', 'Jerome Malunes', '2025-11-03 05:48:14', '2025-12-03', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
-(34, 4, 'Clarence Carpeso', '1006789012', '09678901234', 'clarencecarpeso@gmail.com', 'Crossfire Developer', 20000.00, '', 'Multi-Purpose Loan', '6 Months', 7000.00, 'For investment', 1235.66, '2026-05-02', 'Active', 'Thank you for applying loans!! Please pay on the exact time', 'uploads/Jespic.jpg', '2025-11-02 22:24:57', 'Jerome Malunes', '2025-11-03 06:38:36', '2025-12-03', NULL, NULL, NULL, NULL, NULL, 'uploads/loan_approved_34_20251106141556.pdf', NULL, NULL, NULL),
-(35, 1, 'Clarence Carpeso', '1006789012', '09678901234', 'clarencecarpeso@gmail.com', 'Crossfire Developer', 20000.00, '', 'Personal Loan', '12 Months', 30000.00, 'For funds ', 2779.04, '2026-11-06', 'Rejected', 'Please input a clear picture of valid ID', 'uploads/Jespic.jpg', '2025-11-06 10:56:13', NULL, NULL, NULL, 'Jerome Malunes', '2025-11-06 19:06:39', 'Please input a clear picture of valid ID', 'uploads/Lord, I pray for this (2).png', 'uploads/download.jpg', 'uploads/loan_rejected_35_20251106141541.pdf', NULL, NULL, NULL),
-(36, 3, 'Clarence Carpeso', '1006789012', '09678901234', 'clarencecarpeso@gmail.com', 'Crossfire Developer', 20000.00, '', 'Home Loan', '24 Months', 9000.00, 'Bahay namin maliit lamang', 458.06, '2027-11-06', 'Active', 'Congratulations!!', 'uploads/Jespic.jpg', '2025-11-06 11:20:08', 'Jerome Malunes', '2025-11-06 19:57:54', '2025-12-06', NULL, NULL, NULL, 'uploads/the-dark-knight-mixed-art-fvy9jfrmv7np7z0r.jpg', 'uploads/ERD (1).png', 'uploads/loan_approved_36_20251106140535.pdf', NULL, NULL, NULL),
-(37, 4, 'Clarence Carpeso', '1006789012', '09678901234', 'clarencecarpeso@gmail.com', 'Crossfire Developer', 20000.00, '', 'Multi-Purpose Loan', '36 Months', 100000.00, 'For family planning', 3716.36, '2028-11-06', 'Active', 'Please be advised', 'uploads/Jespic.jpg', '2025-11-06 13:52:07', 'Jerome Malunes', '2025-11-06 21:52:50', '2025-12-06', NULL, NULL, NULL, 'uploads/the-dark-knight-mixed-art-fvy9jfrmv7np7z0r.jpg', 'uploads/ERD.png', 'uploads/loan_approved_37_20251106145455.pdf', NULL, NULL, NULL),
-(38, 2, 'Clarence Carpeso', '1006789012', '09678901234', 'clarencecarpeso@gmail.com', 'Crossfire Developer', 20000.00, '', 'Car Loan', '24 Months', 7000.00, 'pautang ssob', 356.27, '2027-11-06', 'Rejected', 'Please upload a clear picture of ID', 'uploads/Jespic.jpg', '2025-11-06 14:01:54', NULL, NULL, NULL, 'Jerome Malunes', '2025-11-06 22:27:53', 'Please upload a clear picture of ID', 'uploads/Lord, I pray for this (3).png', 'uploads/images.jpg', 'uploads/loan_rejected_38_20251106153300.pdf', NULL, NULL, NULL),
-(39, 3, 'Clarence Carpeso', '1006789012', '09678901234', 'clarencecarpeso@gmail.com', 'Crossfire Developer', 20000.00, '', 'Home Loan', '12 Months', 8000.00, 'Bahay Kubo', 741.08, '2026-11-06', 'Active', 'OK', 'uploads/Jespic.jpg', '2025-11-06 14:39:43', 'Jerome Malunes', '2025-11-06 22:42:16', '2025-12-06', NULL, NULL, NULL, 'uploads/download.jpg', 'uploads/images.jpg', 'uploads/loan_approved_39_20251106155223.pdf', NULL, NULL, NULL),
-(40, 4, 'Mike Beringuela', '1004567890', '09456789012', 'mikeberinguela@gmail.com', 'Project Manager', 70000.00, '', 'Multi-Purpose Loan', '12 Months', 6000.00, 'For purpose', 555.81, '2026-11-07', 'Pending', NULL, 'uploads/Jespic.jpg', '2025-11-07 13:48:14', NULL, NULL, NULL, NULL, NULL, NULL, 'uploads/download.jpg', 'uploads/images.jpg', NULL, NULL, NULL, NULL),
-(41, 3, 'Clarence Carpeso', '1006789012', '09678901234', 'clarencecarpeso@gmail.com', 'Crossfire Developer', 20000.00, '', 'Home Loan', '24 Months', 40000.00, 'oh when the saints , ipaghiganti mo ang iglesiaaaaaaaaaaaa', 2035.83, '2027-11-07', 'Active', 'Maureene', 'uploads/Jespic.jpg', '2025-11-07 17:11:58', 'Jerome Malunes', '2025-11-08 01:15:36', '2025-12-08', NULL, NULL, NULL, 'uploads/images.jpg', 'uploads/633f1770-3587-4d69-99c3-a9871b0818b9.jpg', 'uploads/loan_approved_41_20251107181558.pdf', NULL, NULL, NULL),
-(61, 2, 'Mike Beringuela', '1004567890', '09456789012', 'mikeberinguela@gmail.com', 'Project Manager', 70000.00, '', 'Car Loan', '12 Months', 7000.00, 'For purposes only', 648.44, '2026-11-29', 'Active', 'Dear Mike Beringuela,\n\nYour loan is now ACTIVE!\n\nPayment Details:\n- Monthly Payment: ₱648.44\n- First Payment Due: December 29, 2025\n- Final Payment: November 29, 2026\n\nActivated by: Jerome Malunes\nDate: 2025-11-29 09:45:59', 'uploads/692a5017799e3_loan_rejected_60_1764379593.pdf', '2025-11-29 01:44:55', 'Jerome Malunes', '2025-11-29 09:45:25', '2025-12-29', NULL, NULL, NULL, 'uploads/692a5017799e7_loan_active_58_1764379377.pdf', 'uploads/692a5017799e8_SIA_DOCU_Final.pdf', NULL, 'uploads/loan_approved_61_1764380731.pdf', 'uploads/loan_active_61_1764380782.pdf', NULL),
-(62, 3, 'Mike Beringuela', '1004567890', '09456789012', 'mikeberinguela@gmail.com', 'Project Manager', 70000.00, '', 'Home Loan', '12 Months', 9000.00, 'For purposes only', 833.71, '2026-11-29', 'Pending', NULL, 'uploads/692a50d714171_Gemini_Generated_Image_ija02cija02cija0.png', '2025-11-29 01:48:07', NULL, NULL, '2025-12-29', NULL, NULL, NULL, 'uploads/692a50d714176_Gemini_Generated_Image_ija02cija02cija0.png', 'uploads/692a50d714178_loan_notification_approved_53_20251129010635.pdf', NULL, NULL, NULL, NULL),
-(63, 4, 'Kurt Realisan', '1001234567', '09123456789', 'kurtrealisan@gmail.com', 'Data Analyst', 20000.00, '', 'Multi-Purpose Loan', '6 Months', 9000.00, 'For', 1588.71, '2026-05-29', 'Approved', 'Dear Kurt Realisan,\n\nCongratulations! Your loan application for ₱9,000.00 has been APPROVED.\n\nPlease visit our bank within 30 days to claim your loan.\n\nLoan Details:\n- Amount: ₱9,000.00\n- Term: 6 Months\n- Monthly Payment: ₱1,588.71\n\nApproved by: Jerome Malunes\nDate: 2025-11-29 09:50:14', 'uploads/692a51462fa0b_loan_active_61_1764380782.pdf', '2025-11-29 01:49:58', 'Jerome Malunes', '2025-11-29 09:50:14', '2025-12-29', NULL, NULL, NULL, 'uploads/692a51462fa11_loan_approved_61_1764380731.pdf', 'uploads/692a51462fa13_loan_active_58_1764379377.pdf', NULL, NULL, NULL, NULL)
+-- LOAN APPLICATIONS (using employee names)
+(1, 3, 'Kurt Realisan', '1001234567', '09123456789', 'kurtrealisan@gmail.com', NULL, NULL, 'kurtrealisan@gmail.com', 'Home Loan', '24 Months', 5000.00, '0', NULL, NULL, 'Active', 'sdfsdfsdfsd', 'uploads/the-dark-knight-mixed-art-fvy9jfrmv7np7z0r.jpg', '2025-11-01 17:18:39', 'Jerome Malunes', '2025-11-02 17:55:21', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(2, 3, 'Kurt Realisan', '1001234567', '09123456789', 'kurtrealisan@gmail.com', 'Data Analyst', 20000.00, 'kurtrealisan@gmail.com', 'Home Loan', '12 Months', 60000.00, 'For house building purposes', 5558.07, '2026-11-02', 'Rejected', 'Invalid ID', 'uploads/download.jpg', '2025-11-02 04:00:24', NULL, NULL, NULL, 'Jerome Malunes', '2025-11-02 17:29:08', 'Invalid ID', NULL, NULL, NULL, NULL, NULL, NULL),
+(3, 2, 'Kurt Realisan', '1001234567', '09123456789', 'kurtrealisan@gmail.com', 'Data Analyst', 20000.00, '', 'Car Loan', '24 Months', 50000.00, 'For personal car purposes ', 2544.79, '2027-11-02', 'Active', 'Thank You!', 'uploads/download.jpg', '2025-11-02 10:44:49', 'Jerome Malunes', '2025-11-02 17:15:51', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(4, 3, 'Kurt Realisan', '1001234567', '09123456789', 'kurtrealisan@gmail.com', 'Data Analyst', 20000.00, '', 'Home Loan', '24 Months', 7000.00, 'For family house ni Carspeso', 356.27, '2027-11-02', 'Rejected', 'The ID is not valid', 'uploads/images.jpg', '2025-11-02 10:55:26', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(5, 1, 'Kurt Realisan', '1001234567', '09123456789', 'kurtrealisan@gmail.com', 'Data Analyst', 20000.00, '', 'Personal Loan', '6 Months', 6000.00, 'For study purposes ', 1059.14, '2026-05-02', 'Rejected', 'sffsdfsd', 'uploads/Jespic.jpg', '2025-11-02 12:45:51', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(6, 3, 'Kurt Realisan', '1001234567', '09123456789', 'kurtrealisan@gmail.com', 'Data Analyst', 20000.00, '', 'Home Loan', '30 Months', 6000.00, 'For housing purposes', 255.78, '2028-05-02', 'Active', 'Thank You!', 'uploads/Jespic.jpg', '2025-11-02 12:47:59', 'Jerome Malunes', '2025-11-02 16:44:48', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(6, 4, 'Kurt Realisan', '1001234567', '09123456789', 'kurtrealisan@gmail.com', 'Data Analyst', 20000.00, '', 'Multi-Purpose Loan', '6 Months', 5000.00, 'For multi purpose only', 882.61, '2026-05-02', 'Approved', 'sdfsdfsd', 'uploads/Jespic.jpg', '2025-11-02 13:38:07', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(8, 4, 'Kurt Realisan', '1001234567', '09123456789', 'kurtrealisan@gmail.com', 'Data Analyst', 20000.00, '', 'Multi-Purpose Loan', '6 Months', 7000.00, 'For purposes only', 1235.66, '2026-05-02', 'Active', 'OK', 'uploads/Jespic.jpg', '2025-11-02 17:01:28', 'Jerome Malunes', '2025-11-03 01:04:11', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(9, 2, 'Clarence Carpeso', '1006789012', '09678901234', 'clarencecarpeso@gmail.com', 'Crossfire Developer', 20000.00, '', 'Car Loan', '6 Months', 10000.00, 'For purposes', 1765.23, '2026-05-02', 'Rejected', 'Invalid ID', 'uploads/Jespic.jpg', '2025-11-02 21:29:52', NULL, NULL, NULL, 'Jerome Malunes', '2025-11-03 05:30:50', 'Invalid ID', NULL, NULL, NULL, NULL, NULL, NULL),
+(10, 3, 'Clarence Carpeso', '1006789012', '09678901234', 'clarencecarpeso@gmail.com', 'Crossfire Developer', 20000.00, '', 'Home Loan', '6 Months', 5000.00, 'For buying house parts', 882.61, '2026-05-02', 'Active', 'Thank you!', 'uploads/Jespic.jpg', '2025-11-02 21:47:34', 'Jerome Malunes', '2025-11-03 05:48:14', '2025-12-03', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(11, 4, 'Clarence Carpeso', '1006789012', '09678901234', 'clarencecarpeso@gmail.com', 'Crossfire Developer', 20000.00, '', 'Multi-Purpose Loan', '6 Months', 7000.00, 'For investment', 1235.66, '2026-05-02', 'Active', 'Thank you for applying loans!! Please pay on the exact time', 'uploads/Jespic.jpg', '2025-11-02 22:24:57', 'Jerome Malunes', '2025-11-03 06:38:36', '2025-12-03', NULL, NULL, NULL, NULL, NULL, 'uploads/loan_approved_34_20251106141556.pdf', NULL, NULL, NULL),
+(12, 1, 'Clarence Carpeso', '1006789012', '09678901234', 'clarencecarpeso@gmail.com', 'Crossfire Developer', 20000.00, '', 'Personal Loan', '12 Months', 30000.00, 'For funds ', 2779.04, '2026-11-06', 'Rejected', 'Please input a clear picture of valid ID', 'uploads/Jespic.jpg', '2025-11-06 10:56:13', NULL, NULL, NULL, 'Jerome Malunes', '2025-11-06 19:06:39', 'Please input a clear picture of valid ID', 'uploads/Lord, I pray for this (2).png', 'uploads/download.jpg', 'uploads/loan_rejected_35_20251106141541.pdf', NULL, NULL, NULL),
+(13, 3, 'Clarence Carpeso', '1006789012', '09678901234', 'clarencecarpeso@gmail.com', 'Crossfire Developer', 20000.00, '', 'Home Loan', '24 Months', 9000.00, 'Bahay namin maliit lamang', 458.06, '2027-11-06', 'Active', 'Congratulations!!', 'uploads/Jespic.jpg', '2025-11-06 11:20:08', 'Jerome Malunes', '2025-11-06 19:57:54', '2025-12-06', NULL, NULL, NULL, 'uploads/the-dark-knight-mixed-art-fvy9jfrmv7np7z0r.jpg', 'uploads/ERD (1).png', 'uploads/loan_approved_36_20251106140535.pdf', NULL, NULL, NULL),
+(14, 4, 'Clarence Carpeso', '1006789012', '09678901234', 'clarencecarpeso@gmail.com', 'Crossfire Developer', 20000.00, '', 'Multi-Purpose Loan', '36 Months', 100000.00, 'For family planning', 3716.36, '2028-11-06', 'Active', 'Please be advised', 'uploads/Jespic.jpg', '2025-11-06 13:52:07', 'Jerome Malunes', '2025-11-06 21:52:50', '2025-12-06', NULL, NULL, NULL, 'uploads/the-dark-knight-mixed-art-fvy9jfrmv7np7z0r.jpg', 'uploads/ERD.png', 'uploads/loan_approved_37_20251106145455.pdf', NULL, NULL, NULL),
+(15, 2, 'Clarence Carpeso', '1006789012', '09678901234', 'clarencecarpeso@gmail.com', 'Crossfire Developer', 20000.00, '', 'Car Loan', '24 Months', 7000.00, 'pautang ssob', 356.27, '2027-11-06', 'Rejected', 'Please upload a clear picture of ID', 'uploads/Jespic.jpg', '2025-11-06 14:01:54', NULL, NULL, NULL, 'Jerome Malunes', '2025-11-06 22:27:53', 'Please upload a clear picture of ID', 'uploads/Lord, I pray for this (3).png', 'uploads/images.jpg', 'uploads/loan_rejected_38_20251106153300.pdf', NULL, NULL, NULL),
+(16, 3, 'Clarence Carpeso', '1006789012', '09678901234', 'clarencecarpeso@gmail.com', 'Crossfire Developer', 20000.00, '', 'Home Loan', '12 Months', 8000.00, 'Bahay Kubo', 741.08, '2026-11-06', 'Active', 'OK', 'uploads/Jespic.jpg', '2025-11-06 14:39:43', 'Jerome Malunes', '2025-11-06 22:42:16', '2025-12-06', NULL, NULL, NULL, 'uploads/download.jpg', 'uploads/images.jpg', 'uploads/loan_approved_39_20251106155223.pdf', NULL, NULL, NULL),
+(17, 4, 'Mike Beringuela', '1004567890', '09456789012', 'mikeberinguela@gmail.com', 'Project Manager', 70000.00, '', 'Multi-Purpose Loan', '12 Months', 6000.00, 'For purpose', 555.81, '2026-11-07', 'Pending', NULL, 'uploads/Jespic.jpg', '2025-11-07 13:48:14', NULL, NULL, NULL, NULL, NULL, NULL, 'uploads/download.jpg', 'uploads/images.jpg', NULL, NULL, NULL, NULL),
+(18, 3, 'Clarence Carpeso', '1006789012', '09678901234', 'clarencecarpeso@gmail.com', 'Crossfire Developer', 20000.00, '', 'Home Loan', '24 Months', 40000.00, 'oh when the saints , ipaghiganti mo ang iglesiaaaaaaaaaaaa', 2035.83, '2027-11-07', 'Active', 'Maureene', 'uploads/Jespic.jpg', '2025-11-07 17:11:58', 'Jerome Malunes', '2025-11-08 01:15:36', '2025-12-08', NULL, NULL, NULL, 'uploads/images.jpg', 'uploads/633f1770-3587-4d69-99c3-a9871b0818b9.jpg', 'uploads/loan_approved_41_20251107181558.pdf', NULL, NULL, NULL),
+
+(24, 3, 'Juan Carlos Santos', 'SA-2025-001', '09171234567', 'juan.santos@company.com', 'HR Manager', 65000.00, 'juan.santos@company.com', 'Home Loan', '24 Months', 5000.00, 'Home renovation project', NULL, NULL, 'Active', 'Application approved. Good credit history.', 'uploads/valid_id_santos.jpg', '2025-11-01 17:18:39', 'System Administrator', '2025-11-02 17:55:21', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(25, 3, 'Maria Elena Rodriguez', 'SA-2025-002', '09171234568', 'maria.rodriguez@company.com', 'CFO', 200000.00, 'maria.rodriguez@company.com', 'Home Loan', '12 Months', 60000.00, 'House building purposes - Tagaytay property', 5558.07, '2026-11-02', 'Rejected', 'Incomplete documentation', 'uploads/valid_id_rodriguez.jpg', '2025-11-02 04:00:24', NULL, NULL, NULL, 'System Administrator', '2025-11-02 17:29:08', 'Incomplete documentation - please resubmit proof of income', NULL, NULL, NULL, NULL, NULL, NULL),
+(26, 2, 'Jose Miguel Cruz', 'SA-2025-003', '09171234569', 'jose.cruz@company.com', 'CTO', 220000.00, 'jose.cruz@company.com', 'Car Loan', '24 Months', 50000.00, 'Personal vehicle purchase - Toyota Fortuner', 2544.79, '2027-11-02', 'Active', 'Approved. Excellent payment capacity.', 'uploads/valid_id_cruz.jpg', '2025-11-02 10:44:49', 'System Administrator', '2025-11-02 17:15:51', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(27, 3, 'Ana Patricia Lopez', 'SA-2025-004', '09171234570', 'ana.lopez@company.com', 'Marketing Director', 120000.00, 'ana.lopez@company.com', 'Home Loan', '24 Months', 7000.00, 'Kitchen and bathroom renovation', 356.27, '2027-11-02', 'Rejected', 'ID verification failed', 'uploads/valid_id_lopez.jpg', '2025-11-02 10:55:26', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(28, 1, 'Roberto Antonio Garcia', 'SA-2025-005', '09171234571', 'roberto.garcia@company.com', 'COO', 200000.00, 'roberto.garcia@company.com', 'Personal Loan', '6 Months', 6000.00, 'Emergency family expenses', 1059.14, '2026-05-02', 'Rejected', 'Exceeded maximum loan count', 'uploads/valid_id_garcia.jpg', '2025-11-02 12:45:51', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(29, 3, 'Carmen Sofia Martinez', 'SA-2025-006', '09171234572', 'carmen.martinez@company.com', 'CS Manager', 55000.00, 'carmen.martinez@company.com', 'Home Loan', '30 Months', 6000.00, 'Condominium down payment', 255.78, '2028-05-02', 'Active', 'First-time homeowner loan approved.', 'uploads/valid_id_martinez.jpg', '2025-11-02 12:47:59', 'System Administrator', '2025-11-02 16:44:48', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(30, 4, 'Fernando Luis Torres', 'SA-2025-007', '09171234573', 'fernando.torres@company.com', 'Sales Manager', 70000.00, 'fernando.torres@company.com', 'Multi-Purpose Loan', '6 Months', 5000.00, 'Business seminar and networking events', 882.61, '2026-05-02', 'Approved', 'Under review for final disbursement.', 'uploads/valid_id_torres.jpg', '2025-11-02 13:38:07', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(31, 4, 'Isabella Rose Flores', 'SA-2025-008', '09171234574', 'isabella.flores@company.com', 'Senior Accountant', 48000.00, 'isabella.flores@company.com', 'Multi-Purpose Loan', '6 Months', 7000.00, 'CPA review course and exam fees', 1235.66, '2026-05-02', 'Active', 'Professional development loan approved.', 'uploads/valid_id_flores.jpg', '2025-11-02 17:01:28', 'System Administrator', '2025-11-03 01:04:11', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(32, 2, 'Miguel Angel Reyes', 'SA-2025-009', '09171234575', 'miguel.reyes@company.com', 'Senior Developer', 85000.00, 'miguel.reyes@company.com', 'Car Loan', '6 Months', 10000.00, 'Vehicle repair and maintenance', 1765.23, '2026-05-02', 'Rejected', 'Insufficient supporting documents', 'uploads/valid_id_reyes.jpg', '2025-11-02 21:29:52', NULL, NULL, NULL, 'System Administrator', '2025-11-03 05:30:50', 'Insufficient supporting documents - please provide vehicle OR/CR', NULL, NULL, NULL, NULL, NULL, NULL),
+(33, 3, 'Sofia Grace Villanueva', 'SA-2025-010', '09171234576', 'sofia.villanueva@company.com', 'Marketing Specialist', 42000.00, 'sofia.villanueva@company.com', 'Home Loan', '6 Months', 5000.00, 'Apartment deposit and advance rent', 882.61, '2026-05-02', 'Active', 'Small housing loan approved.', 'uploads/valid_id_villanueva.jpg', '2025-11-02 21:47:34', 'System Administrator', '2025-11-03 05:48:14', '2025-12-03', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(34, 4, 'Carlos Eduardo Mendoza', 'SA-2025-011', '09171234577', 'carlos.mendoza@company.com', 'Software Developer', 55000.00, 'carlos.mendoza@company.com', 'Multi-Purpose Loan', '6 Months', 7000.00, 'Computer upgrade for remote work setup', 1235.66, '2026-05-02', 'Active', 'Work-from-home setup loan approved.', 'uploads/valid_id_mendoza.jpg', '2025-11-02 22:24:57', 'System Administrator', '2025-11-03 06:38:36', '2025-12-03', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(35, 1, 'Patricia Isabel Gutierrez', 'SA-2025-012', '09171234578', 'patricia.gutierrez@company.com', 'Accountant', 35000.00, 'patricia.gutierrez@company.com', 'Personal Loan', '12 Months', 30000.00, 'Family medical emergency', 2779.04, '2026-11-06', 'Rejected', 'Income-to-loan ratio exceeded threshold', 'uploads/valid_id_gutierrez.jpg', '2025-11-06 10:56:13', NULL, NULL, NULL, 'System Administrator', '2025-11-06 19:06:39', 'Income-to-loan ratio exceeded threshold. Consider lower amount.', NULL, NULL, NULL, NULL, NULL, NULL),
+(36, 3, 'Ricardo Manuel Herrera', 'SA-2025-013', '09171234579', 'ricardo.herrera@company.com', 'Sales Executive', 40000.00, 'ricardo.herrera@company.com', 'Home Loan', '24 Months', 9000.00, 'House painting and minor repairs', 458.06, '2027-11-06', 'Active', 'Home improvement loan approved.', 'uploads/valid_id_herrera.jpg', '2025-11-06 11:20:08', 'System Administrator', '2025-11-06 19:57:54', '2025-12-06', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(37, 4, 'Gabriela Alejandra Morales', 'SA-2025-014', '09171234580', 'gabriela.morales@company.com', 'CS Representative', 25000.00, 'gabriela.morales@company.com', 'Multi-Purpose Loan', '36 Months', 100000.00, 'Small business startup - online shop', 3716.36, '2028-11-06', 'Active', 'Entrepreneurship support loan approved.', 'uploads/valid_id_morales.jpg', '2025-11-06 13:52:07', 'System Administrator', '2025-11-06 21:52:50', '2025-12-06', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(38, 2, 'Diego Fernando Ramos', 'SA-2025-015', '09171234581', 'diego.ramos@company.com', 'Operations Coordinator', 32000.00, 'diego.ramos@company.com', 'Car Loan', '24 Months', 7000.00, 'Motorcycle purchase for daily commute', 356.27, '2027-11-06', 'Rejected', 'Credit score below minimum requirement', 'uploads/valid_id_ramos.jpg', '2025-11-06 14:01:54', NULL, NULL, NULL, 'System Administrator', '2025-11-06 22:27:53', 'Credit score below minimum requirement. Reapply after 6 months.', NULL, NULL, NULL, NULL, NULL, NULL),
+(39, 3, 'Valentina Sofia Castillo', 'SA-2025-016', '09171234582', 'valentina.castillo@company.com', 'Content Creator', 28000.00, 'valentina.castillo@company.com', 'Home Loan', '12 Months', 8000.00, 'Studio apartment furnishing', 741.08, '2026-11-06', 'Active', 'Small housing loan approved for furnishing.', 'uploads/valid_id_castillo.jpg', '2025-11-06 14:39:43', 'System Administrator', '2025-11-06 22:42:16', '2025-12-06', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(40, 4, 'Sebastian Alejandro Vega', 'SA-2025-017', '09171234583', 'sebastian.vega@company.com', 'Junior Developer', 38000.00, 'sebastian.vega@company.com', 'Multi-Purpose Loan', '12 Months', 6000.00, 'Programming bootcamp enrollment', 555.81, '2026-11-07', 'Pending', NULL, 'uploads/valid_id_vega.jpg', '2025-11-07 13:48:14', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(41, 3, 'Camila Esperanza Ruiz', 'SA-2025-018', '09171234584', 'camila.ruiz@company.com', 'Payroll Specialist', 32000.00, 'camila.ruiz@company.com', 'Home Loan', '24 Months', 40000.00, 'Condominium unit for family', 2035.83, '2027-11-07', 'Active', 'Housing loan approved. Good payment track record.', 'uploads/valid_id_ruiz.jpg', '2025-11-07 17:11:58', 'System Administrator', '2025-11-08 01:15:36', '2025-12-08', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+
+-- Additional loan applications (varied statuses)
+(61, 2, 'Andres Felipe Castro', 'SA-2025-021', '09171234587', 'andres.castro@company.com', 'Warehouse Supervisor', 45000.00, 'andres.castro@company.com', 'Car Loan', '12 Months', 7000.00, 'Vehicle maintenance and registration', 648.44, '2026-11-29', 'Active', 'Dear Andres Felipe Castro,\n\nYour loan is now ACTIVE!\n\nPayment Details:\n- Monthly Payment: ₱648.44\n- First Payment Due: December 29, 2025\n- Final Payment: November 29, 2026\n\nActivated by: System Administrator\nDate: 2025-11-29 09:45:59', 'uploads/valid_id_castro.jpg', '2025-11-29 01:44:55', 'System Administrator', '2025-11-29 09:45:25', '2025-12-29', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(62, 3, 'Mariana Beatriz Ortega', 'SA-2025-022', '09171234588', 'mariana.ortega@company.com', 'Accounts Payable Clerk', 28000.00, 'mariana.ortega@company.com', 'Home Loan', '12 Months', 9000.00, 'Apartment lease deposit', 833.71, '2026-11-29', 'Pending', NULL, 'uploads/valid_id_ortega.jpg', '2025-11-29 01:48:07', NULL, NULL, '2025-12-29', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(63, 4, 'Santiago Ignacio Pena', 'SA-2025-023', '09171234589', 'santiago.pena@company.com', 'System Administrator', 55000.00, 'santiago.pena@company.com', 'Multi-Purpose Loan', '6 Months', 9000.00, 'Home office server equipment', 1588.71, '2026-05-29', 'Approved', 'Dear Santiago Ignacio Pena,\n\nCongratulations! Your loan application for ₱9,000.00 has been APPROVED.\n\nPlease visit our office within 30 days to claim your loan.\n\nLoan Details:\n- Amount: ₱9,000.00\n- Term: 6 Months\n- Monthly Payment: ₱1,588.71\n\nApproved by: System Administrator\nDate: 2025-11-29 09:50:14', 'uploads/valid_id_pena.jpg', '2025-11-29 01:49:58', 'System Administrator', '2025-11-29 09:50:14', '2025-12-29', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+
+-- New applications (December 2025 - March 2026)
+(64, 1, 'Daniela Fernanda Vargas', 'SA-2025-024', '09171234590', 'daniela.vargas@company.com', 'Social Media Manager', 35000.00, 'daniela.vargas@company.com', 'Personal Loan', '12 Months', 15000.00, 'Wedding preparation expenses', 1389.52, '2026-12-15', 'Approved', 'Personal loan approved for life event.', 'uploads/valid_id_vargas.jpg', '2025-12-15 10:00:00', 'System Administrator', '2025-12-16 09:00:00', '2026-01-15', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(65, 1, 'Alejandro Jose Medina', 'SA-2025-025', '09171234591', 'alejandro.medina@company.com', 'Account Manager', 50000.00, 'alejandro.medina@company.com', 'Personal Loan', '24 Months', 80000.00, 'Family vacation and debt consolidation', 3867.00, '2027-12-20', 'Active', 'Consolidation loan approved.', 'uploads/valid_id_medina.jpg', '2025-12-20 14:00:00', 'System Administrator', '2025-12-21 10:00:00', '2026-01-20', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(66, 2, 'Nicolas Gabriel Silva', 'SA-2025-019', '09171234585', 'nicolas.silva@company.com', 'Sales Representative', 30000.00, 'nicolas.silva@company.com', 'Car Loan', '36 Months', 150000.00, 'Second-hand car purchase for sales visits', 5250.00, '2029-01-10', 'Pending', NULL, 'uploads/valid_id_silva.jpg', '2026-01-10 11:00:00', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(67, 4, 'Lucia Esperanza Jimenez', 'SA-2025-020', '09171234586', 'lucia.jimenez@company.com', 'CS Representative', 25000.00, 'lucia.jimenez@company.com', 'Multi-Purpose Loan', '12 Months', 12000.00, 'Online business capital for side hustle', 1111.63, '2027-01-15', 'Rejected', 'Contractual employment - requires guarantor', 'uploads/valid_id_jimenez.jpg', '2026-01-15 09:30:00', NULL, NULL, NULL, 'System Administrator', '2026-01-16 10:00:00', 'Contractual employment status requires a guarantor. Please reapply.', NULL, NULL, NULL, NULL, NULL, NULL),
+(68, 3, 'Juan Carlos Santos', 'SA-2025-001', '09171234567', 'juan.santos@company.com', 'HR Manager', 65000.00, 'juan.santos@company.com', 'Home Loan', '36 Months', 200000.00, 'Home extension - additional bedroom', 6950.00, '2029-02-01', 'Active', 'Second housing loan approved. Excellent track record.', 'uploads/valid_id_santos_2.jpg', '2026-02-01 10:00:00', 'System Administrator', '2026-02-02 09:00:00', '2026-03-01', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(69, 1, 'Miguel Angel Reyes', 'SA-2025-009', '09171234575', 'miguel.reyes@company.com', 'Senior Developer', 85000.00, 'miguel.reyes@company.com', 'Personal Loan', '6 Months', 25000.00, 'Tech conference registration and travel', 4412.50, '2026-08-15', 'Approved', 'Professional development support.', 'uploads/valid_id_reyes_2.jpg', '2026-02-15 14:00:00', 'System Administrator', '2026-02-16 09:00:00', '2026-03-15', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(70, 2, 'Isabella Rose Flores', 'SA-2025-008', '09171234574', 'isabella.flores@company.com', 'Senior Accountant', 48000.00, 'isabella.flores@company.com', 'Car Loan', '24 Months', 120000.00, 'Used Toyota Vios purchase', 5550.00, '2028-03-01', 'Pending', NULL, 'uploads/valid_id_flores_2.jpg', '2026-03-01 11:00:00', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+
+-- CARD APPLICATIONS (Credit Card / Debit Card)
+(71, NULL, 'Maria Elena Rodriguez', 'SA-2025-002', '09171234568', 'maria.rodriguez@company.com', 'CFO', 200000.00, 'maria.rodriguez@company.com', 'Credit Card', 'N/A', 500000.00, 'Corporate credit card for business expenses', NULL, NULL, 'Active', 'Platinum credit card issued. High credit limit approved.', 'uploads/valid_id_rodriguez_cc.jpg', '2025-10-15 10:00:00', 'System Administrator', '2025-10-16 09:00:00', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(72, NULL, 'Jose Miguel Cruz', 'SA-2025-003', '09171234569', 'jose.cruz@company.com', 'CTO', 220000.00, 'jose.cruz@company.com', 'Credit Card', 'N/A', 300000.00, 'Technology purchases and subscriptions', NULL, NULL, 'Active', 'Gold credit card issued for tech purchases.', 'uploads/valid_id_cruz_cc.jpg', '2025-10-20 14:00:00', 'System Administrator', '2025-10-21 10:00:00', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(73, NULL, 'Roberto Antonio Garcia', 'SA-2025-005', '09171234571', 'roberto.garcia@company.com', 'COO', 200000.00, 'roberto.garcia@company.com', 'Credit Card', 'N/A', 400000.00, 'Operations procurement credit card', NULL, NULL, 'Active', 'Business credit card approved for operations.', 'uploads/valid_id_garcia_cc.jpg', '2025-11-01 09:00:00', 'System Administrator', '2025-11-02 10:00:00', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(74, NULL, 'Ana Patricia Lopez', 'SA-2025-004', '09171234570', 'ana.lopez@company.com', 'Marketing Director', 120000.00, 'ana.lopez@company.com', 'Credit Card', 'N/A', 200000.00, 'Marketing campaign and events credit card', NULL, NULL, 'Approved', 'Approved. Card to be issued within 5 business days.', 'uploads/valid_id_lopez_cc.jpg', '2025-11-15 11:00:00', 'System Administrator', '2025-11-16 09:00:00', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(75, NULL, 'Fernando Luis Torres', 'SA-2025-007', '09171234573', 'fernando.torres@company.com', 'Sales Manager', 70000.00, 'fernando.torres@company.com', 'Credit Card', 'N/A', 150000.00, 'Sales entertainment and client meetings', NULL, NULL, 'Approved', 'Standard credit card approved.', 'uploads/valid_id_torres_cc.jpg', '2025-12-01 10:00:00', 'System Administrator', '2025-12-02 09:00:00', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(76, NULL, 'Carlos Eduardo Mendoza', 'SA-2025-011', '09171234577', 'carlos.mendoza@company.com', 'Software Developer', 55000.00, 'carlos.mendoza@company.com', 'Credit Card', 'N/A', 100000.00, 'Software subscriptions and tools', NULL, NULL, 'Pending', NULL, 'uploads/valid_id_mendoza_cc.jpg', '2026-01-10 14:00:00', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(77, NULL, 'Patricia Isabel Gutierrez', 'SA-2025-012', '09171234578', 'patricia.gutierrez@company.com', 'Accountant', 35000.00, 'patricia.gutierrez@company.com', 'Credit Card', 'N/A', 75000.00, 'Personal credit card application', NULL, NULL, 'Pending', NULL, 'uploads/valid_id_gutierrez_cc.jpg', '2026-01-20 10:00:00', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(78, NULL, 'Gabriela Alejandra Morales', 'SA-2025-014', '09171234580', 'gabriela.morales@company.com', 'CS Representative', 25000.00, 'gabriela.morales@company.com', 'Credit Card', 'N/A', 50000.00, 'Personal expenses credit card', NULL, NULL, 'Declined', 'Minimum salary requirement not met for credit card.', 'uploads/valid_id_morales_cc.jpg', '2025-12-10 09:00:00', NULL, NULL, NULL, 'System Administrator', '2025-12-11 10:00:00', 'Minimum salary requirement of ₱30,000 not met.', NULL, NULL, NULL, NULL, NULL, NULL),
+(79, NULL, 'Sebastian Alejandro Vega', 'SA-2025-017', '09171234583', 'sebastian.vega@company.com', 'Junior Developer', 38000.00, 'sebastian.vega@company.com', 'Debit Card', 'N/A', 0.00, 'Payroll debit card for salary', NULL, NULL, 'Active', 'Debit card issued for payroll account.', 'uploads/valid_id_vega_dc.jpg', '2025-11-10 10:00:00', 'System Administrator', '2025-11-11 09:00:00', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(80, NULL, 'Valentina Sofia Castillo', 'SA-2025-016', '09171234582', 'valentina.castillo@company.com', 'Content Creator', 28000.00, 'valentina.castillo@company.com', 'Debit Card', 'N/A', 0.00, 'Payroll debit card', NULL, NULL, 'Declined', 'Contractual employee - requires regularization.', 'uploads/valid_id_castillo_dc.jpg', '2025-12-05 11:00:00', NULL, NULL, NULL, 'System Administrator', '2025-12-06 09:00:00', 'Contractual employees must be regularized before card issuance.', NULL, NULL, NULL, NULL, NULL, NULL),
+(81, NULL, 'Camila Esperanza Ruiz', 'SA-2025-018', '09171234584', 'camila.ruiz@company.com', 'Payroll Specialist', 32000.00, 'camila.ruiz@company.com', 'Credit Card', 'N/A', 60000.00, 'Personal credit card', NULL, NULL, 'Declined', 'Existing loan obligations exceed threshold', 'uploads/valid_id_ruiz_cc.jpg', '2026-02-10 10:00:00', NULL, NULL, NULL, 'System Administrator', '2026-02-11 10:00:00', 'Total existing loan obligations exceed 40% of monthly income.', NULL, NULL, NULL, NULL, NULL, NULL)
 ON DUPLICATE KEY UPDATE 
     loan_type_id = VALUES(loan_type_id),
     full_name = VALUES(full_name),
@@ -2366,7 +2884,64 @@ INSERT IGNORE INTO expense_claims (claim_no, employee_external_no, expense_date,
 ('EXP-2024-007', 'EMP005', '2024-01-30', (SELECT id FROM expense_categories WHERE code = 'MEALS'), 650.00, 'Team lunch meeting', 'paid', 1, '2024-01-31 11:20:00', NULL, NULL, '2024-01-30 10:45:00'),
 ('EXP-2024-008', 'EMP003', '2024-02-02', (SELECT id FROM expense_categories WHERE code = 'OFFICE'), 950.00, 'Computer accessories and cables', 'submitted', NULL, NULL, NULL, NULL, '2024-02-02 09:00:00'),
 ('EXP-2024-009', 'EMP001', '2024-02-05', (SELECT id FROM expense_categories WHERE code = 'COMM'), 380.00, 'Internet service for home office', 'draft', NULL, NULL, NULL, NULL, '2024-02-05 10:30:00'),
-('EXP-2024-010', 'EMP004', '2024-02-08', (SELECT id FROM expense_categories WHERE code = 'TRAVEL'), 3200.00, 'Conference attendance in Cebu', 'approved', 1, '2024-02-09 13:30:00', NULL, NULL, '2024-02-08 14:00:00')
+('EXP-2024-010', 'EMP004', '2024-02-08', (SELECT id FROM expense_categories WHERE code = 'TRAVEL'), 3200.00, 'Conference attendance in Cebu', 'approved', 1, '2024-02-09 13:30:00', NULL, NULL, '2024-02-08 14:00:00'),
+
+-- 2025 Expense Claims (Q1-Q4)
+('EXP-2025-001', 'EMP001', '2025-01-08', 1, 3200.00, 'Office supplies bulk purchase for new year', 'approved', 1, '2025-01-09 09:00:00', NULL, NULL, '2025-01-08 09:00:00'),
+('EXP-2025-002', 'EMP002', '2025-01-15', 2, 4500.00, 'Annual planning meeting travel to Manila', 'approved', 1, '2025-01-16 14:00:00', NULL, NULL, '2025-01-15 08:00:00'),
+('EXP-2025-003', 'EMP003', '2025-01-22', 7, 18000.00, 'Server hardware upgrade - Dell PowerEdge', 'approved', 1, '2025-01-23 10:00:00', NULL, NULL, '2025-01-22 09:30:00'),
+('EXP-2025-004', 'EMP004', '2025-02-05', 3, 2800.00, 'Marketing team strategy dinner', 'approved', 1, '2025-02-06 11:00:00', NULL, NULL, '2025-02-05 18:00:00'),
+('EXP-2025-005', 'EMP005', '2025-02-12', 2, 5200.00, 'Operations conference in Cebu', 'approved', 1, '2025-02-13 10:00:00', NULL, NULL, '2025-02-12 08:00:00'),
+('EXP-2025-006', 'EMP006', '2025-02-20', 6, 3500.00, 'Customer service training workshop', 'approved', 1, '2025-02-21 09:00:00', NULL, NULL, '2025-02-20 09:00:00'),
+('EXP-2025-007', 'EMP007', '2025-03-03', 2, 6500.00, 'Sales team quarterly road show', 'approved', 1, '2025-03-04 10:00:00', NULL, NULL, '2025-03-03 07:00:00'),
+('EXP-2025-008', 'EMP008', '2025-03-10', 1, 1200.00, 'Accounting supplies and forms', 'approved', 1, '2025-03-11 09:00:00', NULL, NULL, '2025-03-10 10:00:00'),
+('EXP-2025-009', 'EMP009', '2025-03-18', 7, 25000.00, 'Software licenses - JetBrains annual subscription', 'approved', 1, '2025-03-19 11:00:00', NULL, NULL, '2025-03-18 14:00:00'),
+('EXP-2025-010', 'EMP010', '2025-03-25', 3, 1500.00, 'Team building lunch at Greenbelt', 'approved', 1, '2025-03-26 12:00:00', NULL, NULL, '2025-03-25 12:00:00'),
+('EXP-2025-011', 'EMP011', '2025-04-02', 4, 980.00, 'Internet bill reimbursement - March work from home', 'approved', 1, '2025-04-03 09:00:00', NULL, NULL, '2025-04-02 10:00:00'),
+('EXP-2025-012', 'EMP012', '2025-04-10', 1, 2100.00, 'Filing supplies for tax season', 'approved', 1, '2025-04-11 09:00:00', NULL, NULL, '2025-04-10 09:00:00'),
+('EXP-2025-013', 'EMP013', '2025-04-18', 2, 3800.00, 'Client visit travel to Davao', 'approved', 1, '2025-04-19 14:00:00', NULL, NULL, '2025-04-18 08:00:00'),
+('EXP-2025-014', 'EMP014', '2025-05-05', 3, 900.00, 'Customer appreciation lunch', 'approved', 1, '2025-05-06 12:00:00', NULL, NULL, '2025-05-05 12:00:00'),
+('EXP-2025-015', 'EMP015', '2025-05-12', 5, 8500.00, 'Warehouse lease monthly payment', 'approved', 1, '2025-05-13 10:00:00', NULL, NULL, '2025-05-12 09:00:00'),
+('EXP-2025-016', 'EMP016', '2025-05-20', 7, 5500.00, 'Camera and lighting equipment for content', 'approved', 1, '2025-05-21 10:00:00', NULL, NULL, '2025-05-20 14:00:00'),
+('EXP-2025-017', 'EMP017', '2025-06-03', 6, 4200.00, 'AWS certification course enrollment', 'approved', 1, '2025-06-04 09:00:00', NULL, NULL, '2025-06-03 10:00:00'),
+('EXP-2025-018', 'EMP018', '2025-06-15', 1, 800.00, 'Payroll forms and envelopes', 'approved', 1, '2025-06-16 09:00:00', NULL, NULL, '2025-06-15 10:00:00'),
+('EXP-2025-019', 'EMP019', '2025-06-22', 2, 2800.00, 'Client meeting travel to Subic', 'submitted', NULL, NULL, NULL, NULL, '2025-06-22 08:00:00'),
+('EXP-2025-020', 'EMP020', '2025-07-01', 3, 650.00, 'Team lunch for new hire welcome', 'approved', 1, '2025-07-02 12:00:00', NULL, NULL, '2025-07-01 12:00:00'),
+('EXP-2025-021', 'EMP021', '2025-07-10', 5, 12000.00, 'Insurance premium for warehouse', 'approved', 1, '2025-07-11 10:00:00', NULL, NULL, '2025-07-10 09:00:00'),
+('EXP-2025-022', 'EMP022', '2025-07-18', 1, 1800.00, 'Office supplies - printer cartridges', 'approved', 1, '2025-07-19 09:00:00', NULL, NULL, '2025-07-18 10:00:00'),
+('EXP-2025-023', 'EMP023', '2025-08-05', 7, 32000.00, 'Network switch and firewall upgrade', 'approved', 1, '2025-08-06 10:00:00', NULL, NULL, '2025-08-05 09:00:00'),
+('EXP-2025-024', 'EMP024', '2025-08-15', 6, 2500.00, 'Digital marketing certification', 'approved', 1, '2025-08-16 09:00:00', NULL, NULL, '2025-08-15 08:00:00'),
+('EXP-2025-025', 'EMP025', '2025-08-25', 2, 4500.00, 'Client onboarding meeting in Iloilo', 'approved', 1, '2025-08-26 14:00:00', NULL, NULL, '2025-08-25 08:00:00'),
+('EXP-2025-026', 'EMP001', '2025-09-05', 3, 2200.00, 'HR team building dinner', 'approved', 1, '2025-09-06 12:00:00', NULL, NULL, '2025-09-05 18:00:00'),
+('EXP-2025-027', 'EMP002', '2025-09-15', 2, 8500.00, 'CFO summit conference - BGC', 'approved', 1, '2025-09-16 10:00:00', NULL, NULL, '2025-09-15 08:00:00'),
+('EXP-2025-028', 'EMP003', '2025-10-01', 7, 15000.00, 'Developer workstation monitors', 'approved', 1, '2025-10-02 10:00:00', NULL, NULL, '2025-10-01 09:00:00'),
+('EXP-2025-029', 'EMP004', '2025-10-10', 3, 3200.00, 'Marketing awards ceremony dinner', 'approved', 1, '2025-10-11 11:00:00', NULL, NULL, '2025-10-10 18:00:00'),
+('EXP-2025-030', 'EMP005', '2025-10-20', 5, 8500.00, 'Office rent payment - November advance', 'approved', 1, '2025-10-21 09:00:00', NULL, NULL, '2025-10-20 09:00:00'),
+('EXP-2025-031', 'EMP006', '2025-11-05', 4, 1500.00, 'Mobile plan reimbursement Q3', 'approved', 1, '2025-11-06 09:00:00', NULL, NULL, '2025-11-05 10:00:00'),
+('EXP-2025-032', 'EMP007', '2025-11-15', 2, 7200.00, 'National sales convention in Clark', 'approved', 1, '2025-11-16 14:00:00', NULL, NULL, '2025-11-15 07:00:00'),
+('EXP-2025-033', 'EMP008', '2025-11-25', 1, 2400.00, 'Accounting reference books and journals', 'approved', 1, '2025-11-26 10:00:00', NULL, NULL, '2025-11-25 10:00:00'),
+('EXP-2025-034', 'EMP009', '2025-12-02', 6, 5800.00, 'Cloud architecture certification', 'approved', 1, '2025-12-03 09:00:00', NULL, NULL, '2025-12-02 09:00:00'),
+('EXP-2025-035', 'EMP010', '2025-12-12', 3, 4500.00, 'Year-end client appreciation dinner', 'approved', 1, '2025-12-13 12:00:00', NULL, NULL, '2025-12-12 18:00:00'),
+('EXP-2025-036', 'EMP011', '2025-12-18', 7, 8200.00, 'Additional RAM and SSD upgrades', 'submitted', NULL, NULL, NULL, NULL, '2025-12-18 14:00:00'),
+('EXP-2025-037', 'EMP012', '2025-12-22', 1, 1800.00, 'Year-end filing supplies', 'approved', 1, '2025-12-23 09:00:00', NULL, NULL, '2025-12-22 09:00:00'),
+
+-- 2026 Q1 Expense Claims (January - March)
+('EXP-2026-001', 'EMP001', '2026-01-05', 1, 4500.00, 'New year office supplies bulk order', 'approved', 1, '2026-01-06 09:00:00', NULL, NULL, '2026-01-05 09:00:00'),
+('EXP-2026-002', 'EMP002', '2026-01-10', 2, 6800.00, 'Annual planning retreat in Tagaytay', 'approved', 1, '2026-01-11 14:00:00', NULL, NULL, '2026-01-10 08:00:00'),
+('EXP-2026-003', 'EMP003', '2026-01-18', 7, 42000.00, 'Annual cloud hosting renewal - AWS', 'approved', 1, '2026-01-19 10:00:00', NULL, NULL, '2026-01-18 09:00:00'),
+('EXP-2026-004', 'EMP004', '2026-01-22', 3, 3200.00, 'Q1 marketing kickoff dinner', 'approved', 1, '2026-01-23 12:00:00', NULL, NULL, '2026-01-22 18:00:00'),
+('EXP-2026-005', 'EMP005', '2026-01-28', 5, 8500.00, 'Office rent payment - February', 'approved', 1, '2026-01-29 09:00:00', NULL, NULL, '2026-01-28 09:00:00'),
+('EXP-2026-006', 'EMP006', '2026-02-03', 6, 3800.00, 'Customer experience workshop', 'approved', 1, '2026-02-04 09:00:00', NULL, NULL, '2026-02-03 09:00:00'),
+('EXP-2026-007', 'EMP007', '2026-02-10', 2, 5600.00, 'Regional sales meeting in Cebu', 'approved', 1, '2026-02-11 14:00:00', NULL, NULL, '2026-02-10 07:00:00'),
+('EXP-2026-008', 'EMP008', '2026-02-18', 1, 1500.00, 'Tax filing forms and supplies', 'approved', 1, '2026-02-19 09:00:00', NULL, NULL, '2026-02-18 10:00:00'),
+('EXP-2026-009', 'EMP009', '2026-02-25', 7, 12000.00, 'Development laptop - MacBook Pro', 'submitted', NULL, NULL, NULL, NULL, '2026-02-25 14:00:00'),
+('EXP-2026-010', 'EMP010', '2026-03-02', 3, 1800.00, 'Team lunch for project milestone', 'approved', 1, '2026-03-03 12:00:00', NULL, NULL, '2026-03-02 12:00:00'),
+('EXP-2026-011', 'EMP013', '2026-03-05', 2, 3500.00, 'Client visit to Zamboanga', 'approved', 1, '2026-03-06 14:00:00', NULL, NULL, '2026-03-05 08:00:00'),
+('EXP-2026-012', 'EMP015', '2026-03-10', 5, 8500.00, 'Warehouse maintenance and repairs', 'approved', 1, '2026-03-11 10:00:00', NULL, NULL, '2026-03-10 09:00:00'),
+('EXP-2026-013', 'EMP018', '2026-03-15', 1, 2200.00, 'Payroll system upgrade supplies', 'pending', NULL, NULL, NULL, NULL, '2026-03-15 10:00:00'),
+('EXP-2026-014', 'EMP021', '2026-03-18', 7, 9500.00, 'Warehouse barcode scanners', 'submitted', NULL, NULL, NULL, NULL, '2026-03-18 09:00:00'),
+('EXP-2026-015', 'EMP023', '2026-03-22', 6, 4800.00, 'Cybersecurity certification training', 'pending', NULL, NULL, NULL, NULL, '2026-03-22 10:00:00'),
+('EXP-2026-016', 'EMP025', '2026-03-25', 2, 4200.00, 'Quarterly client roadshow travel', 'draft', NULL, NULL, NULL, NULL, '2026-03-25 08:00:00')
 ON DUPLICATE KEY UPDATE amount = VALUES(amount);
 
 -- ========================================
@@ -2407,7 +2982,32 @@ INSERT IGNORE INTO payments (payment_no, payment_date, payment_type, from_bank_a
 ('PAY037', '2024-12-05', 'check', 1, 'Marketing Agency', 30000.00, 'MKT-2024-Q4', 'Q4 marketing campaign', 'completed', NULL, 1, '2024-12-05 11:20:00'),
 ('PAY038', '2024-12-10', 'bank_transfer', 2, 'Software License Co.', 12000.00, 'LIC-2024-001', 'Annual software licenses', 'completed', NULL, 1, '2024-12-10 10:45:00'),
 ('PAY039', '2024-12-15', 'cash', NULL, 'Office Maintenance', 5000.00, 'MAINT-2024-001', 'Office cleaning services', 'completed', NULL, 1, '2024-12-15 16:00:00'),
-('PAY040', '2024-12-20', 'bank_transfer', 3, 'Insurance Provider', 25000.00, 'INS-2024-Q4', 'Quarterly insurance premium', 'pending', NULL, 1, '2024-12-20 09:30:00')
+('PAY040', '2024-12-20', 'bank_transfer', 3, 'Insurance Provider', 25000.00, 'INS-2024-Q4', 'Quarterly insurance premium', 'pending', NULL, 1, '2024-12-20 09:30:00'),
+
+-- 2025 Payments
+('PAY041', '2025-01-31', 'bank_transfer', 2, 'Juan Carlos Santos', 53300.00, 'SAL-2025-01-001', 'January 2025 salary payment', 'completed', NULL, 1, '2025-01-31 10:00:00'),
+('PAY042', '2025-01-31', 'bank_transfer', 2, 'Maria Elena Rodriguez', 164000.00, 'SAL-2025-01-002', 'January 2025 salary payment', 'completed', NULL, 1, '2025-01-31 10:00:00'),
+('PAY043', '2025-01-31', 'bank_transfer', 2, 'Jose Miguel Cruz', 180400.00, 'SAL-2025-01-003', 'January 2025 salary payment', 'completed', NULL, 1, '2025-01-31 10:00:00'),
+('PAY044', '2025-01-31', 'bank_transfer', 2, 'Ana Patricia Lopez', 98400.00, 'SAL-2025-01-004', 'January 2025 salary payment', 'completed', NULL, 1, '2025-01-31 10:00:00'),
+('PAY045', '2025-01-31', 'bank_transfer', 2, 'Roberto Antonio Garcia', 164000.00, 'SAL-2025-01-005', 'January 2025 salary payment', 'completed', NULL, 1, '2025-01-31 10:00:00'),
+('PAY046', '2025-02-28', 'bank_transfer', 1, 'Office Equipment Supplier', 18000.00, 'EQUIP-2025-001', 'Server hardware upgrade payment', 'completed', NULL, 1, '2025-02-28 14:30:00'),
+('PAY047', '2025-03-15', 'bank_transfer', 1, 'JetBrains s.r.o.', 25000.00, 'LIC-2025-001', 'Annual IDE subscription licenses', 'completed', NULL, 1, '2025-03-15 10:00:00'),
+('PAY048', '2025-04-30', 'check', 1, 'Marketing Agency Manila', 45000.00, 'MKT-2025-Q1', 'Q1 2025 marketing campaign', 'completed', NULL, 1, '2025-04-30 11:00:00'),
+('PAY049', '2025-06-30', 'bank_transfer', 3, 'Insurance Provider', 25000.00, 'INS-2025-Q2', 'Q2 insurance premium', 'completed', NULL, 1, '2025-06-30 09:30:00'),
+('PAY050', '2025-07-15', 'bank_transfer', 1, 'AWS Cloud Services', 42000.00, 'CLOUD-2025-H1', 'H1 2025 cloud hosting fees', 'completed', NULL, 1, '2025-07-15 10:00:00'),
+('PAY051', '2025-09-30', 'bank_transfer', 3, 'Insurance Provider', 25000.00, 'INS-2025-Q3', 'Q3 insurance premium', 'completed', NULL, 1, '2025-09-30 09:30:00'),
+('PAY052', '2025-10-15', 'bank_transfer', 1, 'Network Equipment Supplier', 32000.00, 'EQUIP-2025-002', 'Network switch and firewall', 'completed', NULL, 1, '2025-10-15 14:00:00'),
+('PAY053', '2025-12-20', 'bank_transfer', 3, 'Insurance Provider', 25000.00, 'INS-2025-Q4', 'Q4 insurance premium', 'completed', NULL, 1, '2025-12-20 09:30:00'),
+
+-- 2026 Q1 Payments
+('PAY054', '2026-01-31', 'bank_transfer', 2, 'Juan Carlos Santos', 53300.00, 'SAL-2026-01-001', 'January 2026 salary payment', 'completed', NULL, 1, '2026-01-31 10:00:00'),
+('PAY055', '2026-01-31', 'bank_transfer', 2, 'Maria Elena Rodriguez', 164000.00, 'SAL-2026-01-002', 'January 2026 salary payment', 'completed', NULL, 1, '2026-01-31 10:00:00'),
+('PAY056', '2026-01-31', 'bank_transfer', 2, 'Jose Miguel Cruz', 180400.00, 'SAL-2026-01-003', 'January 2026 salary payment', 'completed', NULL, 1, '2026-01-31 10:00:00'),
+('PAY057', '2026-01-20', 'bank_transfer', 1, 'AWS Cloud Services', 42000.00, 'CLOUD-2026-001', 'Annual cloud hosting renewal', 'completed', NULL, 1, '2026-01-20 10:00:00'),
+('PAY058', '2026-02-28', 'bank_transfer', 2, 'Juan Carlos Santos', 53300.00, 'SAL-2026-02-001', 'February 2026 salary payment', 'completed', NULL, 1, '2026-02-28 10:00:00'),
+('PAY059', '2026-02-28', 'bank_transfer', 2, 'Maria Elena Rodriguez', 164000.00, 'SAL-2026-02-002', 'February 2026 salary payment', 'completed', NULL, 1, '2026-02-28 10:00:00'),
+('PAY060', '2026-03-15', 'bank_transfer', 2, 'Ana Patricia Lopez', 98400.00, 'SAL-2026-03-004', 'March 2026 salary payment', 'completed', NULL, 1, '2026-03-15 10:00:00'),
+('PAY061', '2026-03-20', 'bank_transfer', 3, 'Insurance Provider', 25000.00, 'INS-2026-Q1', 'Q1 2026 insurance premium', 'completed', NULL, 1, '2026-03-20 09:30:00')
 ON DUPLICATE KEY UPDATE amount = VALUES(amount);
 
 -- ========================================
@@ -2427,8 +3027,22 @@ INSERT IGNORE INTO payroll_periods (period_start, period_end, frequency, status,
 ('2024-09-01', '2024-09-30', 'monthly', 'paid', '2024-09-01 00:00:00'),
 ('2024-10-01', '2024-10-31', 'monthly', 'paid', '2024-10-01 00:00:00'),
 ('2024-11-01', '2024-11-30', 'monthly', 'paid', '2024-11-01 00:00:00'),
-('2024-12-01', '2024-12-31', 'monthly', 'processing', '2024-12-01 00:00:00'),
-('2025-01-01', '2025-01-31', 'monthly', 'open', '2025-01-01 00:00:00')
+('2024-12-01', '2024-12-31', 'monthly', 'paid', '2024-12-01 00:00:00'),
+('2025-01-01', '2025-01-31', 'monthly', 'paid', '2025-01-01 00:00:00'),
+('2025-02-01', '2025-02-28', 'monthly', 'paid', '2025-02-01 00:00:00'),
+('2025-03-01', '2025-03-31', 'monthly', 'paid', '2025-03-01 00:00:00'),
+('2025-04-01', '2025-04-30', 'monthly', 'paid', '2025-04-01 00:00:00'),
+('2025-05-01', '2025-05-31', 'monthly', 'paid', '2025-05-01 00:00:00'),
+('2025-06-01', '2025-06-30', 'monthly', 'paid', '2025-06-01 00:00:00'),
+('2025-07-01', '2025-07-31', 'monthly', 'paid', '2025-07-01 00:00:00'),
+('2025-08-01', '2025-08-31', 'monthly', 'paid', '2025-08-01 00:00:00'),
+('2025-09-01', '2025-09-30', 'monthly', 'paid', '2025-09-01 00:00:00'),
+('2025-10-01', '2025-10-31', 'monthly', 'paid', '2025-10-01 00:00:00'),
+('2025-11-01', '2025-11-30', 'monthly', 'paid', '2025-11-01 00:00:00'),
+('2025-12-01', '2025-12-31', 'monthly', 'paid', '2025-12-01 00:00:00'),
+('2026-01-01', '2026-01-31', 'monthly', 'paid', '2026-01-01 00:00:00'),
+('2026-02-01', '2026-02-28', 'monthly', 'paid', '2026-02-01 00:00:00'),
+('2026-03-01', '2026-03-31', 'monthly', 'processing', '2026-03-01 00:00:00')
 ON DUPLICATE KEY UPDATE period_start = VALUES(period_start);
 
 -- Payroll Runs
@@ -2444,35 +3058,241 @@ INSERT IGNORE INTO payroll_runs (payroll_period_id, run_by_user_id, run_at, tota
 (9, 1, '2024-09-30 18:00:00', 290000.00, 53000.00, 237000.00, 'completed', NULL),
 (10, 1, '2024-10-31 18:00:00', 295000.00, 54000.00, 241000.00, 'completed', NULL),
 (11, 1, '2024-11-30 18:00:00', 300000.00, 55000.00, 245000.00, 'completed', NULL),
-(12, 1, '2024-12-15 10:00:00', 305000.00, 56000.00, 249000.00, 'draft', NULL),
-(13, 1, '2025-01-15 10:00:00', 310000.00, 57000.00, 253000.00, 'draft', NULL)
+(12, 1, '2024-12-31 18:00:00', 305000.00, 56000.00, 249000.00, 'completed', NULL),
+-- 2025 Payroll Runs (monthly, all 25 employees)
+(13, 1, '2025-01-31 18:00:00', 1615000.00, 290700.00, 1324300.00, 'completed', NULL),
+(14, 1, '2025-02-28 18:00:00', 1615000.00, 290700.00, 1324300.00, 'completed', NULL),
+(15, 1, '2025-03-31 18:00:00', 1615000.00, 290700.00, 1324300.00, 'completed', NULL),
+(16, 1, '2025-04-30 18:00:00', 1615000.00, 290700.00, 1324300.00, 'completed', NULL),
+(17, 1, '2025-05-31 18:00:00', 1615000.00, 290700.00, 1324300.00, 'completed', NULL),
+(18, 1, '2025-06-30 18:00:00', 1615000.00, 290700.00, 1324300.00, 'completed', NULL),
+(19, 1, '2025-07-31 18:00:00', 1615000.00, 290700.00, 1324300.00, 'completed', NULL),
+(20, 1, '2025-08-31 18:00:00', 1615000.00, 290700.00, 1324300.00, 'completed', NULL),
+(21, 1, '2025-09-30 18:00:00', 1615000.00, 290700.00, 1324300.00, 'completed', NULL),
+(22, 1, '2025-10-31 18:00:00', 1615000.00, 290700.00, 1324300.00, 'completed', NULL),
+(23, 1, '2025-11-30 18:00:00', 1615000.00, 290700.00, 1324300.00, 'completed', NULL),
+(24, 1, '2025-12-31 18:00:00', 1615000.00, 290700.00, 1324300.00, 'completed', NULL),
+-- 2026 Q1 Payroll Runs
+(25, 1, '2026-01-31 18:00:00', 1615000.00, 290700.00, 1324300.00, 'completed', NULL),
+(26, 1, '2026-02-28 18:00:00', 1615000.00, 290700.00, 1324300.00, 'completed', NULL),
+(27, 1, '2026-03-15 10:00:00', 1615000.00, 290700.00, 1324300.00, 'finalized', NULL)
 ON DUPLICATE KEY UPDATE total_gross = VALUES(total_gross);
 
--- Comprehensive Payslips for All Employees
+-- Comprehensive Payslips for All 25 Employees
 INSERT IGNORE INTO payslips (payroll_run_id, employee_external_no, gross_pay, total_deductions, net_pay, payslip_json) VALUES
--- January 2024 Payslips
-(1, 'EMP001', 25000.00, 4500.00, 20500.00, '{"basic_salary": 25000, "allowances": 2000, "deductions": 4500}'),
-(1, 'EMP002', 28000.00, 5000.00, 23000.00, '{"basic_salary": 28000, "allowances": 2000, "deductions": 5000}'),
-(1, 'EMP003', 30000.00, 5500.00, 24500.00, '{"basic_salary": 30000, "allowances": 2000, "deductions": 5500}'),
-(1, 'EMP004', 22000.00, 4000.00, 18000.00, '{"basic_salary": 22000, "allowances": 2000, "deductions": 4000}'),
-(1, 'EMP005', 32000.00, 6000.00, 26000.00, '{"basic_salary": 32000, "allowances": 2000, "deductions": 6000}'),
-(1, 'EMP006', 18000.00, 3500.00, 14500.00, '{"basic_salary": 18000, "allowances": 1500, "deductions": 3500}'),
-(1, 'EMP007', 26000.00, 4800.00, 21200.00, '{"basic_salary": 26000, "allowances": 2000, "deductions": 4800}'),
-(1, 'EMP008', 24000.00, 4400.00, 19600.00, '{"basic_salary": 24000, "allowances": 2000, "deductions": 4400}'),
-(1, 'EMP009', 29000.00, 5200.00, 23800.00, '{"basic_salary": 29000, "allowances": 2000, "deductions": 5200}'),
-(1, 'EMP010', 15000.00, 2800.00, 12200.00, '{"basic_salary": 15000, "allowances": 1000, "deductions": 2800}'),
+-- January 2024 Payslips (Run ID 1)
+(1, 'EMP001', 65000.00, 11700.00, 53300.00, '{"basic_salary":65000,"sss":1350,"philhealth":975,"pagibig":200,"tax":9175}'),
+(1, 'EMP002', 200000.00, 36000.00, 164000.00, '{"basic_salary":200000,"sss":1350,"philhealth":2500,"pagibig":200,"tax":31950}'),
+(1, 'EMP003', 220000.00, 39600.00, 180400.00, '{"basic_salary":220000,"sss":1350,"philhealth":2500,"pagibig":200,"tax":35550}'),
+(1, 'EMP004', 120000.00, 21600.00, 98400.00, '{"basic_salary":120000,"sss":1350,"philhealth":1800,"pagibig":200,"tax":18250}'),
+(1, 'EMP005', 200000.00, 36000.00, 164000.00, '{"basic_salary":200000,"sss":1350,"philhealth":2500,"pagibig":200,"tax":31950}'),
+(1, 'EMP006', 55000.00, 9900.00, 45100.00, '{"basic_salary":55000,"sss":1350,"philhealth":825,"pagibig":200,"tax":7525}'),
+(1, 'EMP007', 70000.00, 12600.00, 57400.00, '{"basic_salary":70000,"sss":1350,"philhealth":1050,"pagibig":200,"tax":10000}'),
+(1, 'EMP008', 48000.00, 8640.00, 39360.00, '{"basic_salary":48000,"sss":1350,"philhealth":720,"pagibig":200,"tax":6370}'),
+(1, 'EMP009', 85000.00, 15300.00, 69700.00, '{"basic_salary":85000,"sss":1350,"philhealth":1275,"pagibig":200,"tax":12475}'),
+(1, 'EMP010', 42000.00, 7560.00, 34440.00, '{"basic_salary":42000,"sss":1350,"philhealth":630,"pagibig":200,"tax":5380}'),
 
--- December 2024 Payslips (Current)
-(12, 'EMP001', 25000.00, 4500.00, 20500.00, '{"basic_salary": 25000, "allowances": 2000, "deductions": 4500, "bonus": 2000}'),
-(12, 'EMP002', 28000.00, 5000.00, 23000.00, '{"basic_salary": 28000, "allowances": 2000, "deductions": 5000, "bonus": 2000}'),
-(12, 'EMP003', 30000.00, 5500.00, 25500.00, '{"basic_salary": 30000, "allowances": 2000, "deductions": 5500, "bonus": 2000}'),
-(12, 'EMP004', 22000.00, 4000.00, 18900.00, '{"basic_salary": 22000, "allowances": 2000, "deductions": 4000, "bonus": 1500}'),
-(12, 'EMP005', 32000.00, 6000.00, 27200.00, '{"basic_salary": 32000, "allowances": 2000, "deductions": 6000, "bonus": 2500}'),
-(12, 'EMP006', 18000.00, 3500.00, 15600.00, '{"basic_salary": 18000, "allowances": 1500, "deductions": 3500, "bonus": 1000}'),
-(12, 'EMP007', 26000.00, 4800.00, 22200.00, '{"basic_salary": 26000, "allowances": 2000, "deductions": 4800, "bonus": 2000}'),
-(12, 'EMP008', 24000.00, 4400.00, 20600.00, '{"basic_salary": 24000, "allowances": 2000, "deductions": 4400, "bonus": 1500}'),
-(12, 'EMP009', 29000.00, 5200.00, 24700.00, '{"basic_salary": 29000, "allowances": 2000, "deductions": 5200, "bonus": 2000}'),
-(12, 'EMP010', 15000.00, 2800.00, 13200.00, '{"basic_salary": 15000, "allowances": 1000, "deductions": 2800, "bonus": 1000}')
+-- December 2024 Payslips (Run ID 12) - Year End with 13th Month
+(12, 'EMP001', 130000.00, 23400.00, 106600.00, '{"basic_salary":65000,"13th_month":65000,"sss":1350,"philhealth":975,"pagibig":200,"tax":20875}'),
+(12, 'EMP002', 400000.00, 72000.00, 328000.00, '{"basic_salary":200000,"13th_month":200000,"sss":1350,"philhealth":2500,"pagibig":200,"tax":67950}'),
+(12, 'EMP003', 440000.00, 79200.00, 360800.00, '{"basic_salary":220000,"13th_month":220000,"sss":1350,"philhealth":2500,"pagibig":200,"tax":75150}'),
+(12, 'EMP004', 240000.00, 43200.00, 196800.00, '{"basic_salary":120000,"13th_month":120000,"sss":1350,"philhealth":1800,"pagibig":200,"tax":39850}'),
+(12, 'EMP005', 400000.00, 72000.00, 328000.00, '{"basic_salary":200000,"13th_month":200000,"sss":1350,"philhealth":2500,"pagibig":200,"tax":67950}'),
+(12, 'EMP006', 110000.00, 19800.00, 90200.00, '{"basic_salary":55000,"13th_month":55000,"sss":1350,"philhealth":825,"pagibig":200,"tax":17425}'),
+(12, 'EMP007', 140000.00, 25200.00, 114800.00, '{"basic_salary":70000,"13th_month":70000,"sss":1350,"philhealth":1050,"pagibig":200,"tax":22600}'),
+(12, 'EMP008', 96000.00, 17280.00, 78720.00, '{"basic_salary":48000,"13th_month":48000,"sss":1350,"philhealth":720,"pagibig":200,"tax":15010}'),
+(12, 'EMP009', 170000.00, 30600.00, 139400.00, '{"basic_salary":85000,"13th_month":85000,"sss":1350,"philhealth":1275,"pagibig":200,"tax":27775}'),
+(12, 'EMP010', 84000.00, 15120.00, 68880.00, '{"basic_salary":42000,"13th_month":42000,"sss":1350,"philhealth":630,"pagibig":200,"tax":12940}'),
+
+-- January 2025 Payslips (Run ID 13) - All 25 employees
+(13, 'EMP001', 65000.00, 11700.00, 53300.00, '{"basic_salary":65000,"sss":1350,"philhealth":975,"pagibig":200,"tax":9175}'),
+(13, 'EMP002', 200000.00, 36000.00, 164000.00, '{"basic_salary":200000,"sss":1350,"philhealth":2500,"pagibig":200,"tax":31950}'),
+(13, 'EMP003', 220000.00, 39600.00, 180400.00, '{"basic_salary":220000,"sss":1350,"philhealth":2500,"pagibig":200,"tax":35550}'),
+(13, 'EMP004', 120000.00, 21600.00, 98400.00, '{"basic_salary":120000,"sss":1350,"philhealth":1800,"pagibig":200,"tax":18250}'),
+(13, 'EMP005', 200000.00, 36000.00, 164000.00, '{"basic_salary":200000,"sss":1350,"philhealth":2500,"pagibig":200,"tax":31950}'),
+(13, 'EMP006', 55000.00, 9900.00, 45100.00, '{"basic_salary":55000,"sss":1350,"philhealth":825,"pagibig":200,"tax":7525}'),
+(13, 'EMP007', 70000.00, 12600.00, 57400.00, '{"basic_salary":70000,"sss":1350,"philhealth":1050,"pagibig":200,"tax":10000}'),
+(13, 'EMP008', 48000.00, 8640.00, 39360.00, '{"basic_salary":48000,"sss":1350,"philhealth":720,"pagibig":200,"tax":6370}'),
+(13, 'EMP009', 85000.00, 15300.00, 69700.00, '{"basic_salary":85000,"sss":1350,"philhealth":1275,"pagibig":200,"tax":12475}'),
+(13, 'EMP010', 42000.00, 7560.00, 34440.00, '{"basic_salary":42000,"sss":1350,"philhealth":630,"pagibig":200,"tax":5380}'),
+(13, 'EMP011', 55000.00, 9900.00, 45100.00, '{"basic_salary":55000,"sss":1350,"philhealth":825,"pagibig":200,"tax":7525}'),
+(13, 'EMP012', 35000.00, 6300.00, 28700.00, '{"basic_salary":35000,"sss":1350,"philhealth":525,"pagibig":200,"tax":4225}'),
+(13, 'EMP013', 40000.00, 7200.00, 32800.00, '{"basic_salary":40000,"sss":1350,"philhealth":600,"pagibig":200,"tax":5050}'),
+(13, 'EMP014', 25000.00, 4500.00, 20500.00, '{"basic_salary":25000,"sss":1350,"philhealth":375,"pagibig":200,"tax":2575}'),
+(13, 'EMP015', 32000.00, 5760.00, 26240.00, '{"basic_salary":32000,"sss":1350,"philhealth":480,"pagibig":200,"tax":3730}'),
+(13, 'EMP016', 28000.00, 5040.00, 22960.00, '{"basic_salary":28000,"sss":1350,"philhealth":420,"pagibig":200,"tax":3070}'),
+(13, 'EMP017', 38000.00, 6840.00, 31160.00, '{"basic_salary":38000,"sss":1350,"philhealth":570,"pagibig":200,"tax":4720}'),
+(13, 'EMP018', 32000.00, 5760.00, 26240.00, '{"basic_salary":32000,"sss":1350,"philhealth":480,"pagibig":200,"tax":3730}'),
+(13, 'EMP019', 30000.00, 5400.00, 24600.00, '{"basic_salary":30000,"sss":1350,"philhealth":450,"pagibig":200,"tax":3400}'),
+(13, 'EMP020', 25000.00, 4500.00, 20500.00, '{"basic_salary":25000,"sss":1350,"philhealth":375,"pagibig":200,"tax":2575}'),
+(13, 'EMP021', 45000.00, 8100.00, 36900.00, '{"basic_salary":45000,"sss":1350,"philhealth":675,"pagibig":200,"tax":5875}'),
+(13, 'EMP022', 28000.00, 5040.00, 22960.00, '{"basic_salary":28000,"sss":1350,"philhealth":420,"pagibig":200,"tax":3070}'),
+(13, 'EMP023', 55000.00, 9900.00, 45100.00, '{"basic_salary":55000,"sss":1350,"philhealth":825,"pagibig":200,"tax":7525}'),
+(13, 'EMP024', 35000.00, 6300.00, 28700.00, '{"basic_salary":35000,"sss":1350,"philhealth":525,"pagibig":200,"tax":4225}'),
+(13, 'EMP025', 50000.00, 9000.00, 41000.00, '{"basic_salary":50000,"sss":1350,"philhealth":750,"pagibig":200,"tax":6700}'),
+
+-- February 2025 Payslips (Run ID 14) - same structure, all 25 employees
+(14, 'EMP001', 65000.00, 11700.00, 53300.00, '{"basic_salary":65000,"sss":1350,"philhealth":975,"pagibig":200,"tax":9175}'),
+(14, 'EMP002', 200000.00, 36000.00, 164000.00, '{"basic_salary":200000,"sss":1350,"philhealth":2500,"pagibig":200,"tax":31950}'),
+(14, 'EMP003', 220000.00, 39600.00, 180400.00, '{"basic_salary":220000,"sss":1350,"philhealth":2500,"pagibig":200,"tax":35550}'),
+(14, 'EMP004', 120000.00, 21600.00, 98400.00, '{"basic_salary":120000,"sss":1350,"philhealth":1800,"pagibig":200,"tax":18250}'),
+(14, 'EMP005', 200000.00, 36000.00, 164000.00, '{"basic_salary":200000,"sss":1350,"philhealth":2500,"pagibig":200,"tax":31950}'),
+(14, 'EMP006', 55000.00, 9900.00, 45100.00, '{"basic_salary":55000,"sss":1350,"philhealth":825,"pagibig":200,"tax":7525}'),
+(14, 'EMP007', 70000.00, 12600.00, 57400.00, '{"basic_salary":70000,"sss":1350,"philhealth":1050,"pagibig":200,"tax":10000}'),
+(14, 'EMP008', 48000.00, 8640.00, 39360.00, '{"basic_salary":48000,"sss":1350,"philhealth":720,"pagibig":200,"tax":6370}'),
+(14, 'EMP009', 85000.00, 15300.00, 69700.00, '{"basic_salary":85000,"sss":1350,"philhealth":1275,"pagibig":200,"tax":12475}'),
+(14, 'EMP010', 42000.00, 7560.00, 34440.00, '{"basic_salary":42000,"sss":1350,"philhealth":630,"pagibig":200,"tax":5380}'),
+(14, 'EMP011', 55000.00, 9900.00, 45100.00, '{"basic_salary":55000,"sss":1350,"philhealth":825,"pagibig":200,"tax":7525}'),
+(14, 'EMP012', 35000.00, 6300.00, 28700.00, '{"basic_salary":35000,"sss":1350,"philhealth":525,"pagibig":200,"tax":4225}'),
+(14, 'EMP013', 40000.00, 7200.00, 32800.00, '{"basic_salary":40000,"sss":1350,"philhealth":600,"pagibig":200,"tax":5050}'),
+(14, 'EMP014', 25000.00, 4500.00, 20500.00, '{"basic_salary":25000,"sss":1350,"philhealth":375,"pagibig":200,"tax":2575}'),
+(14, 'EMP015', 32000.00, 5760.00, 26240.00, '{"basic_salary":32000,"sss":1350,"philhealth":480,"pagibig":200,"tax":3730}'),
+(14, 'EMP016', 28000.00, 5040.00, 22960.00, '{"basic_salary":28000,"sss":1350,"philhealth":420,"pagibig":200,"tax":3070}'),
+(14, 'EMP017', 38000.00, 6840.00, 31160.00, '{"basic_salary":38000,"sss":1350,"philhealth":570,"pagibig":200,"tax":4720}'),
+(14, 'EMP018', 32000.00, 5760.00, 26240.00, '{"basic_salary":32000,"sss":1350,"philhealth":480,"pagibig":200,"tax":3730}'),
+(14, 'EMP019', 30000.00, 5400.00, 24600.00, '{"basic_salary":30000,"sss":1350,"philhealth":450,"pagibig":200,"tax":3400}'),
+(14, 'EMP020', 25000.00, 4500.00, 20500.00, '{"basic_salary":25000,"sss":1350,"philhealth":375,"pagibig":200,"tax":2575}'),
+(14, 'EMP021', 45000.00, 8100.00, 36900.00, '{"basic_salary":45000,"sss":1350,"philhealth":675,"pagibig":200,"tax":5875}'),
+(14, 'EMP022', 28000.00, 5040.00, 22960.00, '{"basic_salary":28000,"sss":1350,"philhealth":420,"pagibig":200,"tax":3070}'),
+(14, 'EMP023', 55000.00, 9900.00, 45100.00, '{"basic_salary":55000,"sss":1350,"philhealth":825,"pagibig":200,"tax":7525}'),
+(14, 'EMP024', 35000.00, 6300.00, 28700.00, '{"basic_salary":35000,"sss":1350,"philhealth":525,"pagibig":200,"tax":4225}'),
+(14, 'EMP025', 50000.00, 9000.00, 41000.00, '{"basic_salary":50000,"sss":1350,"philhealth":750,"pagibig":200,"tax":6700}'),
+
+-- March through December 2025 (Run IDs 15-24) - use representative runs for key months
+-- March 2025 (Run ID 15)
+(15, 'EMP001', 65000.00, 11700.00, 53300.00, '{"basic_salary":65000,"sss":1350,"philhealth":975,"pagibig":200,"tax":9175}'),
+(15, 'EMP002', 200000.00, 36000.00, 164000.00, '{"basic_salary":200000,"sss":1350,"philhealth":2500,"pagibig":200,"tax":31950}'),
+(15, 'EMP003', 220000.00, 39600.00, 180400.00, '{"basic_salary":220000,"sss":1350,"philhealth":2500,"pagibig":200,"tax":35550}'),
+(15, 'EMP004', 120000.00, 21600.00, 98400.00, '{"basic_salary":120000,"sss":1350,"philhealth":1800,"pagibig":200,"tax":18250}'),
+(15, 'EMP005', 200000.00, 36000.00, 164000.00, '{"basic_salary":200000,"sss":1350,"philhealth":2500,"pagibig":200,"tax":31950}'),
+(15, 'EMP006', 55000.00, 9900.00, 45100.00, '{"basic_salary":55000,"sss":1350,"philhealth":825,"pagibig":200,"tax":7525}'),
+(15, 'EMP007', 70000.00, 12600.00, 57400.00, '{"basic_salary":70000,"sss":1350,"philhealth":1050,"pagibig":200,"tax":10000}'),
+(15, 'EMP008', 48000.00, 8640.00, 39360.00, '{"basic_salary":48000,"sss":1350,"philhealth":720,"pagibig":200,"tax":6370}'),
+(15, 'EMP009', 85000.00, 15300.00, 69700.00, '{"basic_salary":85000,"sss":1350,"philhealth":1275,"pagibig":200,"tax":12475}'),
+(15, 'EMP010', 42000.00, 7560.00, 34440.00, '{"basic_salary":42000,"sss":1350,"philhealth":630,"pagibig":200,"tax":5380}'),
+(15, 'EMP011', 55000.00, 9900.00, 45100.00, '{"basic_salary":55000,"sss":1350,"philhealth":825,"pagibig":200,"tax":7525}'),
+(15, 'EMP012', 35000.00, 6300.00, 28700.00, '{"basic_salary":35000,"sss":1350,"philhealth":525,"pagibig":200,"tax":4225}'),
+(15, 'EMP013', 40000.00, 7200.00, 32800.00, '{"basic_salary":40000,"sss":1350,"philhealth":600,"pagibig":200,"tax":5050}'),
+(15, 'EMP014', 25000.00, 4500.00, 20500.00, '{"basic_salary":25000,"sss":1350,"philhealth":375,"pagibig":200,"tax":2575}'),
+(15, 'EMP015', 32000.00, 5760.00, 26240.00, '{"basic_salary":32000,"sss":1350,"philhealth":480,"pagibig":200,"tax":3730}'),
+(15, 'EMP016', 28000.00, 5040.00, 22960.00, '{"basic_salary":28000,"sss":1350,"philhealth":420,"pagibig":200,"tax":3070}'),
+(15, 'EMP017', 38000.00, 6840.00, 31160.00, '{"basic_salary":38000,"sss":1350,"philhealth":570,"pagibig":200,"tax":4720}'),
+(15, 'EMP018', 32000.00, 5760.00, 26240.00, '{"basic_salary":32000,"sss":1350,"philhealth":480,"pagibig":200,"tax":3730}'),
+(15, 'EMP019', 30000.00, 5400.00, 24600.00, '{"basic_salary":30000,"sss":1350,"philhealth":450,"pagibig":200,"tax":3400}'),
+(15, 'EMP020', 25000.00, 4500.00, 20500.00, '{"basic_salary":25000,"sss":1350,"philhealth":375,"pagibig":200,"tax":2575}'),
+(15, 'EMP021', 45000.00, 8100.00, 36900.00, '{"basic_salary":45000,"sss":1350,"philhealth":675,"pagibig":200,"tax":5875}'),
+(15, 'EMP022', 28000.00, 5040.00, 22960.00, '{"basic_salary":28000,"sss":1350,"philhealth":420,"pagibig":200,"tax":3070}'),
+(15, 'EMP023', 55000.00, 9900.00, 45100.00, '{"basic_salary":55000,"sss":1350,"philhealth":825,"pagibig":200,"tax":7525}'),
+(15, 'EMP024', 35000.00, 6300.00, 28700.00, '{"basic_salary":35000,"sss":1350,"philhealth":525,"pagibig":200,"tax":4225}'),
+(15, 'EMP025', 50000.00, 9000.00, 41000.00, '{"basic_salary":50000,"sss":1350,"philhealth":750,"pagibig":200,"tax":6700}'),
+
+-- December 2025 (Run ID 24) - Year End with 13th Month
+(24, 'EMP001', 130000.00, 23400.00, 106600.00, '{"basic_salary":65000,"13th_month":65000,"sss":1350,"philhealth":975,"pagibig":200,"tax":20875}'),
+(24, 'EMP002', 400000.00, 72000.00, 328000.00, '{"basic_salary":200000,"13th_month":200000,"sss":1350,"philhealth":2500,"pagibig":200,"tax":67950}'),
+(24, 'EMP003', 440000.00, 79200.00, 360800.00, '{"basic_salary":220000,"13th_month":220000,"sss":1350,"philhealth":2500,"pagibig":200,"tax":75150}'),
+(24, 'EMP004', 240000.00, 43200.00, 196800.00, '{"basic_salary":120000,"13th_month":120000,"sss":1350,"philhealth":1800,"pagibig":200,"tax":39850}'),
+(24, 'EMP005', 400000.00, 72000.00, 328000.00, '{"basic_salary":200000,"13th_month":200000,"sss":1350,"philhealth":2500,"pagibig":200,"tax":67950}'),
+(24, 'EMP006', 110000.00, 19800.00, 90200.00, '{"basic_salary":55000,"13th_month":55000,"sss":1350,"philhealth":825,"pagibig":200,"tax":17425}'),
+(24, 'EMP007', 140000.00, 25200.00, 114800.00, '{"basic_salary":70000,"13th_month":70000,"sss":1350,"philhealth":1050,"pagibig":200,"tax":22600}'),
+(24, 'EMP008', 96000.00, 17280.00, 78720.00, '{"basic_salary":48000,"13th_month":48000,"sss":1350,"philhealth":720,"pagibig":200,"tax":15010}'),
+(24, 'EMP009', 170000.00, 30600.00, 139400.00, '{"basic_salary":85000,"13th_month":85000,"sss":1350,"philhealth":1275,"pagibig":200,"tax":27775}'),
+(24, 'EMP010', 84000.00, 15120.00, 68880.00, '{"basic_salary":42000,"13th_month":42000,"sss":1350,"philhealth":630,"pagibig":200,"tax":12940}'),
+(24, 'EMP011', 110000.00, 19800.00, 90200.00, '{"basic_salary":55000,"13th_month":55000,"sss":1350,"philhealth":825,"pagibig":200,"tax":17425}'),
+(24, 'EMP012', 70000.00, 12600.00, 57400.00, '{"basic_salary":35000,"13th_month":35000,"sss":1350,"philhealth":525,"pagibig":200,"tax":10525}'),
+(24, 'EMP013', 80000.00, 14400.00, 65600.00, '{"basic_salary":40000,"13th_month":40000,"sss":1350,"philhealth":600,"pagibig":200,"tax":12250}'),
+(24, 'EMP014', 50000.00, 9000.00, 41000.00, '{"basic_salary":25000,"13th_month":25000,"sss":1350,"philhealth":375,"pagibig":200,"tax":7075}'),
+(24, 'EMP015', 64000.00, 11520.00, 52480.00, '{"basic_salary":32000,"13th_month":32000,"sss":1350,"philhealth":480,"pagibig":200,"tax":9490}'),
+(24, 'EMP016', 56000.00, 10080.00, 45920.00, '{"basic_salary":28000,"13th_month":28000,"sss":1350,"philhealth":420,"pagibig":200,"tax":8110}'),
+(24, 'EMP017', 76000.00, 13680.00, 62320.00, '{"basic_salary":38000,"13th_month":38000,"sss":1350,"philhealth":570,"pagibig":200,"tax":11560}'),
+(24, 'EMP018', 64000.00, 11520.00, 52480.00, '{"basic_salary":32000,"13th_month":32000,"sss":1350,"philhealth":480,"pagibig":200,"tax":9490}'),
+(24, 'EMP019', 60000.00, 10800.00, 49200.00, '{"basic_salary":30000,"13th_month":30000,"sss":1350,"philhealth":450,"pagibig":200,"tax":8800}'),
+(24, 'EMP020', 50000.00, 9000.00, 41000.00, '{"basic_salary":25000,"13th_month":25000,"sss":1350,"philhealth":375,"pagibig":200,"tax":7075}'),
+(24, 'EMP021', 90000.00, 16200.00, 73800.00, '{"basic_salary":45000,"13th_month":45000,"sss":1350,"philhealth":675,"pagibig":200,"tax":13975}'),
+(24, 'EMP022', 56000.00, 10080.00, 45920.00, '{"basic_salary":28000,"13th_month":28000,"sss":1350,"philhealth":420,"pagibig":200,"tax":8110}'),
+(24, 'EMP023', 110000.00, 19800.00, 90200.00, '{"basic_salary":55000,"13th_month":55000,"sss":1350,"philhealth":825,"pagibig":200,"tax":17425}'),
+(24, 'EMP024', 70000.00, 12600.00, 57400.00, '{"basic_salary":35000,"13th_month":35000,"sss":1350,"philhealth":525,"pagibig":200,"tax":10525}'),
+(24, 'EMP025', 100000.00, 18000.00, 82000.00, '{"basic_salary":50000,"13th_month":50000,"sss":1350,"philhealth":750,"pagibig":200,"tax":15700}'),
+
+-- January 2026 Payslips (Run ID 25) - All 25 employees
+(25, 'EMP001', 65000.00, 11700.00, 53300.00, '{"basic_salary":65000,"sss":1350,"philhealth":975,"pagibig":200,"tax":9175}'),
+(25, 'EMP002', 200000.00, 36000.00, 164000.00, '{"basic_salary":200000,"sss":1350,"philhealth":2500,"pagibig":200,"tax":31950}'),
+(25, 'EMP003', 220000.00, 39600.00, 180400.00, '{"basic_salary":220000,"sss":1350,"philhealth":2500,"pagibig":200,"tax":35550}'),
+(25, 'EMP004', 120000.00, 21600.00, 98400.00, '{"basic_salary":120000,"sss":1350,"philhealth":1800,"pagibig":200,"tax":18250}'),
+(25, 'EMP005', 200000.00, 36000.00, 164000.00, '{"basic_salary":200000,"sss":1350,"philhealth":2500,"pagibig":200,"tax":31950}'),
+(25, 'EMP006', 55000.00, 9900.00, 45100.00, '{"basic_salary":55000,"sss":1350,"philhealth":825,"pagibig":200,"tax":7525}'),
+(25, 'EMP007', 70000.00, 12600.00, 57400.00, '{"basic_salary":70000,"sss":1350,"philhealth":1050,"pagibig":200,"tax":10000}'),
+(25, 'EMP008', 48000.00, 8640.00, 39360.00, '{"basic_salary":48000,"sss":1350,"philhealth":720,"pagibig":200,"tax":6370}'),
+(25, 'EMP009', 85000.00, 15300.00, 69700.00, '{"basic_salary":85000,"sss":1350,"philhealth":1275,"pagibig":200,"tax":12475}'),
+(25, 'EMP010', 42000.00, 7560.00, 34440.00, '{"basic_salary":42000,"sss":1350,"philhealth":630,"pagibig":200,"tax":5380}'),
+(25, 'EMP011', 55000.00, 9900.00, 45100.00, '{"basic_salary":55000,"sss":1350,"philhealth":825,"pagibig":200,"tax":7525}'),
+(25, 'EMP012', 35000.00, 6300.00, 28700.00, '{"basic_salary":35000,"sss":1350,"philhealth":525,"pagibig":200,"tax":4225}'),
+(25, 'EMP013', 40000.00, 7200.00, 32800.00, '{"basic_salary":40000,"sss":1350,"philhealth":600,"pagibig":200,"tax":5050}'),
+(25, 'EMP014', 25000.00, 4500.00, 20500.00, '{"basic_salary":25000,"sss":1350,"philhealth":375,"pagibig":200,"tax":2575}'),
+(25, 'EMP015', 32000.00, 5760.00, 26240.00, '{"basic_salary":32000,"sss":1350,"philhealth":480,"pagibig":200,"tax":3730}'),
+(25, 'EMP016', 28000.00, 5040.00, 22960.00, '{"basic_salary":28000,"sss":1350,"philhealth":420,"pagibig":200,"tax":3070}'),
+(25, 'EMP017', 38000.00, 6840.00, 31160.00, '{"basic_salary":38000,"sss":1350,"philhealth":570,"pagibig":200,"tax":4720}'),
+(25, 'EMP018', 32000.00, 5760.00, 26240.00, '{"basic_salary":32000,"sss":1350,"philhealth":480,"pagibig":200,"tax":3730}'),
+(25, 'EMP019', 30000.00, 5400.00, 24600.00, '{"basic_salary":30000,"sss":1350,"philhealth":450,"pagibig":200,"tax":3400}'),
+(25, 'EMP020', 25000.00, 4500.00, 20500.00, '{"basic_salary":25000,"sss":1350,"philhealth":375,"pagibig":200,"tax":2575}'),
+(25, 'EMP021', 45000.00, 8100.00, 36900.00, '{"basic_salary":45000,"sss":1350,"philhealth":675,"pagibig":200,"tax":5875}'),
+(25, 'EMP022', 28000.00, 5040.00, 22960.00, '{"basic_salary":28000,"sss":1350,"philhealth":420,"pagibig":200,"tax":3070}'),
+(25, 'EMP023', 55000.00, 9900.00, 45100.00, '{"basic_salary":55000,"sss":1350,"philhealth":825,"pagibig":200,"tax":7525}'),
+(25, 'EMP024', 35000.00, 6300.00, 28700.00, '{"basic_salary":35000,"sss":1350,"philhealth":525,"pagibig":200,"tax":4225}'),
+(25, 'EMP025', 50000.00, 9000.00, 41000.00, '{"basic_salary":50000,"sss":1350,"philhealth":750,"pagibig":200,"tax":6700}'),
+
+-- February 2026 Payslips (Run ID 26)
+(26, 'EMP001', 65000.00, 11700.00, 53300.00, '{"basic_salary":65000,"sss":1350,"philhealth":975,"pagibig":200,"tax":9175}'),
+(26, 'EMP002', 200000.00, 36000.00, 164000.00, '{"basic_salary":200000,"sss":1350,"philhealth":2500,"pagibig":200,"tax":31950}'),
+(26, 'EMP003', 220000.00, 39600.00, 180400.00, '{"basic_salary":220000,"sss":1350,"philhealth":2500,"pagibig":200,"tax":35550}'),
+(26, 'EMP004', 120000.00, 21600.00, 98400.00, '{"basic_salary":120000,"sss":1350,"philhealth":1800,"pagibig":200,"tax":18250}'),
+(26, 'EMP005', 200000.00, 36000.00, 164000.00, '{"basic_salary":200000,"sss":1350,"philhealth":2500,"pagibig":200,"tax":31950}'),
+(26, 'EMP006', 55000.00, 9900.00, 45100.00, '{"basic_salary":55000,"sss":1350,"philhealth":825,"pagibig":200,"tax":7525}'),
+(26, 'EMP007', 70000.00, 12600.00, 57400.00, '{"basic_salary":70000,"sss":1350,"philhealth":1050,"pagibig":200,"tax":10000}'),
+(26, 'EMP008', 48000.00, 8640.00, 39360.00, '{"basic_salary":48000,"sss":1350,"philhealth":720,"pagibig":200,"tax":6370}'),
+(26, 'EMP009', 85000.00, 15300.00, 69700.00, '{"basic_salary":85000,"sss":1350,"philhealth":1275,"pagibig":200,"tax":12475}'),
+(26, 'EMP010', 42000.00, 7560.00, 34440.00, '{"basic_salary":42000,"sss":1350,"philhealth":630,"pagibig":200,"tax":5380}'),
+(26, 'EMP011', 55000.00, 9900.00, 45100.00, '{"basic_salary":55000,"sss":1350,"philhealth":825,"pagibig":200,"tax":7525}'),
+(26, 'EMP012', 35000.00, 6300.00, 28700.00, '{"basic_salary":35000,"sss":1350,"philhealth":525,"pagibig":200,"tax":4225}'),
+(26, 'EMP013', 40000.00, 7200.00, 32800.00, '{"basic_salary":40000,"sss":1350,"philhealth":600,"pagibig":200,"tax":5050}'),
+(26, 'EMP014', 25000.00, 4500.00, 20500.00, '{"basic_salary":25000,"sss":1350,"philhealth":375,"pagibig":200,"tax":2575}'),
+(26, 'EMP015', 32000.00, 5760.00, 26240.00, '{"basic_salary":32000,"sss":1350,"philhealth":480,"pagibig":200,"tax":3730}'),
+(26, 'EMP016', 28000.00, 5040.00, 22960.00, '{"basic_salary":28000,"sss":1350,"philhealth":420,"pagibig":200,"tax":3070}'),
+(26, 'EMP017', 38000.00, 6840.00, 31160.00, '{"basic_salary":38000,"sss":1350,"philhealth":570,"pagibig":200,"tax":4720}'),
+(26, 'EMP018', 32000.00, 5760.00, 26240.00, '{"basic_salary":32000,"sss":1350,"philhealth":480,"pagibig":200,"tax":3730}'),
+(26, 'EMP019', 30000.00, 5400.00, 24600.00, '{"basic_salary":30000,"sss":1350,"philhealth":450,"pagibig":200,"tax":3400}'),
+(26, 'EMP020', 25000.00, 4500.00, 20500.00, '{"basic_salary":25000,"sss":1350,"philhealth":375,"pagibig":200,"tax":2575}'),
+(26, 'EMP021', 45000.00, 8100.00, 36900.00, '{"basic_salary":45000,"sss":1350,"philhealth":675,"pagibig":200,"tax":5875}'),
+(26, 'EMP022', 28000.00, 5040.00, 22960.00, '{"basic_salary":28000,"sss":1350,"philhealth":420,"pagibig":200,"tax":3070}'),
+(26, 'EMP023', 55000.00, 9900.00, 45100.00, '{"basic_salary":55000,"sss":1350,"philhealth":825,"pagibig":200,"tax":7525}'),
+(26, 'EMP024', 35000.00, 6300.00, 28700.00, '{"basic_salary":35000,"sss":1350,"philhealth":525,"pagibig":200,"tax":4225}'),
+(26, 'EMP025', 50000.00, 9000.00, 41000.00, '{"basic_salary":50000,"sss":1350,"philhealth":750,"pagibig":200,"tax":6700}'),
+
+-- March 2026 Payslips (Run ID 27) - Current Period
+(27, 'EMP001', 65000.00, 11700.00, 53300.00, '{"basic_salary":65000,"sss":1350,"philhealth":975,"pagibig":200,"tax":9175}'),
+(27, 'EMP002', 200000.00, 36000.00, 164000.00, '{"basic_salary":200000,"sss":1350,"philhealth":2500,"pagibig":200,"tax":31950}'),
+(27, 'EMP003', 220000.00, 39600.00, 180400.00, '{"basic_salary":220000,"sss":1350,"philhealth":2500,"pagibig":200,"tax":35550}'),
+(27, 'EMP004', 120000.00, 21600.00, 98400.00, '{"basic_salary":120000,"sss":1350,"philhealth":1800,"pagibig":200,"tax":18250}'),
+(27, 'EMP005', 200000.00, 36000.00, 164000.00, '{"basic_salary":200000,"sss":1350,"philhealth":2500,"pagibig":200,"tax":31950}'),
+(27, 'EMP006', 55000.00, 9900.00, 45100.00, '{"basic_salary":55000,"sss":1350,"philhealth":825,"pagibig":200,"tax":7525}'),
+(27, 'EMP007', 70000.00, 12600.00, 57400.00, '{"basic_salary":70000,"sss":1350,"philhealth":1050,"pagibig":200,"tax":10000}'),
+(27, 'EMP008', 48000.00, 8640.00, 39360.00, '{"basic_salary":48000,"sss":1350,"philhealth":720,"pagibig":200,"tax":6370}'),
+(27, 'EMP009', 85000.00, 15300.00, 69700.00, '{"basic_salary":85000,"sss":1350,"philhealth":1275,"pagibig":200,"tax":12475}'),
+(27, 'EMP010', 42000.00, 7560.00, 34440.00, '{"basic_salary":42000,"sss":1350,"philhealth":630,"pagibig":200,"tax":5380}'),
+(27, 'EMP011', 55000.00, 9900.00, 45100.00, '{"basic_salary":55000,"sss":1350,"philhealth":825,"pagibig":200,"tax":7525}'),
+(27, 'EMP012', 35000.00, 6300.00, 28700.00, '{"basic_salary":35000,"sss":1350,"philhealth":525,"pagibig":200,"tax":4225}'),
+(27, 'EMP013', 40000.00, 7200.00, 32800.00, '{"basic_salary":40000,"sss":1350,"philhealth":600,"pagibig":200,"tax":5050}'),
+(27, 'EMP014', 25000.00, 4500.00, 20500.00, '{"basic_salary":25000,"sss":1350,"philhealth":375,"pagibig":200,"tax":2575}'),
+(27, 'EMP015', 32000.00, 5760.00, 26240.00, '{"basic_salary":32000,"sss":1350,"philhealth":480,"pagibig":200,"tax":3730}'),
+(27, 'EMP016', 28000.00, 5040.00, 22960.00, '{"basic_salary":28000,"sss":1350,"philhealth":420,"pagibig":200,"tax":3070}'),
+(27, 'EMP017', 38000.00, 6840.00, 31160.00, '{"basic_salary":38000,"sss":1350,"philhealth":570,"pagibig":200,"tax":4720}'),
+(27, 'EMP018', 32000.00, 5760.00, 26240.00, '{"basic_salary":32000,"sss":1350,"philhealth":480,"pagibig":200,"tax":3730}'),
+(27, 'EMP019', 30000.00, 5400.00, 24600.00, '{"basic_salary":30000,"sss":1350,"philhealth":450,"pagibig":200,"tax":3400}'),
+(27, 'EMP020', 25000.00, 4500.00, 20500.00, '{"basic_salary":25000,"sss":1350,"philhealth":375,"pagibig":200,"tax":2575}'),
+(27, 'EMP021', 45000.00, 8100.00, 36900.00, '{"basic_salary":45000,"sss":1350,"philhealth":675,"pagibig":200,"tax":5875}'),
+(27, 'EMP022', 28000.00, 5040.00, 22960.00, '{"basic_salary":28000,"sss":1350,"philhealth":420,"pagibig":200,"tax":3070}'),
+(27, 'EMP023', 55000.00, 9900.00, 45100.00, '{"basic_salary":55000,"sss":1350,"philhealth":825,"pagibig":200,"tax":7525}'),
+(27, 'EMP024', 35000.00, 6300.00, 28700.00, '{"basic_salary":35000,"sss":1350,"philhealth":525,"pagibig":200,"tax":4225}'),
+(27, 'EMP025', 50000.00, 9000.00, 41000.00, '{"basic_salary":50000,"sss":1350,"philhealth":750,"pagibig":200,"tax":6700}')
 ON DUPLICATE KEY UPDATE gross_pay = VALUES(gross_pay);
 
 -- ========================================
@@ -2531,22 +3351,52 @@ INSERT IGNORE INTO audit_logs (user_id, ip_address, action, object_type, object_
 (1, '192.168.1.101', 'Paid', 'expense_claim', '7', '{"status":"approved"}', '{"status":"paid"}', '{"description":"Payment processed"}', '2024-01-31 15:30:00')
 ON DUPLICATE KEY UPDATE action = VALUES(action);
 
--- Compliance Reports
+-- Compliance Reports (2024 + 2025 + Q1 2026)
 INSERT IGNORE INTO compliance_reports (report_type, period_start, period_end, generated_date, generated_by, status, file_path, report_data, compliance_score, issues_found, created_at) VALUES
-('gaap', '2024-10-01', '2024-12-31', NOW() - INTERVAL 25 DAY, 1, 'completed', '/reports/gaap_2024_q4.pdf', '{"total_assets":15000000,"total_liabilities":5000000,"net_income":2000000}', 98.50, 'Excellent compliance. All transactions properly documented.', NOW() - INTERVAL 25 DAY),
-('sox', '2024-11-01', '2024-12-31', NOW() - INTERVAL 10 DAY, 1, 'completed', '/reports/sox_2024_q4.pdf', '{"segregation_score":95,"audit_trail":100,"controls":90}', 95.00, 'Strong internal controls. Minor improvement needed in approval workflows.', NOW() - INTERVAL 10 DAY),
-('bir', '2024-12-01', '2024-12-31', NOW() - INTERVAL 5 DAY, 1, 'generating', NULL, NULL, NULL, NULL, NOW() - INTERVAL 5 DAY),
-('ifrs', '2024-10-01', '2024-12-31', NOW() - INTERVAL 55 DAY, 1, 'completed', '/reports/ifrs_2024_q4.pdf', '{"revenue_recognition":100,"asset_classification":95,"disclosure":90}', 95.00, 'IFRS standards properly implemented. Consider enhancing disclosure notes.', NOW() - INTERVAL 55 DAY),
-('gaap', '2024-12-01', '2024-12-31', NOW() - INTERVAL 3 DAY, 1, 'failed', NULL, NULL, 0.00, 'Unable to generate report due to incomplete journal entries for December.', NOW() - INTERVAL 3 DAY),
-('sox', '2024-01-01', '2024-03-31', NOW() - INTERVAL 90 DAY, 1, 'completed', '/reports/sox_2024_q1.pdf', '{"segregation_score":88,"audit_trail":95,"controls":85}', 89.00, 'Good compliance. Some entries created and posted by same user.', NOW() - INTERVAL 90 DAY),
-('bir', '2024-01-01', '2024-03-31', NOW() - INTERVAL 85 DAY, 1, 'completed', '/reports/bir_2024_q1.pdf', '{"documentation":95,"tax_calculations":100,"filing":90}', 95.00, 'Most transactions properly documented. Consider adding more detailed reference numbers.', NOW() - INTERVAL 85 DAY)
+-- 2024 Q4
+('gaap', '2024-10-01', '2024-12-31', '2025-01-05 09:00:00', 1, 'completed', '/reports/gaap_2024_q4.pdf', '{"total_assets":15000000,"total_liabilities":5000000,"net_income":2000000,"entries_reviewed":120,"balanced":true}', 98.50, 'Excellent compliance. All transactions properly documented.', '2025-01-05 09:00:00'),
+('sox', '2024-10-01', '2024-12-31', '2025-01-07 10:00:00', 1, 'completed', '/reports/sox_2024_q4.pdf', '{"segregation_score":95,"audit_trail":100,"controls":90,"access_controls":92}', 95.00, 'Strong internal controls. Minor improvement needed in approval workflows.', '2025-01-07 10:00:00'),
+('bir', '2024-10-01', '2024-12-31', '2025-01-10 14:00:00', 1, 'completed', '/reports/bir_2024_q4.pdf', '{"documentation":98,"tax_calculations":100,"filing":95,"withholding_compliance":97}', 97.50, 'Tax documentation properly maintained. All BIR forms filed on time.', '2025-01-10 14:00:00'),
+('ifrs', '2024-10-01', '2024-12-31', '2025-01-12 09:00:00', 1, 'completed', '/reports/ifrs_2024_q4.pdf', '{"revenue_recognition":100,"asset_classification":95,"disclosure":90,"fair_value":92}', 95.00, 'IFRS standards properly implemented. Consider enhancing disclosure notes.', '2025-01-12 09:00:00'),
+('sox', '2024-01-01', '2024-03-31', '2024-04-10 10:00:00', 1, 'completed', '/reports/sox_2024_q1.pdf', '{"segregation_score":88,"audit_trail":95,"controls":85,"access_controls":90}', 89.00, 'Good compliance. Some entries created and posted by same user.', '2024-04-10 10:00:00'),
+('bir', '2024-01-01', '2024-03-31', '2024-04-15 14:00:00', 1, 'completed', '/reports/bir_2024_q1.pdf', '{"documentation":95,"tax_calculations":100,"filing":90,"withholding_compliance":93}', 95.00, 'Most transactions properly documented. Consider adding more detailed reference numbers.', '2024-04-15 14:00:00'),
+
+-- 2025 Q1  
+('gaap', '2025-01-01', '2025-03-31', '2025-04-05 09:00:00', 1, 'completed', '/reports/gaap_2025_q1.pdf', '{"total_assets":19500000,"total_liabilities":5200000,"net_income":2800000,"entries_reviewed":145,"balanced":true}', 97.00, 'Strong compliance. All double-entry principles followed correctly.', '2025-04-05 09:00:00'),
+('sox', '2025-01-01', '2025-03-31', '2025-04-08 10:00:00', 1, 'completed', '/reports/sox_2025_q1.pdf', '{"segregation_score":96,"audit_trail":100,"controls":94,"access_controls":95}', 96.25, 'Excellent internal controls. Segregation of duties properly enforced.', '2025-04-08 10:00:00'),
+('bir', '2025-01-01', '2025-03-31', '2025-04-12 14:00:00', 1, 'completed', '/reports/bir_2025_q1.pdf', '{"documentation":98,"tax_calculations":100,"filing":97,"withholding_compliance":99}', 98.50, 'BIR compliance excellent. All withholding taxes properly computed and remitted.', '2025-04-12 14:00:00'),
+('ifrs', '2025-01-01', '2025-03-31', '2025-04-15 09:00:00', 1, 'completed', '/reports/ifrs_2025_q1.pdf', '{"revenue_recognition":100,"asset_classification":98,"disclosure":95,"fair_value":96}', 97.25, 'IFRS fully compliant. Revenue recognition timing properly applied.', '2025-04-15 09:00:00'),
+
+-- 2025 Q2
+('gaap', '2025-04-01', '2025-06-30', '2025-07-05 09:00:00', 1, 'completed', '/reports/gaap_2025_q2.pdf', '{"total_assets":20100000,"total_liabilities":5350000,"net_income":3100000,"entries_reviewed":160,"balanced":true}', 98.00, 'All financial statements balanced. Proper account classification throughout.', '2025-07-05 09:00:00'),
+('sox', '2025-04-01', '2025-06-30', '2025-07-08 10:00:00', 1, 'completed', '/reports/sox_2025_q2.pdf', '{"segregation_score":97,"audit_trail":100,"controls":95,"access_controls":96}', 97.00, 'Internal controls strengthened. All approvals properly documented.', '2025-07-08 10:00:00'),
+('bir', '2025-04-01', '2025-06-30', '2025-07-12 14:00:00', 1, 'completed', '/reports/bir_2025_q2.pdf', '{"documentation":99,"tax_calculations":100,"filing":98,"withholding_compliance":99}', 99.00, 'Perfect BIR compliance score. All Alphalist entries match tax certificates.', '2025-07-12 14:00:00'),
+('ifrs', '2025-04-01', '2025-06-30', '2025-07-15 09:00:00', 1, 'completed', '/reports/ifrs_2025_q2.pdf', '{"revenue_recognition":100,"asset_classification":99,"disclosure":97,"fair_value":98}', 98.50, 'Full IFRS compliance achieved. Disclosure notes comprehensive.', '2025-07-15 09:00:00'),
+
+-- 2025 Q3
+('gaap', '2025-07-01', '2025-09-30', '2025-10-05 09:00:00', 1, 'completed', '/reports/gaap_2025_q3.pdf', '{"total_assets":21200000,"total_liabilities":5500000,"net_income":3450000,"entries_reviewed":175,"balanced":true}', 97.50, 'Books balanced. Minor reclassification of prepaid expenses noted.', '2025-10-05 09:00:00'),
+('sox', '2025-07-01', '2025-09-30', '2025-10-08 10:00:00', 1, 'completed', '/reports/sox_2025_q3.pdf', '{"segregation_score":98,"audit_trail":100,"controls":96,"access_controls":97}', 97.75, 'SOX controls operating effectively. Audit trail complete.', '2025-10-08 10:00:00'),
+('bir', '2025-07-01', '2025-09-30', '2025-10-12 14:00:00', 1, 'completed', '/reports/bir_2025_q3.pdf', '{"documentation":98,"tax_calculations":100,"filing":99,"withholding_compliance":100}', 99.25, 'Outstanding BIR compliance. Zero discrepancies found in Q3 tax filings.', '2025-10-12 14:00:00'),
+('ifrs', '2025-07-01', '2025-09-30', '2025-10-15 09:00:00', 1, 'completed', '/reports/ifrs_2025_q3.pdf', '{"revenue_recognition":100,"asset_classification":98,"disclosure":97,"fair_value":97}', 98.00, 'IFRS standards consistently applied. Good fair value measurements.', '2025-10-15 09:00:00'),
+
+-- 2025 Q4
+('gaap', '2025-10-01', '2025-12-31', '2026-01-06 09:00:00', 1, 'completed', '/reports/gaap_2025_q4.pdf', '{"total_assets":22500000,"total_liabilities":5700000,"net_income":3800000,"entries_reviewed":190,"balanced":true}', 98.50, 'Year-end financials properly closed. All adjusting entries recorded.', '2026-01-06 09:00:00'),
+('sox', '2025-10-01', '2025-12-31', '2026-01-08 10:00:00', 1, 'completed', '/reports/sox_2025_q4.pdf', '{"segregation_score":99,"audit_trail":100,"controls":97,"access_controls":98}', 98.50, 'Year-end SOX review passed. All deficiencies from prior quarters resolved.', '2026-01-08 10:00:00'),
+('bir', '2025-10-01', '2025-12-31', '2026-01-12 14:00:00', 1, 'completed', '/reports/bir_2025_q4.pdf', '{"documentation":99,"tax_calculations":100,"filing":100,"withholding_compliance":100}', 99.75, 'Annual BIR compliance near-perfect. All 2316 forms distributed on time.', '2026-01-12 14:00:00'),
+('ifrs', '2025-10-01', '2025-12-31', '2026-01-15 09:00:00', 1, 'completed', '/reports/ifrs_2025_q4.pdf', '{"revenue_recognition":100,"asset_classification":99,"disclosure":98,"fair_value":99}', 99.00, 'Annual IFRS review - full compliance. Financial statements ready for external audit.', '2026-01-15 09:00:00'),
+
+-- 2026 Q1
+('gaap', '2026-01-01', '2026-03-31', '2026-03-20 09:00:00', 1, 'completed', '/reports/gaap_2026_q1.pdf', '{"total_assets":22500000,"total_liabilities":5500000,"net_income":4200000,"entries_reviewed":85,"balanced":true}', 97.80, 'Q1 books balanced. New revenue recognition policy properly applied.', '2026-03-20 09:00:00'),
+('sox', '2026-01-01', '2026-03-31', '2026-03-22 10:00:00', 1, 'completed', '/reports/sox_2026_q1.pdf', '{"segregation_score":98,"audit_trail":100,"controls":96,"access_controls":97}', 97.75, 'Q1 SOX controls effective. New hire access provisioning properly managed.', '2026-03-22 10:00:00'),
+('bir', '2026-01-01', '2026-03-31', '2026-03-25 14:00:00', 1, 'generating', NULL, NULL, NULL, NULL, '2026-03-25 14:00:00'),
+('ifrs', '2026-01-01', '2026-03-31', '2026-03-28 09:00:00', 1, 'completed', '/reports/ifrs_2026_q1.pdf', '{"revenue_recognition":100,"asset_classification":98,"disclosure":96,"fair_value":97}', 97.75, 'IFRS applied consistently with prior year. No changes in accounting policies.', '2026-03-28 09:00:00')
 ON DUPLICATE KEY UPDATE compliance_score = VALUES(compliance_score);
 
 -- ========================================
--- 16. ACCOUNT BALANCES CALCULATION
+-- 16. ACCOUNT BALANCES - EXPLICIT POSITIVE VALUES
 -- ========================================
 
--- Calculate account balances from existing journal entries
+-- First calculate from journal entries dynamically
 INSERT IGNORE INTO account_balances (account_id, fiscal_period_id, opening_balance, debit_movements, credit_movements, closing_balance, last_updated)
 SELECT 
     a.id as account_id,
@@ -2567,6 +3417,91 @@ ON DUPLICATE KEY UPDATE
     credit_movements = VALUES(credit_movements),
     closing_balance = VALUES(closing_balance),
     last_updated = VALUES(last_updated);
+
+-- Override with explicit positive balances for key accounts (FY2025-Q1 through FY2026-Q1)
+-- This ensures financial reports show realistic positive numbers
+-- Assets = Liabilities + Equity (Accounting Equation: ₱19.5M = ₱5.2M + ₱14.3M)
+
+-- FY2025-Q1 Balances (January - March 2025)
+SET @fy2025q1 = (SELECT id FROM fiscal_periods WHERE period_name = 'FY2025-Q1' LIMIT 1);
+
+UPDATE account_balances SET opening_balance = 10000000.00, debit_movements = 2500000.00, credit_movements = 1800000.00, closing_balance = 10700000.00 WHERE account_id = (SELECT id FROM accounts WHERE code = '1001' LIMIT 1) AND fiscal_period_id = @fy2025q1;
+UPDATE account_balances SET opening_balance = 0.00, debit_movements = 1850000.00, credit_movements = 950000.00, closing_balance = 900000.00 WHERE account_id = (SELECT id FROM accounts WHERE code = '1002' LIMIT 1) AND fiscal_period_id = @fy2025q1;
+UPDATE account_balances SET opening_balance = 0.00, debit_movements = 750000.00, credit_movements = 250000.00, closing_balance = 500000.00 WHERE account_id = (SELECT id FROM accounts WHERE code = '1003' LIMIT 1) AND fiscal_period_id = @fy2025q1;
+UPDATE account_balances SET opening_balance = 0.00, debit_movements = 1200000.00, credit_movements = 100000.00, closing_balance = 1100000.00 WHERE account_id = (SELECT id FROM accounts WHERE code = '1004' LIMIT 1) AND fiscal_period_id = @fy2025q1;
+UPDATE account_balances SET opening_balance = 0.00, debit_movements = 350000.00, credit_movements = 50000.00, closing_balance = 300000.00 WHERE account_id = (SELECT id FROM accounts WHERE code = '1005' LIMIT 1) AND fiscal_period_id = @fy2025q1;
+UPDATE account_balances SET opening_balance = 0.00, debit_movements = 5000000.00, credit_movements = 250000.00, closing_balance = 4750000.00 WHERE account_id = (SELECT id FROM accounts WHERE code = '1006' LIMIT 1) AND fiscal_period_id = @fy2025q1;
+UPDATE account_balances SET opening_balance = 0.00, debit_movements = 1500000.00, credit_movements = 250000.00, closing_balance = 1250000.00 WHERE account_id = (SELECT id FROM accounts WHERE code = '1007' LIMIT 1) AND fiscal_period_id = @fy2025q1;
+
+-- Liabilities (credit normal - positive closing = credit balance)
+UPDATE account_balances SET opening_balance = 0.00, debit_movements = 400000.00, credit_movements = 1200000.00, closing_balance = 800000.00 WHERE account_id = (SELECT id FROM accounts WHERE code = '2001' LIMIT 1) AND fiscal_period_id = @fy2025q1;
+UPDATE account_balances SET opening_balance = 0.00, debit_movements = 100000.00, credit_movements = 650000.00, closing_balance = 550000.00 WHERE account_id = (SELECT id FROM accounts WHERE code = '2002' LIMIT 1) AND fiscal_period_id = @fy2025q1;
+UPDATE account_balances SET opening_balance = 0.00, debit_movements = 50000.00, credit_movements = 600000.00, closing_balance = 550000.00 WHERE account_id = (SELECT id FROM accounts WHERE code = '2003' LIMIT 1) AND fiscal_period_id = @fy2025q1;
+UPDATE account_balances SET opening_balance = 0.00, debit_movements = 200000.00, credit_movements = 1300000.00, closing_balance = 1100000.00 WHERE account_id = (SELECT id FROM accounts WHERE code = '2004' LIMIT 1) AND fiscal_period_id = @fy2025q1;
+UPDATE account_balances SET opening_balance = 0.00, debit_movements = 100000.00, credit_movements = 550000.00, closing_balance = 450000.00 WHERE account_id = (SELECT id FROM accounts WHERE code = '2005' LIMIT 1) AND fiscal_period_id = @fy2025q1;
+UPDATE account_balances SET opening_balance = 0.00, debit_movements = 50000.00, credit_movements = 350000.00, closing_balance = 300000.00 WHERE account_id = (SELECT id FROM accounts WHERE code = '2006' LIMIT 1) AND fiscal_period_id = @fy2025q1;
+UPDATE account_balances SET opening_balance = 0.00, debit_movements = 100000.00, credit_movements = 550000.00, closing_balance = 450000.00 WHERE account_id = (SELECT id FROM accounts WHERE code = '2007' LIMIT 1) AND fiscal_period_id = @fy2025q1;
+UPDATE account_balances SET opening_balance = 0.00, debit_movements = 150000.00, credit_movements = 1150000.00, closing_balance = 1000000.00 WHERE account_id = (SELECT id FROM accounts WHERE code = '2008' LIMIT 1) AND fiscal_period_id = @fy2025q1;
+
+-- Equity (credit normal)
+UPDATE account_balances SET opening_balance = 0.00, debit_movements = 0.00, credit_movements = 10000000.00, closing_balance = 10000000.00 WHERE account_id = (SELECT id FROM accounts WHERE code = '3001' LIMIT 1) AND fiscal_period_id = @fy2025q1;
+UPDATE account_balances SET opening_balance = 0.00, debit_movements = 0.00, credit_movements = 2500000.00, closing_balance = 2500000.00 WHERE account_id = (SELECT id FROM accounts WHERE code = '3002' LIMIT 1) AND fiscal_period_id = @fy2025q1;
+UPDATE account_balances SET opening_balance = 0.00, debit_movements = 0.00, credit_movements = 1800000.00, closing_balance = 1800000.00 WHERE account_id = (SELECT id FROM accounts WHERE code = '3003' LIMIT 1) AND fiscal_period_id = @fy2025q1;
+
+-- Revenue (credit normal)
+UPDATE account_balances SET opening_balance = 0.00, debit_movements = 0.00, credit_movements = 3500000.00, closing_balance = 3500000.00 WHERE account_id = (SELECT id FROM accounts WHERE code = '4001' LIMIT 1) AND fiscal_period_id = @fy2025q1;
+UPDATE account_balances SET opening_balance = 0.00, debit_movements = 0.00, credit_movements = 1200000.00, closing_balance = 1200000.00 WHERE account_id = (SELECT id FROM accounts WHERE code = '4002' LIMIT 1) AND fiscal_period_id = @fy2025q1;
+UPDATE account_balances SET opening_balance = 0.00, debit_movements = 0.00, credit_movements = 450000.00, closing_balance = 450000.00 WHERE account_id = (SELECT id FROM accounts WHERE code = '4003' LIMIT 1) AND fiscal_period_id = @fy2025q1;
+UPDATE account_balances SET opening_balance = 0.00, debit_movements = 0.00, credit_movements = 350000.00, closing_balance = 350000.00 WHERE account_id = (SELECT id FROM accounts WHERE code = '4004' LIMIT 1) AND fiscal_period_id = @fy2025q1;
+
+-- Expenses (debit normal)
+UPDATE account_balances SET opening_balance = 0.00, debit_movements = 1850000.00, credit_movements = 0.00, closing_balance = 1850000.00 WHERE account_id = (SELECT id FROM accounts WHERE code = '5001' LIMIT 1) AND fiscal_period_id = @fy2025q1;
+UPDATE account_balances SET opening_balance = 0.00, debit_movements = 450000.00, credit_movements = 0.00, closing_balance = 450000.00 WHERE account_id = (SELECT id FROM accounts WHERE code = '5002' LIMIT 1) AND fiscal_period_id = @fy2025q1;
+UPDATE account_balances SET opening_balance = 0.00, debit_movements = 280000.00, credit_movements = 0.00, closing_balance = 280000.00 WHERE account_id = (SELECT id FROM accounts WHERE code = '5003' LIMIT 1) AND fiscal_period_id = @fy2025q1;
+UPDATE account_balances SET opening_balance = 0.00, debit_movements = 350000.00, credit_movements = 0.00, closing_balance = 350000.00 WHERE account_id = (SELECT id FROM accounts WHERE code = '5004' LIMIT 1) AND fiscal_period_id = @fy2025q1;
+UPDATE account_balances SET opening_balance = 0.00, debit_movements = 180000.00, credit_movements = 0.00, closing_balance = 180000.00 WHERE account_id = (SELECT id FROM accounts WHERE code = '5005' LIMIT 1) AND fiscal_period_id = @fy2025q1;
+UPDATE account_balances SET opening_balance = 0.00, debit_movements = 250000.00, credit_movements = 0.00, closing_balance = 250000.00 WHERE account_id = (SELECT id FROM accounts WHERE code = '5006' LIMIT 1) AND fiscal_period_id = @fy2025q1;
+UPDATE account_balances SET opening_balance = 0.00, debit_movements = 340000.00, credit_movements = 0.00, closing_balance = 340000.00 WHERE account_id = (SELECT id FROM accounts WHERE code = '5007' LIMIT 1) AND fiscal_period_id = @fy2025q1;
+
+-- FY2026-Q1 Balances (January - March 2026)
+SET @fy2026q1 = (SELECT id FROM fiscal_periods WHERE period_name = 'FY2026-Q1' LIMIT 1);
+
+-- Assets
+UPDATE account_balances SET opening_balance = 10700000.00, debit_movements = 3200000.00, credit_movements = 2100000.00, closing_balance = 11800000.00 WHERE account_id = (SELECT id FROM accounts WHERE code = '1001' LIMIT 1) AND fiscal_period_id = @fy2026q1;
+UPDATE account_balances SET opening_balance = 900000.00, debit_movements = 2100000.00, credit_movements = 1200000.00, closing_balance = 1800000.00 WHERE account_id = (SELECT id FROM accounts WHERE code = '1002' LIMIT 1) AND fiscal_period_id = @fy2026q1;
+UPDATE account_balances SET opening_balance = 500000.00, debit_movements = 850000.00, credit_movements = 400000.00, closing_balance = 950000.00 WHERE account_id = (SELECT id FROM accounts WHERE code = '1003' LIMIT 1) AND fiscal_period_id = @fy2026q1;
+UPDATE account_balances SET opening_balance = 1100000.00, debit_movements = 600000.00, credit_movements = 200000.00, closing_balance = 1500000.00 WHERE account_id = (SELECT id FROM accounts WHERE code = '1004' LIMIT 1) AND fiscal_period_id = @fy2026q1;
+UPDATE account_balances SET opening_balance = 300000.00, debit_movements = 200000.00, credit_movements = 50000.00, closing_balance = 450000.00 WHERE account_id = (SELECT id FROM accounts WHERE code = '1005' LIMIT 1) AND fiscal_period_id = @fy2026q1;
+UPDATE account_balances SET opening_balance = 4750000.00, debit_movements = 500000.00, credit_movements = 500000.00, closing_balance = 4750000.00 WHERE account_id = (SELECT id FROM accounts WHERE code = '1006' LIMIT 1) AND fiscal_period_id = @fy2026q1;
+UPDATE account_balances SET opening_balance = 1250000.00, debit_movements = 300000.00, credit_movements = 300000.00, closing_balance = 1250000.00 WHERE account_id = (SELECT id FROM accounts WHERE code = '1007' LIMIT 1) AND fiscal_period_id = @fy2026q1;
+
+-- Liabilities
+UPDATE account_balances SET opening_balance = 800000.00, debit_movements = 500000.00, credit_movements = 950000.00, closing_balance = 1250000.00 WHERE account_id = (SELECT id FROM accounts WHERE code = '2001' LIMIT 1) AND fiscal_period_id = @fy2026q1;
+UPDATE account_balances SET opening_balance = 550000.00, debit_movements = 200000.00, credit_movements = 450000.00, closing_balance = 800000.00 WHERE account_id = (SELECT id FROM accounts WHERE code = '2002' LIMIT 1) AND fiscal_period_id = @fy2026q1;
+UPDATE account_balances SET opening_balance = 550000.00, debit_movements = 100000.00, credit_movements = 350000.00, closing_balance = 800000.00 WHERE account_id = (SELECT id FROM accounts WHERE code = '2003' LIMIT 1) AND fiscal_period_id = @fy2026q1;
+UPDATE account_balances SET opening_balance = 1100000.00, debit_movements = 300000.00, credit_movements = 700000.00, closing_balance = 1500000.00 WHERE account_id = (SELECT id FROM accounts WHERE code = '2004' LIMIT 1) AND fiscal_period_id = @fy2026q1;
+UPDATE account_balances SET opening_balance = 450000.00, debit_movements = 150000.00, credit_movements = 400000.00, closing_balance = 700000.00 WHERE account_id = (SELECT id FROM accounts WHERE code = '2005' LIMIT 1) AND fiscal_period_id = @fy2026q1;
+UPDATE account_balances SET opening_balance = 300000.00, debit_movements = 100000.00, credit_movements = 250000.00, closing_balance = 450000.00 WHERE account_id = (SELECT id FROM accounts WHERE code = '2006' LIMIT 1) AND fiscal_period_id = @fy2026q1;
+
+-- Equity
+UPDATE account_balances SET opening_balance = 10000000.00, debit_movements = 0.00, credit_movements = 0.00, closing_balance = 10000000.00 WHERE account_id = (SELECT id FROM accounts WHERE code = '3001' LIMIT 1) AND fiscal_period_id = @fy2026q1;
+UPDATE account_balances SET opening_balance = 2500000.00, debit_movements = 0.00, credit_movements = 500000.00, closing_balance = 3000000.00 WHERE account_id = (SELECT id FROM accounts WHERE code = '3002' LIMIT 1) AND fiscal_period_id = @fy2026q1;
+UPDATE account_balances SET opening_balance = 1800000.00, debit_movements = 0.00, credit_movements = 700000.00, closing_balance = 2500000.00 WHERE account_id = (SELECT id FROM accounts WHERE code = '3003' LIMIT 1) AND fiscal_period_id = @fy2026q1;
+
+-- Revenue
+UPDATE account_balances SET opening_balance = 3500000.00, debit_movements = 0.00, credit_movements = 4200000.00, closing_balance = 7700000.00 WHERE account_id = (SELECT id FROM accounts WHERE code = '4001' LIMIT 1) AND fiscal_period_id = @fy2026q1;
+UPDATE account_balances SET opening_balance = 1200000.00, debit_movements = 0.00, credit_movements = 1500000.00, closing_balance = 2700000.00 WHERE account_id = (SELECT id FROM accounts WHERE code = '4002' LIMIT 1) AND fiscal_period_id = @fy2026q1;
+UPDATE account_balances SET opening_balance = 450000.00, debit_movements = 0.00, credit_movements = 550000.00, closing_balance = 1000000.00 WHERE account_id = (SELECT id FROM accounts WHERE code = '4003' LIMIT 1) AND fiscal_period_id = @fy2026q1;
+UPDATE account_balances SET opening_balance = 350000.00, debit_movements = 0.00, credit_movements = 450000.00, closing_balance = 800000.00 WHERE account_id = (SELECT id FROM accounts WHERE code = '4004' LIMIT 1) AND fiscal_period_id = @fy2026q1;
+
+-- Expenses
+UPDATE account_balances SET opening_balance = 1850000.00, debit_movements = 2400000.00, credit_movements = 0.00, closing_balance = 4250000.00 WHERE account_id = (SELECT id FROM accounts WHERE code = '5001' LIMIT 1) AND fiscal_period_id = @fy2026q1;
+UPDATE account_balances SET opening_balance = 450000.00, debit_movements = 600000.00, credit_movements = 0.00, closing_balance = 1050000.00 WHERE account_id = (SELECT id FROM accounts WHERE code = '5002' LIMIT 1) AND fiscal_period_id = @fy2026q1;
+UPDATE account_balances SET opening_balance = 280000.00, debit_movements = 350000.00, credit_movements = 0.00, closing_balance = 630000.00 WHERE account_id = (SELECT id FROM accounts WHERE code = '5003' LIMIT 1) AND fiscal_period_id = @fy2026q1;
+UPDATE account_balances SET opening_balance = 350000.00, debit_movements = 450000.00, credit_movements = 0.00, closing_balance = 800000.00 WHERE account_id = (SELECT id FROM accounts WHERE code = '5004' LIMIT 1) AND fiscal_period_id = @fy2026q1;
+UPDATE account_balances SET opening_balance = 180000.00, debit_movements = 250000.00, credit_movements = 0.00, closing_balance = 430000.00 WHERE account_id = (SELECT id FROM accounts WHERE code = '5005' LIMIT 1) AND fiscal_period_id = @fy2026q1;
+UPDATE account_balances SET opening_balance = 250000.00, debit_movements = 320000.00, credit_movements = 0.00, closing_balance = 570000.00 WHERE account_id = (SELECT id FROM accounts WHERE code = '5006' LIMIT 1) AND fiscal_period_id = @fy2026q1;
+UPDATE account_balances SET opening_balance = 340000.00, debit_movements = 430000.00, credit_movements = 0.00, closing_balance = 770000.00 WHERE account_id = (SELECT id FROM accounts WHERE code = '5007' LIMIT 1) AND fiscal_period_id = @fy2026q1;
 
 -- ========================================
 -- 17. VERIFICATION & SUMMARY QUERIES
@@ -2623,7 +3558,15 @@ SELECT 'Audit Logs:', COUNT(*) FROM audit_logs
 UNION ALL
 SELECT 'Compliance Reports:', COUNT(*) FROM compliance_reports
 UNION ALL
-SELECT 'Account Balances:', COUNT(*) FROM account_balances;
+SELECT 'Account Balances:', COUNT(*) FROM account_balances
+UNION ALL
+SELECT 'Loan Applications:', COUNT(*) FROM loan_applications
+UNION ALL
+SELECT 'Bank Transactions:', COUNT(*) FROM bank_transactions
+UNION ALL
+SELECT 'Bank Customers:', COUNT(*) FROM bank_customers
+UNION ALL
+SELECT 'Transaction Types:', COUNT(*) FROM transaction_types;
 
 -- Verify account balances are calculated correctly
 SELECT 

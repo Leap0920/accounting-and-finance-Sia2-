@@ -680,6 +680,84 @@ CREATE TABLE integration_logs (
 );
 
 -- ========================================
+-- BANKING & REPORTING TABLES
+-- ========================================
+
+CREATE TABLE transaction_types (
+    transaction_type_id INT AUTO_INCREMENT PRIMARY KEY,
+    type_name VARCHAR(50) NOT NULL UNIQUE,
+    description VARCHAR(255),
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE bank_customers (
+    customer_id INT AUTO_INCREMENT PRIMARY KEY,
+    first_name VARCHAR(100) NOT NULL,
+    last_name VARCHAR(100) NOT NULL,
+    email VARCHAR(150),
+    phone VARCHAR(20),
+    address TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE customer_accounts (
+    account_id INT AUTO_INCREMENT PRIMARY KEY,
+    customer_id INT NOT NULL,
+    account_number VARCHAR(50) NOT NULL UNIQUE,
+    account_type ENUM('savings','checking','business') DEFAULT 'savings',
+    balance DECIMAL(18,2) DEFAULT 0.00,
+    status ENUM('active','inactive','closed') DEFAULT 'active',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (customer_id) REFERENCES bank_customers(customer_id)
+);
+
+CREATE TABLE bank_transactions (
+    transaction_id INT AUTO_INCREMENT PRIMARY KEY,
+    transaction_ref VARCHAR(50) NOT NULL,
+    account_id INT NOT NULL,
+    transaction_type_id INT NOT NULL,
+    amount DECIMAL(18,2) NOT NULL,
+    description TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (account_id) REFERENCES customer_accounts(account_id),
+    FOREIGN KEY (transaction_type_id) REFERENCES transaction_types(transaction_type_id)
+);
+
+CREATE TABLE points_history (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT,
+    points DECIMAL(10,2) DEFAULT 0,
+    description VARCHAR(255),
+    transaction_type VARCHAR(50),
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE missions (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    mission_text VARCHAR(255),
+    points_value DECIMAL(10,2) DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE user_missions (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT,
+    mission_id INT,
+    status ENUM('active','completed','expired') DEFAULT 'active',
+    points_earned DECIMAL(10,2) DEFAULT 0,
+    completed_at DATETIME,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE report_settings (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    setting_key VARCHAR(100) NOT NULL UNIQUE,
+    setting_value TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+-- ========================================
 -- VIEWS
 -- ========================================
 

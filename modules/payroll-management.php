@@ -1230,7 +1230,6 @@ if ($attendance_payroll_adjustments && isset($attendance_payroll_adjustments['at
             <!-- EMPLOYEE DETAILS TAB -->
             <div class="tab-pane fade show active" id="employee-details" role="tabpanel">
                 <div class="payroll-content-card">
-                    <h3 class="payroll-section-title">Employee Details</h3>
 
                     <?php if ($current_employee):
                         // Calculate salary rates using the same logic as payroll calculation API
@@ -1276,164 +1275,120 @@ if ($attendance_payroll_adjustments && isset($attendance_payroll_adjustments['at
                         ?>
                         <div class="employee-details-container">
                             <div class="employee-details-main-layout">
-                                <!-- Left Column: Photo + Employee Info -->
-                                <div class="employee-left-column">
-                                    <div class="employee-photo-section">
-                                        <div class="employee-photo">
-                                            <i class="fas fa-user-circle"></i>
-                                        </div>
-                                        <div class="employee-status">
-                                            <span
-                                                class="status-badge status-<?php echo strtolower($current_employee['employment_type']); ?>">
-                                                <?php echo strtoupper($current_employee['employment_type']); ?>
-                                            </span>
-                                        </div>
+                                <!-- Left Column: Profile Card -->
+                                <div class="ed-profile-card">
+                                    <div class="ed-profile-photo">
+                                        <i class="fas fa-user-circle"></i>
                                     </div>
-
-                                    <div class="employee-info-section">
-                                        <table class="employee-info-table">
-                                            <tr>
-                                                <td>Employee Number</td>
-                                                <td><?php echo htmlspecialchars($current_employee['external_employee_no']); ?>
-                                                </td>
-                                            </tr>
-                                            <tr>
-                                                <td>Full Name</td>
-                                                <td><?php echo htmlspecialchars($current_employee['name'] ?? 'N/A'); ?></td>
-                                            </tr>
-                                            <?php if (!empty($current_employee['first_name'])): ?>
-                                                <tr>
-                                                    <td>First Name</td>
-                                                    <td><?php echo htmlspecialchars($current_employee['first_name']); ?></td>
-                                                </tr>
-                                            <?php endif; ?>
-                                            <?php if (!empty($current_employee['middle_name'])): ?>
-                                                <tr>
-                                                    <td>Middle Name</td>
-                                                    <td><?php echo htmlspecialchars($current_employee['middle_name']); ?></td>
-                                                </tr>
-                                            <?php endif; ?>
-                                            <?php if (!empty($current_employee['last_name'])): ?>
-                                                <tr>
-                                                    <td>Last Name</td>
-                                                    <td><?php echo htmlspecialchars($current_employee['last_name']); ?></td>
-                                                </tr>
-                                            <?php endif; ?>
-                                            <tr>
-                                                <td>Position</td>
-                                                <td><?php echo htmlspecialchars($current_employee['position'] ?? 'N/A'); ?>
-                                                </td>
-                                            </tr>
-                                            <tr>
-                                                <td>Department</td>
-                                                <td><?php echo htmlspecialchars($current_employee['department'] ?? 'N/A'); ?>
-                                                </td>
-                                            </tr>
-                                            <tr>
-                                                <td>Employment Type</td>
-                                                <td><?php echo ucfirst($current_employee['employment_type'] ?? 'N/A'); ?>
-                                                </td>
-                                            </tr>
-                                            <?php if (!empty($current_employee['employment_status'])): ?>
-                                                <tr>
-                                                    <td>Employment Status</td>
-                                                    <td><?php echo ucfirst($current_employee['employment_status']); ?></td>
-                                                </tr>
-                                            <?php endif; ?>
-                                            <?php if (!empty($current_employee['gender'])): ?>
-                                                <tr>
-                                                    <td>Gender</td>
-                                                    <td><?php echo ucfirst($current_employee['gender']); ?></td>
-                                                </tr>
-                                            <?php endif; ?>
-                                            <?php if (!empty($current_employee['birth_date'])): ?>
-                                                <tr>
-                                                    <td>Birth Date</td>
-                                                    <td><?php echo date('F d, Y', strtotime($current_employee['birth_date'])); ?>
-                                                    </td>
-                                                </tr>
-                                            <?php endif; ?>
-                                            <?php if (!empty($current_employee['email'])): ?>
-                                                <tr>
-                                                    <td>Email</td>
-                                                    <td><?php echo htmlspecialchars($current_employee['email']); ?></td>
-                                                </tr>
-                                            <?php endif; ?>
-                                            <?php if (!empty($current_employee['contact_number'])): ?>
-                                                <tr>
-                                                    <td>Contact Number</td>
-                                                    <td><?php echo htmlspecialchars($current_employee['contact_number']); ?>
-                                                    </td>
-                                                </tr>
-                                            <?php endif; ?>
-                                            <?php if (!empty($current_employee['address'])): ?>
-                                                <tr>
-                                                    <td>Address</td>
-                                                    <td><?php echo htmlspecialchars($current_employee['address']); ?></td>
-                                                </tr>
-                                            <?php endif; ?>
-                                            <?php if (!empty($current_employee['hire_date'])): ?>
-                                                <tr>
-                                                    <td>Hire Date (HRIS)</td>
-                                                    <td><?php echo date('F d, Y', strtotime($current_employee['hire_date'])); ?>
-                                                    </td>
-                                                </tr>
-                                            <?php endif; ?>
-                                            <tr>
-                                                <td>Date of Joining</td>
-                                                <td><?php echo date('F d, Y', strtotime($current_employee['created_at'])); ?>
-                                                </td>
-                                            </tr>
-                                            <?php if (!empty($current_employee['contract_type'])): ?>
-                                                <tr>
-                                                    <td>Contract Type</td>
-                                                    <td><?php echo htmlspecialchars($current_employee['contract_type']); ?></td>
-                                                </tr>
-                                            <?php endif; ?>
-                                            <?php if (!empty($current_employee['contract_start_date'])): ?>
-                                                <tr>
-                                                    <td>Contract Start</td>
-                                                    <td><?php echo date('F d, Y', strtotime($current_employee['contract_start_date'])); ?>
-                                                    </td>
-                                                </tr>
-                                            <?php endif; ?>
-                                            <?php if (!empty($current_employee['contract_end_date'])): ?>
-                                                <tr>
-                                                    <td>Contract End</td>
-                                                    <td><?php echo date('F d, Y', strtotime($current_employee['contract_end_date'])); ?>
-                                                    </td>
-                                                </tr>
-                                            <?php endif; ?>
-                                            <?php if (!empty($current_employee['contract_benefits'])): ?>
-                                                <tr>
-                                                    <td>Contract Benefits</td>
-                                                    <td><?php echo htmlspecialchars($current_employee['contract_benefits']); ?>
-                                                    </td>
-                                                </tr>
-                                            <?php endif; ?>
-                                        </table>
+                                    <h5 class="ed-profile-name">
+                                        <?php echo htmlspecialchars($current_employee['name'] ?? 'N/A'); ?>
+                                    </h5>
+                                    <span class="ed-profile-empno">
+                                        <?php echo htmlspecialchars($current_employee['external_employee_no']); ?>
+                                    </span>
+                                    <div class="ed-profile-badges">
+                                        <span class="ed-badge ed-badge-type">
+                                            <?php echo strtoupper($current_employee['employment_type'] ?? 'N/A'); ?>
+                                        </span>
+                                        <?php if (!empty($current_employee['employment_status'])): ?>
+                                            <span class="ed-badge ed-badge-status ed-badge-<?php echo strtolower($current_employee['employment_status']); ?>">
+                                                <?php echo strtoupper($current_employee['employment_status']); ?>
+                                            </span>
+                                        <?php endif; ?>
+                                    </div>
+                                    <div class="ed-profile-meta">
+                                        <div class="ed-meta-row">
+                                            <span class="ed-meta-label">Position</span>
+                                            <span class="ed-meta-value"><?php echo htmlspecialchars($current_employee['position'] ?? 'N/A'); ?></span>
+                                        </div>
+                                        <div class="ed-meta-row">
+                                            <span class="ed-meta-label">Department</span>
+                                            <span class="ed-meta-value"><?php echo htmlspecialchars($current_employee['department'] ?? 'N/A'); ?></span>
+                                        </div>
                                     </div>
                                 </div>
 
-                                <!-- Right Column: Salary Cards -->
-                                <div class="employee-right-column">
+                                <!-- Middle Column: Employee Details -->
+                                <div class="ed-details-card">
+                                    <h5 class="ed-details-title">Employee Details</h5>
+
+                                    <div class="ed-section-label">Personal & Employment</div>
+                                    <div class="ed-detail-row">
+                                        <span class="ed-detail-label">Full Name</span>
+                                        <span class="ed-detail-value"><?php echo htmlspecialchars($current_employee['name'] ?? 'N/A'); ?></span>
+                                    </div>
+                                    <?php if (!empty($current_employee['gender'])): ?>
+                                    <div class="ed-detail-row">
+                                        <span class="ed-detail-label">Gender</span>
+                                        <span class="ed-detail-value"><?php echo ucfirst($current_employee['gender']); ?></span>
+                                    </div>
+                                    <?php endif; ?>
+                                    <?php if (!empty($current_employee['birth_date'])): ?>
+                                    <div class="ed-detail-row">
+                                        <span class="ed-detail-label">Birth Date</span>
+                                        <span class="ed-detail-value"><?php echo date('F d, Y', strtotime($current_employee['birth_date'])); ?></span>
+                                    </div>
+                                    <?php endif; ?>
+                                    <?php if (!empty($current_employee['hire_date'])): ?>
+                                    <div class="ed-detail-row">
+                                        <span class="ed-detail-label">Hire Date (HRIS)</span>
+                                        <span class="ed-detail-value"><?php echo date('F d, Y', strtotime($current_employee['hire_date'])); ?></span>
+                                    </div>
+                                    <?php endif; ?>
+                                    <div class="ed-detail-row">
+                                        <span class="ed-detail-label">Date of Joining</span>
+                                        <span class="ed-detail-value"><?php echo date('F d, Y', strtotime($current_employee['created_at'])); ?></span>
+                                    </div>
+                                    <?php if (!empty($current_employee['contract_type'])): ?>
+                                    <div class="ed-detail-row">
+                                        <span class="ed-detail-label">Contract Type</span>
+                                        <span class="ed-detail-value"><?php echo htmlspecialchars($current_employee['contract_type']); ?></span>
+                                    </div>
+                                    <?php endif; ?>
+
+                                    <div class="ed-section-label">Contact Information</div>
+                                    <?php if (!empty($current_employee['email'])): ?>
+                                    <div class="ed-detail-row">
+                                        <span class="ed-detail-label">Email Address</span>
+                                        <span class="ed-detail-value"><?php echo htmlspecialchars($current_employee['email']); ?></span>
+                                    </div>
+                                    <?php endif; ?>
+                                    <?php if (!empty($current_employee['contact_number'])): ?>
+                                    <div class="ed-detail-row">
+                                        <span class="ed-detail-label">Contact Number</span>
+                                        <span class="ed-detail-value"><?php echo htmlspecialchars($current_employee['contact_number']); ?></span>
+                                    </div>
+                                    <?php endif; ?>
+                                    <?php if (!empty($current_employee['address'])): ?>
+                                    <div class="ed-detail-row">
+                                        <span class="ed-detail-label">Address</span>
+                                        <span class="ed-detail-value"><?php echo htmlspecialchars($current_employee['address']); ?></span>
+                                    </div>
+                                    <?php endif; ?>
+                                </div>
+
+                                <!-- Right Column: Salary & Payroll Impact -->
+                                <div class="ed-right-column">
                                     <!-- Salary Rates Card -->
-                                    <div class="salary-rates-card">
-                                        <h6 class="salary-rates-title">SALARY RATES</h6>
-                                        <table class="salary-rates-table">
-                                            <tr>
-                                                <td>Monthly Salary</td>
-                                                <td class="amount-cell">₱<?php echo number_format($base_salary, 2); ?></td>
-                                            </tr>
-                                            <tr>
-                                                <td>Daily Rate</td>
-                                                <td class="amount-cell">₱<?php echo number_format($daily_rate, 2); ?></td>
-                                            </tr>
-                                            <tr>
-                                                <td>Hourly Rate</td>
-                                                <td class="amount-cell">₱<?php echo number_format($hourly_rate, 2); ?></td>
-                                            </tr>
-                                        </table>
+                                    <div class="ed-salary-card">
+                                        <div class="ed-salary-header">
+                                            <i class="fas fa-coins me-2"></i>Salary Rates
+                                        </div>
+                                        <div class="ed-salary-monthly">
+                                            <span class="ed-salary-monthly-label">Monthly Salary</span>
+                                            <span class="ed-salary-monthly-value">₱<?php echo number_format($base_salary, 2); ?></span>
+                                        </div>
+                                        <div class="ed-salary-sub-rates">
+                                            <div class="ed-rate-item">
+                                                <span class="ed-rate-label">Daily Rate</span>
+                                                <span class="ed-rate-value">₱<?php echo number_format($daily_rate, 2); ?></span>
+                                            </div>
+                                            <div class="ed-rate-divider"></div>
+                                            <div class="ed-rate-item">
+                                                <span class="ed-rate-label">Hourly Rate</span>
+                                                <span class="ed-rate-value">₱<?php echo number_format($hourly_rate, 2); ?></span>
+                                            </div>
+                                        </div>
                                     </div>
 
                                     <!-- Payroll Impact Card -->
@@ -1442,64 +1397,80 @@ if ($attendance_payroll_adjustments && isset($attendance_payroll_adjustments['at
                                         $att_summary = $attendance_payroll_adjustments['attendance_summary'];
                                         $has_impact = $adj['absent_deduction'] > 0 || $adj['half_day_deduction'] > 0 || $adj['late_penalty'] > 0 || $adj['overtime_pay'] > 0;
                                         ?>
-                                        <div class="payroll-impact-card">
-                                            <div class="payroll-impact-header">
-                                                <i class="fas fa-info-circle"></i>
-                                                <span>Payroll Impact</span>
+                                        <div class="ed-impact-card">
+                                            <div class="ed-impact-header">
+                                                <i class="fas fa-chart-line me-2"></i>Payroll Impact
                                             </div>
-                                            <div class="payroll-impact-content">
-                                                <!-- Always show Present Days Pay (Basic Salary earned) -->
+                                            <div class="ed-impact-body">
                                                 <?php if ($adj['basic_salary'] > 0): ?>
-                                                    <div class="payroll-impact-item">
-                                                        <span class="impact-label text-primary">
-                                                            <i class="fas fa-calendar-check me-1"></i>
-                                                            Present Days Pay (<?php echo $att_summary['present_days']; ?> days)
-                                                        </span>
-                                                        <span
-                                                            class="impact-amount text-primary">₱<?php echo number_format($adj['basic_salary'], 2); ?></span>
+                                                <div class="ed-impact-row">
+                                                    <div class="ed-impact-left">
+                                                        <span class="ed-impact-dot ed-dot-blue"></span>
+                                                        <div>
+                                                            <span class="ed-impact-name">Present Days Pay</span>
+                                                            <span class="ed-impact-sub"><?php echo $att_summary['present_days']; ?> days</span>
+                                                        </div>
                                                     </div>
+                                                    <span class="ed-impact-amount">₱<?php echo number_format($adj['basic_salary'], 2); ?></span>
+                                                </div>
+                                                <?php endif; ?>
+
+                                                <?php if ($adj['overtime_pay'] > 0): ?>
+                                                <div class="ed-impact-row">
+                                                    <div class="ed-impact-left">
+                                                        <span class="ed-impact-dot ed-dot-green"></span>
+                                                        <span class="ed-impact-name">Overtime Pay</span>
+                                                    </div>
+                                                    <span class="ed-impact-amount ed-amount-green">+₱<?php echo number_format($adj['overtime_pay'], 2); ?></span>
+                                                </div>
+                                                <?php endif; ?>
+
+                                                <?php if ($adj['absent_deduction'] > 0): ?>
+                                                <div class="ed-impact-row">
+                                                    <div class="ed-impact-left">
+                                                        <span class="ed-impact-dot ed-dot-red"></span>
+                                                        <span class="ed-impact-name">Absent Deduction</span>
+                                                    </div>
+                                                    <span class="ed-impact-amount ed-amount-red">-₱<?php echo number_format($adj['absent_deduction'], 2); ?></span>
+                                                </div>
+                                                <?php endif; ?>
+
+                                                <?php if ($adj['half_day_deduction'] > 0): ?>
+                                                <div class="ed-impact-row">
+                                                    <div class="ed-impact-left">
+                                                        <span class="ed-impact-dot ed-dot-orange"></span>
+                                                        <span class="ed-impact-name">Half Day Deduction</span>
+                                                    </div>
+                                                    <span class="ed-impact-amount ed-amount-red">-₱<?php echo number_format($adj['half_day_deduction'], 2); ?></span>
+                                                </div>
+                                                <?php endif; ?>
+
+                                                <?php if ($adj['late_penalty'] > 0): ?>
+                                                <div class="ed-impact-row">
+                                                    <div class="ed-impact-left">
+                                                        <span class="ed-impact-dot ed-dot-red"></span>
+                                                        <span class="ed-impact-name">Late Penalty</span>
+                                                    </div>
+                                                    <span class="ed-impact-amount ed-amount-red">-₱<?php echo number_format($adj['late_penalty'], 2); ?></span>
+                                                </div>
                                                 <?php endif; ?>
 
                                                 <?php if (!$has_impact && $adj['basic_salary'] > 0): ?>
-                                                    <div class="payroll-impact-item">
-                                                        <i class="fas fa-check-circle text-success"></i>
-                                                        <span class="text-success">Perfect attendance - no deductions</span>
+                                                <div class="ed-impact-row">
+                                                    <div class="ed-impact-left">
+                                                        <span class="ed-impact-dot ed-dot-green"></span>
+                                                        <span class="ed-impact-name text-success">Perfect attendance</span>
                                                     </div>
-                                                <?php elseif ($adj['basic_salary'] == 0 && !$has_impact): ?>
-                                                    <div class="payroll-impact-item">
-                                                        <i class="fas fa-info-circle text-muted"></i>
-                                                        <span class="text-muted">No attendance records for this period</span>
-                                                    </div>
-                                                <?php else: ?>
-                                                    <?php if ($adj['overtime_pay'] > 0): ?>
-                                                        <div class="payroll-impact-item">
-                                                            <span class="impact-label text-success">Overtime Pay</span>
-                                                            <span
-                                                                class="impact-amount text-success">+₱<?php echo number_format($adj['overtime_pay'], 2); ?></span>
-                                                        </div>
-                                                    <?php endif; ?>
-                                                    <?php if ($adj['absent_deduction'] > 0): ?>
-                                                        <div class="payroll-impact-item">
-                                                            <span class="impact-label text-danger">Absent Deduction</span>
-                                                            <span
-                                                                class="impact-amount text-danger">-₱<?php echo number_format($adj['absent_deduction'], 2); ?></span>
-                                                        </div>
-                                                    <?php endif; ?>
-                                                    <?php if ($adj['half_day_deduction'] > 0): ?>
-                                                        <div class="payroll-impact-item">
-                                                            <span class="impact-label text-warning">Half Day Deduction</span>
-                                                            <span
-                                                                class="impact-amount text-warning">-₱<?php echo number_format($adj['half_day_deduction'], 2); ?></span>
-                                                        </div>
-                                                    <?php endif; ?>
-                                                    <?php if ($adj['late_penalty'] > 0): ?>
-                                                        <div class="payroll-impact-item">
-                                                            <span class="impact-label text-danger">Late Penalty</span>
-                                                            <span
-                                                                class="impact-amount text-danger">-₱<?php echo number_format($adj['late_penalty'], 2); ?></span>
-                                                        </div>
-                                                    <?php endif; ?>
+                                                </div>
                                                 <?php endif; ?>
+                                            </div>
+
+                                            <?php
+                                                $net_change = ($adj['basic_salary'] ?? 0) + ($adj['overtime_pay'] ?? 0) - ($adj['absent_deduction'] ?? 0) - ($adj['half_day_deduction'] ?? 0) - ($adj['late_penalty'] ?? 0);
+                                            ?>
+                                            <div class="ed-impact-footer">
+                                                <span class="ed-impact-footer-label">Est. Net Change</span>
+                                                <span class="ed-impact-footer-value">₱<?php echo number_format($net_change, 2); ?></span>
                                             </div>
                                         </div>
                                     <?php endif; ?>

@@ -730,232 +730,387 @@ body {
 
 .employee-details-main-layout {
     display: grid;
-    grid-template-columns: 1fr 400px;
-    gap: 40px;
+    grid-template-columns: 220px 1fr 280px;
+    gap: 24px;
     align-items: start;
 }
 
-.employee-left-column {
-    display: flex;
-    gap: 30px;
-    align-items: flex-start;
-}
+/* ========================================
+   LEFT: PROFILE CARD (Figma style)
+   ======================================== */
 
-.employee-photo-section {
+.ed-profile-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    padding: 28px 20px 24px;
     text-align: center;
-    position: relative;
-    flex-shrink: 0;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.04);
 }
 
-.employee-photo {
-    width: 180px;
-    height: 180px;
+.ed-profile-photo {
+    width: 90px;
+    height: 90px;
     background: linear-gradient(135deg, var(--primary-teal), var(--secondary-teal));
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    margin: 0 auto 20px;
-    font-size: 70px;
-    color: white;
-    box-shadow: 0 8px 25px rgba(10, 61, 61, 0.3);
-    position: relative;
-    overflow: hidden;
-    transition: all 0.3s ease;
+    margin: 0 auto 14px;
+    font-size: 42px;
+    color: #fff;
+    box-shadow: 0 4px 14px rgba(10, 61, 61, 0.25);
 }
 
-.employee-photo::before {
-    content: '';
-    position: absolute;
-    top: -50%;
-    left: -50%;
-    width: 200%;
-    height: 200%;
-    background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.1), transparent);
-    transform: rotate(45deg);
-    transition: all 0.6s;
-}
-
-.employee-photo:hover::before {
-    animation: shimmer 1.5s ease-in-out;
-}
-
-@keyframes shimmer {
-    0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
-    100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
-}
-
-.employee-photo:hover {
-    transform: scale(1.05);
-    box-shadow: 0 12px 35px rgba(10, 61, 61, 0.4);
-}
-
-.employee-status {
-    margin-top: 10px;
-}
-
-.employee-info-section {
-    flex: 1;
-    min-width: 0;
-}
-
-/* ========================================
-   EMPLOYEE RIGHT COLUMN (SALARY CARDS)
-   ======================================== */
-
-.employee-right-column {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-    align-items: stretch;
-}
-
-.salary-rates-card {
-    background: var(--card-bg);
-    border-radius: 12px;
-    padding: 0;
-    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
-    border: 2px solid var(--primary-teal);
-    overflow: hidden;
-    transition: all 0.3s ease;
-    width: 100%;
-}
-
-.salary-rates-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(0,0,0,0.12);
-}
-
-.salary-rates-title {
-    color: white;
-    background: var(--primary-teal);
+.ed-profile-name {
+    font-size: 15px;
     font-weight: 700;
-    font-size: 13px;
-    padding: 12px 15px;
-    text-align: center;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    margin: 0;
-}
-
-.salary-rates-table {
-    width: 100%;
-    border-collapse: collapse;
-    padding: 0;
-}
-
-.salary-rates-table td {
-    padding: 14px 20px;
-    border-bottom: 1px solid var(--border-color);
-    font-size: 14px;
-    transition: all 0.3s ease;
-}
-
-.salary-rates-table tr:last-child td {
-    border-bottom: none;
-}
-
-.salary-rates-table tr:hover td {
-    background-color: rgba(245, 241, 232, 0.3);
-}
-
-.salary-rates-table td:first-child {
-    font-weight: 600;
     color: var(--text-dark);
-    width: 60%;
+    margin: 0 0 2px;
+    line-height: 1.3;
 }
 
-.salary-rates-table td:last-child {
-    text-align: right;
-    font-weight: 600;
-    font-family: 'Courier New', monospace;
-    color: var(--text-dark);
-    font-size: 14px;
-}
-
-/* Payroll Impact Card */
-.payroll-impact-card {
-    background: var(--card-bg);
-    border-radius: 12px;
-    padding: 16px;
-    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
-    border: 1px solid var(--border-color);
-    transition: all 0.3s ease;
-    width: 100%;
-}
-
-.payroll-impact-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(0,0,0,0.12);
-}
-
-.payroll-impact-card .payroll-impact-header {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-weight: 700;
-    font-size: 14px;
-    color: var(--text-dark);
+.ed-profile-empno {
+    font-size: 12px;
+    color: #8A94A6;
+    font-weight: 500;
+    display: block;
     margin-bottom: 12px;
 }
 
-.payroll-impact-card .payroll-impact-header i {
-    color: var(--primary-teal);
-    font-size: 16px;
+.ed-profile-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    justify-content: center;
+    margin-bottom: 20px;
 }
 
-.payroll-impact-content {
+.ed-badge {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.6px;
+    padding: 4px 12px;
+    border-radius: 20px;
+    text-transform: uppercase;
+}
+
+.ed-badge-type {
+    background: rgba(10, 61, 61, 0.1);
+    color: var(--primary-teal);
+}
+
+.ed-badge-status {
+    background: rgba(34, 197, 94, 0.12);
+    color: #16A34A;
+}
+
+.ed-badge-active {
+    background: rgba(34, 197, 94, 0.12);
+    color: #16A34A;
+}
+
+.ed-badge-inactive {
+    background: rgba(239, 68, 68, 0.1);
+    color: #DC2626;
+}
+
+.ed-profile-meta {
+    border-top: 1px solid var(--border-color);
+    padding-top: 16px;
+    text-align: left;
+}
+
+.ed-meta-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 6px 0;
+}
+
+.ed-meta-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #8A94A6;
+    font-weight: 600;
+}
+
+.ed-meta-value {
+    font-size: 13px;
+    color: var(--text-dark);
+    font-weight: 600;
+    text-align: right;
+}
+
+/* ========================================
+   MIDDLE: DETAILS CARD (Figma style)
+   ======================================== */
+
+.ed-details-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    padding: 28px 30px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+}
+
+.ed-details-title {
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--text-dark);
+    margin: 0 0 20px;
+}
+
+.ed-section-label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--primary-teal);
+    margin: 20px 0 10px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid rgba(10, 61, 61, 0.08);
+}
+
+.ed-section-label:first-of-type {
+    margin-top: 0;
+}
+
+.ed-detail-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 10px 0;
+    border-bottom: 1px solid #F2F4F7;
+}
+
+.ed-detail-row:last-child {
+    border-bottom: none;
+}
+
+.ed-detail-label {
+    font-size: 13px;
+    color: var(--primary-teal);
+    font-weight: 500;
+    min-width: 140px;
+}
+
+.ed-detail-value {
+    font-size: 13px;
+    color: var(--text-dark);
+    font-weight: 600;
+    text-align: right;
+}
+
+/* ========================================
+   RIGHT: SALARY & IMPACT CARDS (Figma - clean)
+   ======================================== */
+
+.ed-right-column {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 18px;
 }
 
-.payroll-impact-item {
+/* Salary Rates Card — clean light version */
+.ed-salary-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+}
+
+.ed-salary-header {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--primary-teal);
+    padding: 14px 18px 0;
+    display: flex;
+    align-items: center;
+}
+
+.ed-salary-header i {
+    font-size: 13px;
+}
+
+.ed-salary-monthly {
+    padding: 10px 18px 16px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.ed-salary-monthly-label {
+    display: block;
+    font-size: 11px;
+    color: #8A94A6;
+    font-weight: 500;
+    margin-bottom: 2px;
+}
+
+.ed-salary-monthly-value {
+    font-size: 26px;
+    font-weight: 800;
+    color: var(--text-dark);
+    letter-spacing: -0.5px;
+    line-height: 1.1;
+}
+
+.ed-salary-sub-rates {
+    display: flex;
+    align-items: center;
+    padding: 14px 18px;
+}
+
+.ed-rate-item {
+    flex: 1;
+    text-align: center;
+}
+
+.ed-rate-label {
+    display: block;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #8A94A6;
+    font-weight: 600;
+    margin-bottom: 2px;
+}
+
+.ed-rate-value {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text-dark);
+}
+
+.ed-rate-divider {
+    width: 1px;
+    height: 32px;
+    background: var(--border-color);
+    flex-shrink: 0;
+}
+
+/* Payroll Impact Card */
+.ed-impact-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+}
+
+.ed-impact-header {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--primary-teal);
+    padding: 14px 18px 10px;
+    display: flex;
+    align-items: center;
+}
+
+.ed-impact-header i {
+    font-size: 13px;
+}
+
+.ed-impact-body {
+    padding: 0 18px 6px;
+}
+
+.ed-impact-row {
     display: flex;
     align-items: center;
     justify-content: space-between;
     padding: 8px 0;
-    font-size: 14px;
 }
 
-.payroll-impact-item .impact-label {
+.ed-impact-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.ed-impact-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.ed-dot-blue { background: #3B82F6; }
+.ed-dot-green { background: #22C55E; }
+.ed-dot-red { background: #EF4444; }
+.ed-dot-orange { background: #F59E0B; }
+
+.ed-impact-name {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-dark);
+}
+
+.ed-impact-sub {
+    display: block;
+    font-size: 11px;
+    color: #8A94A6;
+    line-height: 1.2;
+}
+
+.ed-impact-amount {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-dark);
+    white-space: nowrap;
+}
+
+.ed-amount-green { color: #16A34A; }
+.ed-amount-red { color: #DC2626; }
+
+.ed-impact-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 18px;
+    border-top: 1px solid var(--border-color);
+    background: #FAFBFC;
+}
+
+.ed-impact-footer-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #8A94A6;
     font-weight: 600;
 }
 
-.payroll-impact-item .impact-amount {
-    font-weight: 700;
-    font-family: 'Courier New', monospace;
-}
-
-.employee-info-table {
-    width: 100%;
-    margin: 0;
-    border-radius: 15px;
-    overflow: hidden;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-    background: var(--card-bg);
-}
-
-.employee-info-table td {
-    padding: 18px 20px;
-    border: none;
-    border-bottom: 1px solid rgba(224, 224, 224, 0.5);
-    transition: all 0.3s ease;
-}
-
-.employee-info-table tr:hover td {
-    background-color: rgba(245, 241, 232, 0.3);
-}
-
-.employee-info-table td:first-child {
-    font-weight: 700;
-    background: linear-gradient(135deg, var(--bg-cream), rgba(245, 241, 232, 0.8));
-    color: var(--primary-teal);
-    width: 40%;
-}
-
-.employee-info-table td:last-child {
+.ed-impact-footer-value {
+    font-size: 17px;
+    font-weight: 800;
     color: var(--text-dark);
+}
+
+/* Responsive: collapse to single column on smaller screens */
+@media (max-width: 1200px) {
+    .employee-details-main-layout {
+        grid-template-columns: 220px 1fr;
+    }
+    .ed-right-column {
+        grid-column: 1 / -1;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 18px;
+    }
+}
+
+@media (max-width: 768px) {
+    .employee-details-main-layout {
+        grid-template-columns: 1fr;
+    }
+    .ed-right-column {
+        grid-template-columns: 1fr;
+    }
 }
 
 

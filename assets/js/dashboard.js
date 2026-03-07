@@ -13,10 +13,52 @@
         initSmoothScrolling();
         initActiveNavLinks();
         initModuleCardInteractions();
+        initKPIAnimations();
         initNotifications();
         initDropdownAnimations();
         initLogoutConfirmation();
     });
+
+    /**
+     * Initialize KPI value animations (Count-up effect)
+     */
+    function initKPIAnimations() {
+        const kpiValues = document.querySelectorAll('.kpi-value');
+
+        kpiValues.forEach(kpi => {
+            const valueStr = kpi.textContent.replace('₱', '').replace(/,/g, '');
+            const targetValue = parseFloat(valueStr);
+            const isCurrency = kpi.textContent.includes('₱');
+
+            if (isNaN(targetValue)) return;
+
+            const duration = 1500; // 1.5 seconds
+            const frameRate = 60;
+            const totalFrames = (duration / 1000) * frameRate;
+            const increment = targetValue / totalFrames;
+
+            let currentFrame = 0;
+            let currentValue = 0;
+
+            const counter = setInterval(() => {
+                currentFrame++;
+                currentValue += increment;
+
+                if (currentFrame >= totalFrames) {
+                    clearInterval(counter);
+                    kpi.textContent = (isCurrency ? '₱' : '') + targetValue.toLocaleString(undefined, {
+                        minimumFractionDigits: isCurrency ? 2 : 0,
+                        maximumFractionDigits: isCurrency ? 2 : 0
+                    });
+                } else {
+                    kpi.textContent = (isCurrency ? '₱' : '') + currentValue.toLocaleString(undefined, {
+                        minimumFractionDigits: isCurrency ? 2 : 0,
+                        maximumFractionDigits: isCurrency ? 2 : 0
+                    });
+                }
+            }, 1000 / frameRate);
+        });
+    }
 
     /**
      * Smooth scrolling for anchor links

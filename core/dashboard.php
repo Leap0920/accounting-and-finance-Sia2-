@@ -6,6 +6,49 @@ require_once '../includes/session.php';
 requireLogin();
 
 $current_user = getCurrentUser();
+
+// Fetch KPI Data
+
+// 1. Total Cash (Sum of all active bank accounts)
+$total_cash = 0;
+$cash_query = "SELECT SUM(current_balance) as total FROM bank_accounts WHERE is_active = 1";
+$cash_result = $conn->query($cash_query);
+if ($cash_result && $row = $cash_result->fetch_assoc()) {
+    $total_cash = $row['total'] ?? 0;
+}
+
+// 2. Pending Approvals (Expense Claims Submit + Loan Applications Pending)
+$pending_approvals = 0;
+
+// Count pending expense claims
+$expense_query = "SELECT COUNT(*) as count FROM expense_claims WHERE status = 'submitted'";
+$expense_result = $conn->query($expense_query);
+if ($expense_result && $row = $expense_result->fetch_assoc()) {
+    $pending_approvals += $row['count'];
+}
+
+// Count pending loan applications
+$loan_app_query = "SELECT COUNT(*) as count FROM loan_applications WHERE status = 'Pending'";
+$loan_app_result = $conn->query($loan_app_query);
+if ($loan_app_result && $row = $loan_app_result->fetch_assoc()) {
+    $pending_approvals += $row['count'];
+}
+
+// 3. Overdue Loans (Active loans with past due date and remaining balance)
+$overdue_loans = 0;
+$overdue_query = "SELECT COUNT(*) as count FROM loans WHERE status = 'active' AND (next_payment_due < CURRENT_DATE() OR (current_balance > 0 AND next_payment_due IS NULL))";
+$overdue_result = $conn->query($overdue_query);
+if ($overdue_result && $row = $overdue_result->fetch_assoc()) {
+    $overdue_loans = $row['count'];
+}
+
+// 4. Upcoming Payroll (Open payroll periods)
+$upcoming_payroll = 0;
+$payroll_query = "SELECT COUNT(*) as count FROM payroll_periods WHERE status IN ('open', 'processing')";
+$payroll_result = $conn->query($payroll_query);
+if ($payroll_result && $row = $payroll_result->fetch_assoc()) {
+    $upcoming_payroll = $row['count'];
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -38,8 +81,75 @@ $current_user = getCurrentUser();
     </div>
 
     <!-- Main Content -->
-    <main class="container py-4" id="modules">
-        <div class="row g-4">
+    <main class="container py-4">
+        <!-- KPI Section -->
+        <div class="row g-4 mb-5">
+            <div class="col-xl-3 col-md-6">
+                <div class="kpi-card cash">
+                    <div class="kpi-icon">
+                        <i class="fas fa-wallet"></i>
+                    </div>
+                    <div class="kpi-info">
+                        <span class="kpi-label">Total Cash</span>
+                        <h3 class="kpi-value">₱<?php echo number_format($total_cash, 2); ?></h3>
+                    </div>
+                    <div class="kpi-trend">
+                        <i class="fas fa-chart-line"></i>
+                        <span>Real-time balance</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-3 col-md-6">
+                <div class="kpi-card pending">
+                    <div class="kpi-icon">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <div class="kpi-info">
+                        <span class="kpi-label">Pending Approvals</span>
+                        <h3 class="kpi-value"><?php echo number_format($pending_approvals); ?></h3>
+                    </div>
+                    <div class="kpi-trend">
+                        <i class="fas fa-exclamation-circle"></i>
+                        <span>Needs attention</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-3 col-md-6">
+                <div class="kpi-card overdue">
+                    <div class="kpi-icon">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <div class="kpi-info">
+                        <span class="kpi-label">Overdue Loans</span>
+                        <h3 class="kpi-value text-danger"><?php echo number_format($overdue_loans); ?></h3>
+                    </div>
+                    <div class="kpi-trend danger">
+                        <i class="fas fa-bolt"></i>
+                        <span>Immediate action</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-3 col-md-6">
+                <div class="kpi-card payroll">
+                    <div class="kpi-icon">
+                        <i class="fas fa-money-check-alt"></i>
+                    </div>
+                    <div class="kpi-info">
+                        <span class="kpi-label">Upcoming Payroll</span>
+                        <h3 class="kpi-value"><?php echo number_format($upcoming_payroll); ?></h3>
+                    </div>
+                    <div class="kpi-trend info">
+                        <i class="fas fa-calendar-alt"></i>
+                        <span>Next cycle preparation</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-4" id="modules">
             <!-- General Ledger -->
             <div class="col-lg-4 col-md-6">
                 <div class="module-card">

@@ -15,7 +15,10 @@ $filter_type = isset($_GET['type']) ? $_GET['type'] : '';
 
 // Get payroll period selection (1-15 or 16-end of month)
 $payroll_period = isset($_GET['payroll_period']) ? $_GET['payroll_period'] : '';
-$payroll_month = isset($_GET['payroll_month']) ? $_GET['payroll_month'] : date('Y-m');
+// payroll_month drives BOTH the Payroll Month selector AND the attendance records filter.
+// attendance_month is kept as an alias for backward compat but always overridden by payroll_month.
+$payroll_month = isset($_GET['payroll_month']) ? $_GET['payroll_month']
+               : (isset($_GET['attendance_month']) ? $_GET['attendance_month'] : date('Y-m'));
 
 // Calculate period start and end dates based on selection
 $period_start = '';
@@ -975,6 +978,24 @@ if ($attendance_payroll_adjustments && isset($attendance_payroll_adjustments['at
                 <div class="header-actions mt-3">
                     <!-- Primary Selection Card -->
                     <div class="selection-card mb-3">
+                        <!-- Employee Search Bar -->
+                        <div class="emp-searchbar-wrap mb-3">
+                            <div class="emp-searchbar-inner">
+                                <span class="emp-searchbar-icon"><i class="fas fa-search"></i></span>
+                                <input type="text" id="emp-live-search" class="emp-searchbar-input"
+                                    placeholder="Search employee by name, number, or department..."
+                                    oninput="filterEmployeeSelect(this.value)" autocomplete="off">
+                                <button class="emp-searchbar-clear" id="emp-search-clear"
+                                    onclick="clearEmployeeSearch()" type="button" title="Clear search">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                                <span class="emp-searchbar-count">
+                                    <i class="fas fa-users me-1"></i>
+                                    <span id="emp-search-count"><?php echo $employees_result->num_rows; ?></span>
+                                    employee<?php echo $employees_result->num_rows != 1 ? 's' : ''; ?>
+                                </span>
+                            </div>
+                        </div>
                         <div class="row g-3 align-items-end">
                             <div class="col-lg-4">
                                 <div class="selection-group">
@@ -1083,123 +1104,7 @@ if ($attendance_payroll_adjustments && isset($attendance_payroll_adjustments['at
         </div>
         </div>
 
-        <!-- Employee Search and Filters -->
-        <div class="search-filters-section mb-3">
-            <div class="search-filters-card">
-                <div class="filters-header">
-                    <div class="filters-title-section">
-                        <i class="fas fa-users me-2"></i>
-                        <h5 class="mb-0">Find Employee</h5>
-                        <div class="results-counter">
-                            <span class="badge-employee-count">
-                                <i class="fas fa-user-check me-1"></i>
-                                <?php echo $employees_result->num_rows; ?>
-                                employee<?php echo $employees_result->num_rows != 1 ? 's' : ''; ?> available
-                            </span>
-                        </div>
-                    </div>
-                    <button class="btn-toggle-filters" onclick="toggleFilters()" type="button" aria-expanded="false">
-                        <i class="fas fa-filter me-1"></i>Advanced Filters
-                        <i class="fas fa-chevron-down ms-1" id="filter-chevron"></i>
-                    </button>
-                </div>
 
-                <div class="filters-content" id="filters-content">
-                    <form method="GET" class="filters-form" id="employee-filter-form">
-                        <input type="hidden" name="employee"
-                            value="<?php echo htmlspecialchars($selected_employee); ?>">
-                        <input type="hidden" name="payroll_month"
-                            value="<?php echo htmlspecialchars($payroll_month); ?>">
-                        <input type="hidden" name="payroll_period"
-                            value="<?php echo htmlspecialchars($payroll_period); ?>">
-                        <div class="row g-3">
-                            <!-- Search Bar -->
-                            <div class="col-md-4">
-                                <label for="search" class="form-label">
-                                    <i class="fas fa-search me-1"></i>Search Employee
-                                </label>
-                                <div class="input-group">
-                                    <span class="input-group-text">
-                                        <i class="fas fa-search"></i>
-                                    </span>
-                                    <input type="text" class="form-control" id="search" name="search"
-                                        placeholder="Name, employee number, or ID..."
-                                        value="<?php echo htmlspecialchars($search_term); ?>">
-                                </div>
-                            </div>
-
-                            <!-- Position Filter -->
-                            <div class="col-md-2">
-                                <label for="position" class="form-label">
-                                    <i class="fas fa-briefcase me-1"></i>Position
-                                </label>
-                                <select class="form-select" id="position" name="position">
-                                    <option value="">All Positions</option>
-                                    <?php
-                                    $positions_result->data_seek(0);
-                                    while ($pos = $positions_result->fetch_assoc()):
-                                        ?>
-                                        <option value="<?php echo htmlspecialchars($pos['position']); ?>" <?php echo ($pos['position'] == $filter_position) ? 'selected' : ''; ?>>
-                                            <?php echo htmlspecialchars($pos['position']); ?>
-                                        </option>
-                                    <?php endwhile; ?>
-                                </select>
-                            </div>
-
-                            <!-- Department Filter -->
-                            <div class="col-md-2">
-                                <label for="department" class="form-label">
-                                    <i class="fas fa-building me-1"></i>Department
-                                </label>
-                                <select class="form-select" id="department" name="department">
-                                    <option value="">All Departments</option>
-                                    <?php
-                                    $departments_result->data_seek(0);
-                                    while ($dept = $departments_result->fetch_assoc()):
-                                        ?>
-                                        <option value="<?php echo htmlspecialchars($dept['department']); ?>" <?php echo ($dept['department'] == $filter_department) ? 'selected' : ''; ?>>
-                                            <?php echo htmlspecialchars($dept['department']); ?>
-                                        </option>
-                                    <?php endwhile; ?>
-                                </select>
-                            </div>
-
-                            <!-- Employment Type Filter -->
-                            <div class="col-md-2">
-                                <label for="type" class="form-label">
-                                    <i class="fas fa-user-tag me-1"></i>Employment Type
-                                </label>
-                                <select class="form-select" id="type" name="type">
-                                    <option value="">All Types</option>
-                                    <?php
-                                    $types_result->data_seek(0);
-                                    while ($type = $types_result->fetch_assoc()):
-                                        ?>
-                                        <option value="<?php echo htmlspecialchars($type['employment_type']); ?>" <?php echo ($type['employment_type'] == $filter_type) ? 'selected' : ''; ?>>
-                                            <?php echo ucfirst($type['employment_type']); ?>
-                                        </option>
-                                    <?php endwhile; ?>
-                                </select>
-                            </div>
-
-                            <!-- Action Buttons -->
-                            <div class="col-md-2">
-                                <label class="form-label">&nbsp;</label>
-                                <div class="d-flex gap-2">
-                                    <button type="submit" class="btn btn-primary w-100">
-                                        <i class="fas fa-search me-1"></i>Apply
-                                    </button>
-                                    <a href="?employee=<?php echo htmlspecialchars($selected_employee); ?>&payroll_month=<?php echo htmlspecialchars($payroll_month); ?>&payroll_period=<?php echo htmlspecialchars($payroll_period); ?>"
-                                        class="btn btn-outline-secondary">
-                                        <i class="fas fa-times"></i>
-                                    </a>
-                                </div>
-                            </div>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
         <!-- Tab Navigation -->
         <div class="payroll-tabs-container">
             <ul class="nav nav-pills payroll-nav-tabs" id="payrollTabs" role="tablist">
@@ -1291,7 +1196,8 @@ if ($attendance_payroll_adjustments && isset($attendance_payroll_adjustments['at
                                             <?php echo strtoupper($current_employee['employment_type'] ?? 'N/A'); ?>
                                         </span>
                                         <?php if (!empty($current_employee['employment_status'])): ?>
-                                            <span class="ed-badge ed-badge-status ed-badge-<?php echo strtolower($current_employee['employment_status']); ?>">
+                                            <span
+                                                class="ed-badge ed-badge-status ed-badge-<?php echo strtolower($current_employee['employment_status']); ?>">
                                                 <?php echo strtoupper($current_employee['employment_status']); ?>
                                             </span>
                                         <?php endif; ?>
@@ -1299,11 +1205,13 @@ if ($attendance_payroll_adjustments && isset($attendance_payroll_adjustments['at
                                     <div class="ed-profile-meta">
                                         <div class="ed-meta-row">
                                             <span class="ed-meta-label">Position</span>
-                                            <span class="ed-meta-value"><?php echo htmlspecialchars($current_employee['position'] ?? 'N/A'); ?></span>
+                                            <span
+                                                class="ed-meta-value"><?php echo htmlspecialchars($current_employee['position'] ?? 'N/A'); ?></span>
                                         </div>
                                         <div class="ed-meta-row">
                                             <span class="ed-meta-label">Department</span>
-                                            <span class="ed-meta-value"><?php echo htmlspecialchars($current_employee['department'] ?? 'N/A'); ?></span>
+                                            <span
+                                                class="ed-meta-value"><?php echo htmlspecialchars($current_employee['department'] ?? 'N/A'); ?></span>
                                         </div>
                                     </div>
                                 </div>
@@ -1315,55 +1223,64 @@ if ($attendance_payroll_adjustments && isset($attendance_payroll_adjustments['at
                                     <div class="ed-section-label">Personal & Employment</div>
                                     <div class="ed-detail-row">
                                         <span class="ed-detail-label">Full Name</span>
-                                        <span class="ed-detail-value"><?php echo htmlspecialchars($current_employee['name'] ?? 'N/A'); ?></span>
+                                        <span
+                                            class="ed-detail-value"><?php echo htmlspecialchars($current_employee['name'] ?? 'N/A'); ?></span>
                                     </div>
                                     <?php if (!empty($current_employee['gender'])): ?>
-                                    <div class="ed-detail-row">
-                                        <span class="ed-detail-label">Gender</span>
-                                        <span class="ed-detail-value"><?php echo ucfirst($current_employee['gender']); ?></span>
-                                    </div>
+                                        <div class="ed-detail-row">
+                                            <span class="ed-detail-label">Gender</span>
+                                            <span
+                                                class="ed-detail-value"><?php echo ucfirst($current_employee['gender']); ?></span>
+                                        </div>
                                     <?php endif; ?>
                                     <?php if (!empty($current_employee['birth_date'])): ?>
-                                    <div class="ed-detail-row">
-                                        <span class="ed-detail-label">Birth Date</span>
-                                        <span class="ed-detail-value"><?php echo date('F d, Y', strtotime($current_employee['birth_date'])); ?></span>
-                                    </div>
+                                        <div class="ed-detail-row">
+                                            <span class="ed-detail-label">Birth Date</span>
+                                            <span
+                                                class="ed-detail-value"><?php echo date('F d, Y', strtotime($current_employee['birth_date'])); ?></span>
+                                        </div>
                                     <?php endif; ?>
                                     <?php if (!empty($current_employee['hire_date'])): ?>
-                                    <div class="ed-detail-row">
-                                        <span class="ed-detail-label">Hire Date (HRIS)</span>
-                                        <span class="ed-detail-value"><?php echo date('F d, Y', strtotime($current_employee['hire_date'])); ?></span>
-                                    </div>
+                                        <div class="ed-detail-row">
+                                            <span class="ed-detail-label">Hire Date (HRIS)</span>
+                                            <span
+                                                class="ed-detail-value"><?php echo date('F d, Y', strtotime($current_employee['hire_date'])); ?></span>
+                                        </div>
                                     <?php endif; ?>
                                     <div class="ed-detail-row">
                                         <span class="ed-detail-label">Date of Joining</span>
-                                        <span class="ed-detail-value"><?php echo date('F d, Y', strtotime($current_employee['created_at'])); ?></span>
+                                        <span
+                                            class="ed-detail-value"><?php echo date('F d, Y', strtotime($current_employee['created_at'])); ?></span>
                                     </div>
                                     <?php if (!empty($current_employee['contract_type'])): ?>
-                                    <div class="ed-detail-row">
-                                        <span class="ed-detail-label">Contract Type</span>
-                                        <span class="ed-detail-value"><?php echo htmlspecialchars($current_employee['contract_type']); ?></span>
-                                    </div>
+                                        <div class="ed-detail-row">
+                                            <span class="ed-detail-label">Contract Type</span>
+                                            <span
+                                                class="ed-detail-value"><?php echo htmlspecialchars($current_employee['contract_type']); ?></span>
+                                        </div>
                                     <?php endif; ?>
 
                                     <div class="ed-section-label">Contact Information</div>
                                     <?php if (!empty($current_employee['email'])): ?>
-                                    <div class="ed-detail-row">
-                                        <span class="ed-detail-label">Email Address</span>
-                                        <span class="ed-detail-value"><?php echo htmlspecialchars($current_employee['email']); ?></span>
-                                    </div>
+                                        <div class="ed-detail-row">
+                                            <span class="ed-detail-label">Email Address</span>
+                                            <span
+                                                class="ed-detail-value"><?php echo htmlspecialchars($current_employee['email']); ?></span>
+                                        </div>
                                     <?php endif; ?>
                                     <?php if (!empty($current_employee['contact_number'])): ?>
-                                    <div class="ed-detail-row">
-                                        <span class="ed-detail-label">Contact Number</span>
-                                        <span class="ed-detail-value"><?php echo htmlspecialchars($current_employee['contact_number']); ?></span>
-                                    </div>
+                                        <div class="ed-detail-row">
+                                            <span class="ed-detail-label">Contact Number</span>
+                                            <span
+                                                class="ed-detail-value"><?php echo htmlspecialchars($current_employee['contact_number']); ?></span>
+                                        </div>
                                     <?php endif; ?>
                                     <?php if (!empty($current_employee['address'])): ?>
-                                    <div class="ed-detail-row">
-                                        <span class="ed-detail-label">Address</span>
-                                        <span class="ed-detail-value"><?php echo htmlspecialchars($current_employee['address']); ?></span>
-                                    </div>
+                                        <div class="ed-detail-row">
+                                            <span class="ed-detail-label">Address</span>
+                                            <span
+                                                class="ed-detail-value"><?php echo htmlspecialchars($current_employee['address']); ?></span>
+                                        </div>
                                     <?php endif; ?>
                                 </div>
 
@@ -1376,17 +1293,20 @@ if ($attendance_payroll_adjustments && isset($attendance_payroll_adjustments['at
                                         </div>
                                         <div class="ed-salary-monthly">
                                             <span class="ed-salary-monthly-label">Monthly Salary</span>
-                                            <span class="ed-salary-monthly-value">₱<?php echo number_format($base_salary, 2); ?></span>
+                                            <span
+                                                class="ed-salary-monthly-value">₱<?php echo number_format($base_salary, 2); ?></span>
                                         </div>
                                         <div class="ed-salary-sub-rates">
                                             <div class="ed-rate-item">
                                                 <span class="ed-rate-label">Daily Rate</span>
-                                                <span class="ed-rate-value">₱<?php echo number_format($daily_rate, 2); ?></span>
+                                                <span
+                                                    class="ed-rate-value">₱<?php echo number_format($daily_rate, 2); ?></span>
                                             </div>
                                             <div class="ed-rate-divider"></div>
                                             <div class="ed-rate-item">
                                                 <span class="ed-rate-label">Hourly Rate</span>
-                                                <span class="ed-rate-value">₱<?php echo number_format($hourly_rate, 2); ?></span>
+                                                <span
+                                                    class="ed-rate-value">₱<?php echo number_format($hourly_rate, 2); ?></span>
                                             </div>
                                         </div>
                                     </div>
@@ -1403,74 +1323,82 @@ if ($attendance_payroll_adjustments && isset($attendance_payroll_adjustments['at
                                             </div>
                                             <div class="ed-impact-body">
                                                 <?php if ($adj['basic_salary'] > 0): ?>
-                                                <div class="ed-impact-row">
-                                                    <div class="ed-impact-left">
-                                                        <span class="ed-impact-dot ed-dot-blue"></span>
-                                                        <div>
-                                                            <span class="ed-impact-name">Present Days Pay</span>
-                                                            <span class="ed-impact-sub"><?php echo $att_summary['present_days']; ?> days</span>
+                                                    <div class="ed-impact-row">
+                                                        <div class="ed-impact-left">
+                                                            <span class="ed-impact-dot ed-dot-blue"></span>
+                                                            <div>
+                                                                <span class="ed-impact-name">Present Days Pay</span>
+                                                                <span
+                                                                    class="ed-impact-sub"><?php echo $att_summary['present_days']; ?>
+                                                                    days</span>
+                                                            </div>
                                                         </div>
+                                                        <span
+                                                            class="ed-impact-amount">₱<?php echo number_format($adj['basic_salary'], 2); ?></span>
                                                     </div>
-                                                    <span class="ed-impact-amount">₱<?php echo number_format($adj['basic_salary'], 2); ?></span>
-                                                </div>
                                                 <?php endif; ?>
 
                                                 <?php if ($adj['overtime_pay'] > 0): ?>
-                                                <div class="ed-impact-row">
-                                                    <div class="ed-impact-left">
-                                                        <span class="ed-impact-dot ed-dot-green"></span>
-                                                        <span class="ed-impact-name">Overtime Pay</span>
+                                                    <div class="ed-impact-row">
+                                                        <div class="ed-impact-left">
+                                                            <span class="ed-impact-dot ed-dot-green"></span>
+                                                            <span class="ed-impact-name">Overtime Pay</span>
+                                                        </div>
+                                                        <span
+                                                            class="ed-impact-amount ed-amount-green">+₱<?php echo number_format($adj['overtime_pay'], 2); ?></span>
                                                     </div>
-                                                    <span class="ed-impact-amount ed-amount-green">+₱<?php echo number_format($adj['overtime_pay'], 2); ?></span>
-                                                </div>
                                                 <?php endif; ?>
 
                                                 <?php if ($adj['absent_deduction'] > 0): ?>
-                                                <div class="ed-impact-row">
-                                                    <div class="ed-impact-left">
-                                                        <span class="ed-impact-dot ed-dot-red"></span>
-                                                        <span class="ed-impact-name">Absent Deduction</span>
+                                                    <div class="ed-impact-row">
+                                                        <div class="ed-impact-left">
+                                                            <span class="ed-impact-dot ed-dot-red"></span>
+                                                            <span class="ed-impact-name">Absent Deduction</span>
+                                                        </div>
+                                                        <span
+                                                            class="ed-impact-amount ed-amount-red">-₱<?php echo number_format($adj['absent_deduction'], 2); ?></span>
                                                     </div>
-                                                    <span class="ed-impact-amount ed-amount-red">-₱<?php echo number_format($adj['absent_deduction'], 2); ?></span>
-                                                </div>
                                                 <?php endif; ?>
 
                                                 <?php if ($adj['half_day_deduction'] > 0): ?>
-                                                <div class="ed-impact-row">
-                                                    <div class="ed-impact-left">
-                                                        <span class="ed-impact-dot ed-dot-orange"></span>
-                                                        <span class="ed-impact-name">Half Day Deduction</span>
+                                                    <div class="ed-impact-row">
+                                                        <div class="ed-impact-left">
+                                                            <span class="ed-impact-dot ed-dot-orange"></span>
+                                                            <span class="ed-impact-name">Half Day Deduction</span>
+                                                        </div>
+                                                        <span
+                                                            class="ed-impact-amount ed-amount-red">-₱<?php echo number_format($adj['half_day_deduction'], 2); ?></span>
                                                     </div>
-                                                    <span class="ed-impact-amount ed-amount-red">-₱<?php echo number_format($adj['half_day_deduction'], 2); ?></span>
-                                                </div>
                                                 <?php endif; ?>
 
                                                 <?php if ($adj['late_penalty'] > 0): ?>
-                                                <div class="ed-impact-row">
-                                                    <div class="ed-impact-left">
-                                                        <span class="ed-impact-dot ed-dot-red"></span>
-                                                        <span class="ed-impact-name">Late Penalty</span>
+                                                    <div class="ed-impact-row">
+                                                        <div class="ed-impact-left">
+                                                            <span class="ed-impact-dot ed-dot-red"></span>
+                                                            <span class="ed-impact-name">Late Penalty</span>
+                                                        </div>
+                                                        <span
+                                                            class="ed-impact-amount ed-amount-red">-₱<?php echo number_format($adj['late_penalty'], 2); ?></span>
                                                     </div>
-                                                    <span class="ed-impact-amount ed-amount-red">-₱<?php echo number_format($adj['late_penalty'], 2); ?></span>
-                                                </div>
                                                 <?php endif; ?>
 
                                                 <?php if (!$has_impact && $adj['basic_salary'] > 0): ?>
-                                                <div class="ed-impact-row">
-                                                    <div class="ed-impact-left">
-                                                        <span class="ed-impact-dot ed-dot-green"></span>
-                                                        <span class="ed-impact-name text-success">Perfect attendance</span>
+                                                    <div class="ed-impact-row">
+                                                        <div class="ed-impact-left">
+                                                            <span class="ed-impact-dot ed-dot-green"></span>
+                                                            <span class="ed-impact-name text-success">Perfect attendance</span>
+                                                        </div>
                                                     </div>
-                                                </div>
                                                 <?php endif; ?>
                                             </div>
 
                                             <?php
-                                                $net_change = ($adj['basic_salary'] ?? 0) + ($adj['overtime_pay'] ?? 0) - ($adj['absent_deduction'] ?? 0) - ($adj['half_day_deduction'] ?? 0) - ($adj['late_penalty'] ?? 0);
+                                            $net_change = ($adj['basic_salary'] ?? 0) + ($adj['overtime_pay'] ?? 0) - ($adj['absent_deduction'] ?? 0) - ($adj['half_day_deduction'] ?? 0) - ($adj['late_penalty'] ?? 0);
                                             ?>
                                             <div class="ed-impact-footer">
                                                 <span class="ed-impact-footer-label">Est. Net Change</span>
-                                                <span class="ed-impact-footer-value">₱<?php echo number_format($net_change, 2); ?></span>
+                                                <span
+                                                    class="ed-impact-footer-value">₱<?php echo number_format($net_change, 2); ?></span>
                                             </div>
                                         </div>
                                     <?php endif; ?>
@@ -1486,14 +1414,16 @@ if ($attendance_payroll_adjustments && isset($attendance_payroll_adjustments['at
                                 <div class="att-stat-card att-card-present">
                                     <div class="att-card-top">
                                         <span class="att-card-label">Present Days</span>
-                                        <span class="att-card-icon att-icon-present"><i class="fas fa-check-circle"></i></span>
+                                        <span class="att-card-icon att-icon-present"><i
+                                                class="fas fa-check-circle"></i></span>
                                     </div>
                                     <div class="att-card-number"><?php echo $attendance_summary['present_days']; ?></div>
                                 </div>
                                 <div class="att-stat-card att-card-absent">
                                     <div class="att-card-top">
                                         <span class="att-card-label">Absent Days</span>
-                                        <span class="att-card-icon att-icon-absent"><i class="fas fa-times-circle"></i></span>
+                                        <span class="att-card-icon att-icon-absent"><i
+                                                class="fas fa-times-circle"></i></span>
                                     </div>
                                     <div class="att-card-number"><?php echo $attendance_summary['absent_days']; ?></div>
                                 </div>
@@ -1519,28 +1449,32 @@ if ($attendance_payroll_adjustments && isset($attendance_payroll_adjustments['at
                                     <span class="att-hours-icon"><i class="fas fa-clock"></i></span>
                                     <div class="att-hours-info">
                                         <span class="att-hours-label">Total Hours</span>
-                                        <span class="att-hours-value"><?php echo number_format($attendance_summary['total_hours'], 0); ?>h</span>
+                                        <span
+                                            class="att-hours-value"><?php echo number_format($attendance_summary['total_hours'], 0); ?>h</span>
                                     </div>
                                 </div>
                                 <div class="att-hours-pill">
                                     <span class="att-hours-icon"><i class="fas fa-briefcase"></i></span>
                                     <div class="att-hours-info">
                                         <span class="att-hours-label">Regular Hours</span>
-                                        <span class="att-hours-value"><?php echo number_format($attendance_summary['regular_hours'], 0); ?>h</span>
+                                        <span
+                                            class="att-hours-value"><?php echo number_format($attendance_summary['regular_hours'], 0); ?>h</span>
                                     </div>
                                 </div>
                                 <div class="att-hours-pill">
                                     <span class="att-hours-icon"><i class="fas fa-history"></i></span>
                                     <div class="att-hours-info">
                                         <span class="att-hours-label">Overtime Hours</span>
-                                        <span class="att-hours-value"><?php echo number_format($attendance_summary['overtime_hours'], 0); ?>h</span>
+                                        <span
+                                            class="att-hours-value"><?php echo number_format($attendance_summary['overtime_hours'], 0); ?>h</span>
                                     </div>
                                 </div>
                                 <div class="att-hours-pill">
                                     <span class="att-hours-icon"><i class="fas fa-calendar-alt"></i></span>
                                     <div class="att-hours-info">
                                         <span class="att-hours-label">Working Days</span>
-                                        <span class="att-hours-value"><?php echo $attendance_summary['total_days']; ?></span>
+                                        <span
+                                            class="att-hours-value"><?php echo $attendance_summary['total_days']; ?></span>
                                     </div>
                                 </div>
                             </div>
@@ -1559,7 +1493,8 @@ if ($attendance_payroll_adjustments && isset($attendance_payroll_adjustments['at
                                     </span>
                                 </div>
                                 <div class="att-records-actions">
-                                    <select class="form-select form-select-sm att-filter-select" id="attendance-month-filter" onchange="filterAttendanceByMonth(this.value)">
+                                    <select class="form-select form-select-sm att-filter-select"
+                                        id="attendance-month-filter" onchange="filterAttendanceByMonth(this.value)">
                                         <?php foreach ($available_months as $att_m): ?>
                                             <option value="<?php echo htmlspecialchars($att_m); ?>" <?php echo ($display_month == $att_m) ? 'selected' : ''; ?>>
                                                 <?php echo date('F Y', strtotime($att_m . '-01')); ?>
@@ -1592,8 +1527,9 @@ if ($attendance_payroll_adjustments && isset($attendance_payroll_adjustments['at
                                             $shown = 0;
                                             foreach ($attendance_data as $record):
                                                 $shown++;
-                                            ?>
-                                                <tr class="att-row<?php echo $shown > $per_page ? ' att-row-hidden' : ''; ?>" data-att-row="<?php echo $shown; ?>">
+                                                ?>
+                                                <tr class="att-row<?php echo $shown > $per_page ? ' att-row-hidden' : ''; ?>"
+                                                    data-att-row="<?php echo $shown; ?>">
                                                     <td class="att-cell-date">
                                                         <?php echo date('M d, Y', strtotime($record['date'])); ?>
                                                     </td>
@@ -1628,7 +1564,8 @@ if ($attendance_payroll_adjustments && isset($attendance_payroll_adjustments['at
                                                     </td>
                                                     <td>
                                                         <?php if ($record['overtime_hours'] > 0): ?>
-                                                            <span class="att-ot-val"><?php echo number_format($record['overtime_hours'], 0); ?>h</span>
+                                                            <span
+                                                                class="att-ot-val"><?php echo number_format($record['overtime_hours'], 0); ?>h</span>
                                                         <?php else: ?>
                                                             <span class="att-dash">0h</span>
                                                         <?php endif; ?>
@@ -1658,19 +1595,22 @@ if ($attendance_payroll_adjustments && isset($attendance_payroll_adjustments['at
                             </div>
 
                             <?php if (!empty($attendance_data) && $total_records > $per_page): ?>
-                            <div class="att-pagination">
-                                <span class="att-page-info">Showing <strong>1</strong> to <strong><?php echo min($per_page, $total_records); ?></strong> of <strong><?php echo $total_records; ?></strong> entries</span>
-                                <div class="att-page-buttons" id="attPagination">
-                                    <button class="att-page-btn" disabled onclick="attChangePage('prev')">Previous</button>
-                                    <?php
-                                    $total_pages = ceil($total_records / $per_page);
-                                    for ($p = 1; $p <= $total_pages; $p++):
-                                    ?>
-                                        <button class="att-page-btn<?php echo $p === 1 ? ' att-page-active' : ''; ?>" onclick="attGoToPage(<?php echo $p; ?>)"><?php echo $p; ?></button>
-                                    <?php endfor; ?>
-                                    <button class="att-page-btn" onclick="attChangePage('next')">Next</button>
+                                <div class="att-pagination">
+                                    <span class="att-page-info">Showing <strong>1</strong> to
+                                        <strong><?php echo min($per_page, $total_records); ?></strong> of
+                                        <strong><?php echo $total_records; ?></strong> entries</span>
+                                    <div class="att-page-buttons" id="attPagination">
+                                        <button class="att-page-btn" disabled onclick="attChangePage('prev')">Previous</button>
+                                        <?php
+                                        $total_pages = ceil($total_records / $per_page);
+                                        for ($p = 1; $p <= $total_pages; $p++):
+                                            ?>
+                                            <button class="att-page-btn<?php echo $p === 1 ? ' att-page-active' : ''; ?>"
+                                                onclick="attGoToPage(<?php echo $p; ?>)"><?php echo $p; ?></button>
+                                        <?php endfor; ?>
+                                        <button class="att-page-btn" onclick="attChangePage('next')">Next</button>
+                                    </div>
                                 </div>
-                            </div>
                             <?php endif; ?>
                         </div>
 
@@ -2614,10 +2554,12 @@ if ($attendance_payroll_adjustments && isset($attendance_payroll_adjustments['at
                         </div>
                         <div>
                             <h5 class="modal-title text-white mb-0">Select Employees for Payroll</h5>
-                            <small class="text-white-50">Review and choose which employees to include in this payroll run</small>
+                            <small class="text-white-50">Review and choose which employees to include in this payroll
+                                run</small>
                         </div>
                     </div>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                        aria-label="Close"></button>
                 </div>
 
                 <!-- Body -->
@@ -2634,11 +2576,13 @@ if ($attendance_payroll_adjustments && isset($attendance_payroll_adjustments['at
                             <div class="col-md-4">
                                 <div class="input-group input-group-sm emp-search-group">
                                     <span class="input-group-text"><i class="fas fa-search"></i></span>
-                                    <input type="text" class="form-control" id="empModalSearch" placeholder="Search employee, department, position...">
+                                    <input type="text" class="form-control" id="empModalSearch"
+                                        placeholder="Search employee, department, position...">
                                 </div>
                             </div>
                             <div class="col-md-4 text-end">
-                                <button type="button" class="btn btn-sm emp-btn-select-all" onclick="toggleSelectAllEmployees()">
+                                <button type="button" class="btn btn-sm emp-btn-select-all"
+                                    onclick="toggleSelectAllEmployees()">
                                     <i class="fas fa-check-double me-1"></i>
                                     <span id="selectAllLabel">Deselect All</span>
                                 </button>
@@ -2660,7 +2604,8 @@ if ($attendance_payroll_adjustments && isset($attendance_payroll_adjustments['at
                             <thead>
                                 <tr>
                                     <th class="text-center" style="width:45px;">
-                                        <input type="checkbox" class="form-check-input emp-check-all" id="empCheckAll" checked onchange="toggleSelectAllEmployees(this.checked)">
+                                        <input type="checkbox" class="form-check-input emp-check-all" id="empCheckAll"
+                                            checked onchange="toggleSelectAllEmployees(this.checked)">
                                     </th>
                                     <th>Employee</th>
                                     <th>Department</th>
@@ -2680,7 +2625,8 @@ if ($attendance_payroll_adjustments && isset($attendance_payroll_adjustments['at
                     <div id="empModalEmpty" class="text-center py-5" style="display:none;">
                         <i class="fas fa-user-slash fa-3x text-muted mb-3"></i>
                         <h6 class="text-muted">No active employees found</h6>
-                        <p class="text-muted small">Make sure employees have an active employment status and are linked in the system.</p>
+                        <p class="text-muted small">Make sure employees have an active employment status and are linked
+                            in the system.</p>
                     </div>
                 </div>
 
@@ -2712,7 +2658,8 @@ if ($attendance_payroll_adjustments && isset($attendance_payroll_adjustments['at
                             <button type="button" class="btn btn-outline-secondary px-4 me-2" data-bs-dismiss="modal">
                                 <i class="fas fa-times me-1"></i>Cancel
                             </button>
-                            <button type="button" class="btn emp-btn-confirm px-4" id="empConfirmBtn" onclick="confirmPostToGL()">
+                            <button type="button" class="btn emp-btn-confirm px-4" id="empConfirmBtn"
+                                onclick="confirmPostToGL()">
                                 <i class="fas fa-check-double me-2"></i>Process & Post to GL
                             </button>
                         </div>
@@ -2720,15 +2667,17 @@ if ($attendance_payroll_adjustments && isset($attendance_payroll_adjustments['at
                 </div>
             </div>
         </div>
-    </div>
+        <div class="container-fluid px-5 pb-4">
+            <?php include '../includes/footer.php'; ?>
+        </div>
 
-    <!-- Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    <!-- jQuery -->
-    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-    <!-- Custom JS -->
-    <script src="../assets/js/payroll-management.js"></script>
-    <script src="../assets/js/notifications.js"></script>
+        <!-- Bootstrap JS -->
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+        <!-- jQuery -->
+        <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+        <!-- Custom JS -->
+        <script src="../assets/js/payroll-management.js"></script>
+        <script src="../assets/js/notifications.js"></script>
 </body>
 
 </html>

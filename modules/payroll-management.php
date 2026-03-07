@@ -1478,113 +1478,86 @@ if ($attendance_payroll_adjustments && isset($attendance_payroll_adjustments['at
                             </div>
                         </div>
 
-                        <!-- Attendance Summary Cards -->
-                        <div class="attendance-summary-section">
-                            <h5 class="section-subtitle">Attendance Summary -
-                                <?php echo $period_label ? htmlspecialchars($period_label) : date('F Y', strtotime($display_month . '-01')); ?>
-                            </h5>
-
-                            <div class="row g-3 mb-4">
-                                <div class="col-md-3">
-                                    <div class="attendance-summary-card present">
-                                        <div class="summary-icon">
-                                            <i class="fas fa-check-circle"></i>
-                                        </div>
-                                        <div class="summary-content">
-                                            <div class="summary-number"><?php echo $attendance_summary['present_days']; ?>
-                                            </div>
-                                            <div class="summary-label">Present Days</div>
-                                        </div>
+                        <!-- Attendance Summary Cards (Figma) -->
+                        <div class="att-summary-section">
+                            <div class="att-cards-row">
+                                <div class="att-stat-card att-card-present">
+                                    <div class="att-card-top">
+                                        <span class="att-card-label">Present Days</span>
+                                        <span class="att-card-icon att-icon-present"><i class="fas fa-check-circle"></i></span>
                                     </div>
+                                    <div class="att-card-number"><?php echo $attendance_summary['present_days']; ?></div>
                                 </div>
-                                <div class="col-md-3">
-                                    <div class="attendance-summary-card absent">
-                                        <div class="summary-icon">
-                                            <i class="fas fa-times-circle"></i>
-                                        </div>
-                                        <div class="summary-content">
-                                            <div class="summary-number"><?php echo $attendance_summary['absent_days']; ?>
-                                            </div>
-                                            <div class="summary-label">Absent Days</div>
-                                        </div>
+                                <div class="att-stat-card att-card-absent">
+                                    <div class="att-card-top">
+                                        <span class="att-card-label">Absent Days</span>
+                                        <span class="att-card-icon att-icon-absent"><i class="fas fa-times-circle"></i></span>
                                     </div>
+                                    <div class="att-card-number"><?php echo $attendance_summary['absent_days']; ?></div>
                                 </div>
-                                <div class="col-md-3">
-                                    <div class="attendance-summary-card late">
-                                        <div class="summary-icon">
-                                            <i class="fas fa-clock"></i>
-                                        </div>
-                                        <div class="summary-content">
-                                            <div class="summary-number"><?php echo $attendance_summary['late_days']; ?>
-                                            </div>
-                                            <div class="summary-label">Late Days</div>
-                                        </div>
+                                <div class="att-stat-card att-card-late">
+                                    <div class="att-card-top">
+                                        <span class="att-card-label">Late Days</span>
+                                        <span class="att-card-icon att-icon-late"><i class="fas fa-clock"></i></span>
                                     </div>
+                                    <div class="att-card-number"><?php echo $attendance_summary['late_days']; ?></div>
                                 </div>
-                                <div class="col-md-3">
-                                    <div class="attendance-summary-card leave">
-                                        <div class="summary-icon">
-                                            <i class="fas fa-calendar-times"></i>
-                                        </div>
-                                        <div class="summary-content">
-                                            <div class="summary-number"><?php echo $attendance_summary['leave_days']; ?>
-                                            </div>
-                                            <div class="summary-label">Leave Days</div>
-                                        </div>
+                                <div class="att-stat-card att-card-leave">
+                                    <div class="att-card-top">
+                                        <span class="att-card-label">Leave Days</span>
+                                        <span class="att-card-icon att-icon-leave"><i class="fas fa-paper-plane"></i></span>
                                     </div>
+                                    <div class="att-card-number"><?php echo $attendance_summary['leave_days']; ?></div>
                                 </div>
                             </div>
 
-                            <!-- Hours Summary -->
-                            <div class="row g-3 mb-4">
-                                <div class="col-md-4">
-                                    <div class="hours-summary-card">
-                                        <div class="hours-icon">
-                                            <i class="fas fa-clock"></i>
-                                        </div>
-                                        <div class="hours-content">
-                                            <div class="hours-number">
-                                                <?php echo number_format($attendance_summary['total_hours'], 1); ?>
-                                            </div>
-                                            <div class="hours-label">Total Hours</div>
-                                        </div>
+                            <!-- Hours Summary Pills -->
+                            <div class="att-hours-row">
+                                <div class="att-hours-pill">
+                                    <span class="att-hours-icon"><i class="fas fa-clock"></i></span>
+                                    <div class="att-hours-info">
+                                        <span class="att-hours-label">Total Hours</span>
+                                        <span class="att-hours-value"><?php echo number_format($attendance_summary['total_hours'], 0); ?>h</span>
                                     </div>
                                 </div>
-                                <div class="col-md-4">
-                                    <div class="hours-summary-card">
-                                        <div class="hours-icon">
-                                            <i class="fas fa-business-time"></i>
-                                        </div>
-                                        <div class="hours-content">
-                                            <div class="hours-number">
-                                                <?php echo number_format($attendance_summary['regular_hours'], 1); ?>
-                                            </div>
-                                            <div class="hours-label">Regular Hours</div>
-                                        </div>
+                                <div class="att-hours-pill">
+                                    <span class="att-hours-icon"><i class="fas fa-briefcase"></i></span>
+                                    <div class="att-hours-info">
+                                        <span class="att-hours-label">Regular Hours</span>
+                                        <span class="att-hours-value"><?php echo number_format($attendance_summary['regular_hours'], 0); ?>h</span>
                                     </div>
                                 </div>
-                                <div class="col-md-4">
-                                    <div class="hours-summary-card">
-                                        <div class="hours-icon">
-                                            <i class="fas fa-plus-circle"></i>
-                                        </div>
-                                        <div class="hours-content">
-                                            <div class="hours-number">
-                                                <?php echo number_format($attendance_summary['overtime_hours'], 1); ?>
-                                            </div>
-                                            <div class="hours-label">Overtime Hours</div>
-                                        </div>
+                                <div class="att-hours-pill">
+                                    <span class="att-hours-icon"><i class="fas fa-history"></i></span>
+                                    <div class="att-hours-info">
+                                        <span class="att-hours-label">Overtime Hours</span>
+                                        <span class="att-hours-value"><?php echo number_format($attendance_summary['overtime_hours'], 0); ?>h</span>
+                                    </div>
+                                </div>
+                                <div class="att-hours-pill">
+                                    <span class="att-hours-icon"><i class="fas fa-calendar-alt"></i></span>
+                                    <div class="att-hours-info">
+                                        <span class="att-hours-label">Working Days</span>
+                                        <span class="att-hours-value"><?php echo $attendance_summary['total_days']; ?></span>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Attendance Records Table -->
-                        <div class="attendance-records-section">
-                            <div class="section-header">
-                                <h5 class="section-subtitle">Daily Attendance Records</h5>
-                                <div class="attendance-filters">
-                                    <select class="form-select form-select-sm" id="attendance-month-filter">
+                        <!-- Attendance Records Table (Figma) -->
+                        <div class="att-records-card">
+                            <div class="att-records-header">
+                                <div class="att-records-title-area">
+                                    <h5 class="att-records-title">Attendance Records</h5>
+                                    <span class="att-records-subtitle">
+                                        <?php echo $period_label ? htmlspecialchars($period_label) : date('F Y', strtotime($display_month . '-01')); ?>
+                                        <?php if ($current_employee): ?>
+                                            - Employee: <?php echo htmlspecialchars($current_employee['name'] ?? ''); ?>
+                                        <?php endif; ?>
+                                    </span>
+                                </div>
+                                <div class="att-records-actions">
+                                    <select class="form-select form-select-sm att-filter-select" id="attendance-month-filter" onchange="filterAttendanceByMonth(this.value)">
                                         <option value="<?php echo date('Y-m'); ?>" <?php echo ($display_month == date('Y-m')) ? 'selected' : ''; ?>><?php echo date('F Y'); ?></option>
                                         <option value="<?php echo date('Y-m', strtotime('-1 month')); ?>" <?php echo ($display_month == date('Y-m', strtotime('-1 month'))) ? 'selected' : ''; ?>>
                                             <?php echo date('F Y', strtotime('-1 month')); ?>
@@ -1596,8 +1569,8 @@ if ($attendance_payroll_adjustments && isset($attendance_payroll_adjustments['at
                                 </div>
                             </div>
 
-                            <div class="table-container">
-                                <table class="attendance-table">
+                            <div class="att-table-wrap">
+                                <table class="att-table">
                                     <thead>
                                         <tr>
                                             <th>Date</th>
@@ -1605,60 +1578,70 @@ if ($attendance_payroll_adjustments && isset($attendance_payroll_adjustments['at
                                             <th>Time In</th>
                                             <th>Time Out</th>
                                             <th>Status</th>
-                                            <th>Hours Worked</th>
-                                            <th>Overtime</th>
-                                            <th>Late (mins)</th>
+                                            <th>Worked</th>
+                                            <th>OT</th>
+                                            <th>Late (Min)</th>
                                             <th>Remarks</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         <?php if (!empty($attendance_data)): ?>
-                                            <?php foreach ($attendance_data as $record): ?>
-                                                <tr class="attendance-row status-<?php echo $record['status']; ?>">
-                                                    <td><?php echo date('M d', strtotime($record['date'])); ?></td>
-                                                    <td><?php echo date('D', strtotime($record['date'])); ?></td>
+                                            <?php
+                                            $total_records = count($attendance_data);
+                                            $per_page = 10;
+                                            $shown = 0;
+                                            foreach ($attendance_data as $record):
+                                                $shown++;
+                                            ?>
+                                                <tr class="att-row<?php echo $shown > $per_page ? ' att-row-hidden' : ''; ?>" data-att-row="<?php echo $shown; ?>">
+                                                    <td class="att-cell-date">
+                                                        <?php echo date('M d, Y', strtotime($record['date'])); ?>
+                                                    </td>
+                                                    <td class="att-cell-day">
+                                                        <strong><?php echo date('l', strtotime($record['date'])); ?></strong>
+                                                    </td>
                                                     <td>
                                                         <?php if ($record['time_in']): ?>
-                                                            <span
-                                                                class="time-badge"><?php echo date('H:i', strtotime($record['time_in'])); ?></span>
+                                                            <?php echo date('h:i A', strtotime($record['time_in'])); ?>
                                                         <?php else: ?>
-                                                            <span class="time-badge absent">--:--</span>
+                                                            <span class="att-dash">--:--</span>
                                                         <?php endif; ?>
                                                     </td>
                                                     <td>
                                                         <?php if ($record['time_out']): ?>
-                                                            <span
-                                                                class="time-badge"><?php echo date('H:i', strtotime($record['time_out'])); ?></span>
+                                                            <?php echo date('h:i A', strtotime($record['time_out'])); ?>
                                                         <?php else: ?>
-                                                            <span class="time-badge absent">--:--</span>
+                                                            <span class="att-dash">--:--</span>
                                                         <?php endif; ?>
                                                     </td>
                                                     <td>
-                                                        <span class="status-badge status-<?php echo $record['status']; ?>">
+                                                        <span class="att-status att-status-<?php echo $record['status']; ?>">
                                                             <?php echo ucfirst(str_replace('_', ' ', $record['status'])); ?>
                                                         </span>
                                                     </td>
-                                                    <td class="text-center">
-                                                        <span
-                                                            class="hours-badge"><?php echo number_format($record['hours_worked'], 1); ?>h</span>
+                                                    <td>
+                                                        <?php
+                                                        $hrs = floor($record['hours_worked']);
+                                                        $mins = round(($record['hours_worked'] - $hrs) * 60);
+                                                        echo $hrs . 'h' . ($mins > 0 ? ' ' . str_pad($mins, 2, '0', STR_PAD_LEFT) . 'm' : '');
+                                                        ?>
                                                     </td>
-                                                    <td class="text-center">
+                                                    <td>
                                                         <?php if ($record['overtime_hours'] > 0): ?>
-                                                            <span
-                                                                class="overtime-badge"><?php echo number_format($record['overtime_hours'], 1); ?>h</span>
+                                                            <span class="att-ot-val"><?php echo number_format($record['overtime_hours'], 0); ?>h</span>
                                                         <?php else: ?>
-                                                            <span class="text-muted">--</span>
+                                                            <span class="att-dash">0h</span>
                                                         <?php endif; ?>
                                                     </td>
-                                                    <td class="text-center">
+                                                    <td>
                                                         <?php if ($record['late_minutes'] > 0): ?>
-                                                            <span class="late-badge"><?php echo $record['late_minutes']; ?>m</span>
+                                                            <span class="att-late-val"><?php echo $record['late_minutes']; ?></span>
                                                         <?php else: ?>
-                                                            <span class="text-muted">--</span>
+                                                            0
                                                         <?php endif; ?>
                                                     </td>
-                                                    <td class="remarks-cell">
-                                                        <?php echo htmlspecialchars($record['remarks'] ?? ''); ?>
+                                                    <td class="att-cell-remarks">
+                                                        <em><?php echo htmlspecialchars($record['remarks'] ?? '-'); ?></em>
                                                     </td>
                                                 </tr>
                                             <?php endforeach; ?>
@@ -1666,50 +1649,31 @@ if ($attendance_payroll_adjustments && isset($attendance_payroll_adjustments['at
                                             <tr>
                                                 <td colspan="9" class="text-center text-muted py-4">
                                                     <i class="fas fa-calendar-times me-2"></i>
-                                                    No attendance records found for this month
+                                                    No attendance records found for this period
                                                 </td>
                                             </tr>
                                         <?php endif; ?>
                                     </tbody>
                                 </table>
                             </div>
-                        </div>
 
-                        <!-- Attendance Statistics -->
-                        <div class="attendance-statistics">
-                            <h5 class="section-subtitle">Attendance Statistics</h5>
-                            <div class="row g-3">
-                                <div class="col-md-6">
-                                    <div class="stat-card">
-                                        <div class="stat-icon">
-                                            <i class="fas fa-percentage"></i>
-                                        </div>
-                                        <div class="stat-content">
-                                            <div class="stat-number">
-                                                <?php
-                                                $attendance_rate = $attendance_summary['total_days'] > 0
-                                                    ? round(($attendance_summary['present_days'] / $attendance_summary['total_days']) * 100, 1)
-                                                    : 0;
-                                                echo $attendance_rate;
-                                                ?>%
-                                            </div>
-                                            <div class="stat-label">Attendance Rate</div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="stat-card">
-                                        <div class="stat-icon">
-                                            <i class="fas fa-calendar-check"></i>
-                                        </div>
-                                        <div class="stat-content">
-                                            <div class="stat-number"><?php echo $attendance_summary['total_days']; ?></div>
-                                            <div class="stat-label">Total Working Days</div>
-                                        </div>
-                                    </div>
+                            <?php if (!empty($attendance_data) && $total_records > $per_page): ?>
+                            <div class="att-pagination">
+                                <span class="att-page-info">Showing <strong>1</strong> to <strong><?php echo min($per_page, $total_records); ?></strong> of <strong><?php echo $total_records; ?></strong> entries</span>
+                                <div class="att-page-buttons" id="attPagination">
+                                    <button class="att-page-btn" disabled onclick="attChangePage('prev')">Previous</button>
+                                    <?php
+                                    $total_pages = ceil($total_records / $per_page);
+                                    for ($p = 1; $p <= $total_pages; $p++):
+                                    ?>
+                                        <button class="att-page-btn<?php echo $p === 1 ? ' att-page-active' : ''; ?>" onclick="attGoToPage(<?php echo $p; ?>)"><?php echo $p; ?></button>
+                                    <?php endfor; ?>
+                                    <button class="att-page-btn" onclick="attChangePage('next')">Next</button>
                                 </div>
                             </div>
+                            <?php endif; ?>
                         </div>
+
                     <?php else: ?>
                         <div class="empty-state">
                             <i class="fas fa-users"></i>

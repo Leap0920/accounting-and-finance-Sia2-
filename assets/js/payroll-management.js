@@ -563,17 +563,58 @@ function printPayslip() {
 /**
  * Filter attendance by month
  */
-function filterAttendanceByMonth() {
-    const monthFilter = document.getElementById('attendance-month-filter');
-    if (monthFilter) {
-        const selectedMonth = monthFilter.value;
-        console.log('Filtering attendance for month:', selectedMonth);
-
-        // Reload page with month parameter
+function filterAttendanceByMonth(val) {
+    const selectedMonth = val || document.getElementById('attendance-month-filter')?.value;
+    if (selectedMonth) {
         const currentUrl = new URL(window.location);
         currentUrl.searchParams.set('attendance_month', selectedMonth);
         window.location.href = currentUrl.toString();
     }
+}
+
+/**
+ * Attendance table pagination
+ */
+let attCurrentPage = 1;
+const attPerPage = 10;
+
+function attGoToPage(page) {
+    const rows = document.querySelectorAll('.att-table tbody tr[data-att-row]');
+    if (!rows.length) return;
+    const totalPages = Math.ceil(rows.length / attPerPage);
+    attCurrentPage = Math.max(1, Math.min(page, totalPages));
+
+    rows.forEach(r => {
+        const idx = parseInt(r.getAttribute('data-att-row'));
+        r.classList.toggle('att-row-hidden', idx > attCurrentPage * attPerPage || idx <= (attCurrentPage - 1) * attPerPage);
+    });
+
+    // Update pagination UI
+    const btns = document.querySelectorAll('#attPagination .att-page-btn');
+    btns.forEach(btn => {
+        btn.classList.remove('att-page-active');
+        btn.disabled = false;
+    });
+    // Prev button
+    if (btns.length) btns[0].disabled = (attCurrentPage === 1);
+    // Next button
+    if (btns.length) btns[btns.length - 1].disabled = (attCurrentPage === totalPages);
+    // Active page
+    btns.forEach(btn => {
+        if (btn.textContent.trim() === String(attCurrentPage)) btn.classList.add('att-page-active');
+    });
+
+    // Update info text
+    const info = document.querySelector('.att-page-info');
+    if (info) {
+        const start = (attCurrentPage - 1) * attPerPage + 1;
+        const end = Math.min(attCurrentPage * attPerPage, rows.length);
+        info.innerHTML = `Showing <strong>${start}</strong> to <strong>${end}</strong> of <strong>${rows.length}</strong> entries`;
+    }
+}
+
+function attChangePage(dir) {
+    attGoToPage(dir === 'next' ? attCurrentPage + 1 : attCurrentPage - 1);
 }
 
 /**
@@ -959,6 +1000,8 @@ window.changePayrollPeriod = changePayrollPeriod;
 window.toggleFilters = toggleFilters;
 window.finalizePayroll = finalizePayroll;
 window.filterAttendanceByMonth = filterAttendanceByMonth;
+window.attGoToPage = attGoToPage;
+window.attChangePage = attChangePage;
 window.viewExpense = viewExpense;
 window.editExpense = editExpense;
 window.viewTransaction = viewTransaction;

@@ -7,6 +7,24 @@
 document.addEventListener('DOMContentLoaded', function () {
     console.log('Payroll Management module initialized');
 
+    // Restore scroll position and active tab after a page reload triggered by
+    // changeEmployee() or changePayrollPeriod()
+    const savedTab    = sessionStorage.getItem('payroll_active_tab');
+    const savedScroll = sessionStorage.getItem('payroll_scroll');
+    if (savedTab || savedScroll) {
+        sessionStorage.removeItem('payroll_active_tab');
+        sessionStorage.removeItem('payroll_scroll');
+        if (savedTab) {
+            const tabEl = document.getElementById(savedTab);
+            if (tabEl) {
+                try { new bootstrap.Tab(tabEl).show(); } catch(e) {}
+            }
+        }
+        if (savedScroll) {
+            requestAnimationFrame(() => window.scrollTo(0, parseInt(savedScroll, 10)));
+        }
+    }
+
     // Initialize date inputs with current date
     initializeDateFilters();
 
@@ -119,36 +137,43 @@ function initializeAttendanceFilters() {
 /**
  * Toggle filters visibility
  */
+/**
+ * Live-filter the employee <select> by the search bar
+ */
+function filterEmployeeSelect(query) {
+    const select = document.getElementById('employee-select');
+    const clearBtn = document.getElementById('emp-search-clear');
+    const countEl = document.getElementById('emp-search-count');
+    if (!select) return;
+
+    const q = (query || '').toLowerCase().trim();
+    clearBtn.style.display = q ? 'inline-block' : 'none';
+
+    let visible = 0;
+    Array.from(select.options).forEach(opt => {
+        if (!opt.value) return; // keep the placeholder
+        const matches = !q || opt.text.toLowerCase().includes(q);
+        opt.hidden = !matches;
+        if (matches) visible++;
+    });
+
+    if (countEl) countEl.textContent = visible;
+}
+
+function clearEmployeeSearch() {
+    const input = document.getElementById('emp-live-search');
+    if (input) { input.value = ''; filterEmployeeSelect(''); input.focus(); }
+}
+
 function toggleFilters() {
-    const toggleBtn = document.querySelector('.btn-toggle-filters');
-    const filtersContent = document.getElementById('filters-content');
-    const chevron = document.getElementById('filter-chevron');
-
-    if (toggleBtn && filtersContent) {
-        const isVisible = filtersContent.classList.contains('show');
-
-        if (isVisible) {
-            filtersContent.classList.remove('show');
-            toggleBtn.classList.remove('active');
-            toggleBtn.setAttribute('aria-expanded', 'false');
-            if (chevron) {
-                chevron.style.transform = 'rotate(0deg)';
-            }
-        } else {
-            filtersContent.classList.add('show');
-            toggleBtn.classList.add('active');
-            toggleBtn.setAttribute('aria-expanded', 'true');
-            if (chevron) {
-                chevron.style.transform = 'rotate(180deg)';
-            }
-        }
-    }
+    // No-op — filter panel replaced by live search bar
 }
 
 /**
  * Change employee selection
  */
 function changeEmployee() {
+    _saveNavState();
     const employeeSelect = document.getElementById('employee-select');
     const selectedEmployee = employeeSelect.value;
 
@@ -180,19 +205,17 @@ function changeEmployee() {
  * Change payroll period selection
  */
 function changePayrollPeriod() {
+    _saveNavState();
     const payrollMonth = document.getElementById('payroll-month-select')?.value || '';
     const payrollPeriod = document.getElementById('payroll-period-select')?.value || '';
     const selectedEmployee = document.getElementById('employee-select')?.value || '';
 
-    // Redirect to same page with payroll period parameters
     const currentUrl = new URL(window.location);
 
     // Preserve employee selection
-    if (selectedEmployee) {
-        currentUrl.searchParams.set('employee', selectedEmployee);
-    }
+    if (selectedEmployee) currentUrl.searchParams.set('employee', selectedEmployee);
 
-    // Set payroll period parameters
+    // payroll_month drives both the Payroll Month selector AND the attendance filter
     if (payrollMonth) {
         currentUrl.searchParams.set('payroll_month', payrollMonth);
     } else {
@@ -204,6 +227,9 @@ function changePayrollPeriod() {
     } else {
         currentUrl.searchParams.delete('payroll_period');
     }
+
+    // Remove any stale attendance_month param so both selectors stay consistent
+    currentUrl.searchParams.delete('attendance_month');
 
     window.location.href = currentUrl.toString();
 }
@@ -563,20 +589,180 @@ function printPayslip() {
 /**
  * Filter attendance by month
  */
+/**
+ * Save current scroll position and active tab before a page reload.
+ */
+function _saveNavState() {
+    const activeTab = document.querySelector('.payroll-nav-tabs .nav-link.active');
+    if (activeTab) sessionStorage.setItem('payroll_active_tab', activeTab.id);
+    sessionStorage.setItem('payroll_scroll', window.scrollY);
+}
+
+/**
+ * Filter attendance section by month — AJAX, no page reload.
+ */
 function filterAttendanceByMonth(val) {
     const selectedMonth = val || document.getElementById('attendance-month-filter')?.value;
-    if (selectedMonth) {
-        const currentUrl = new URL(window.location);
-        currentUrl.searchParams.set('attendance_month', selectedMonth);
-        // Preserve current employee + payroll period so context is not lost on reload
-        const empSelect = document.getElementById('employee-select');
-        if (empSelect && empSelect.value) currentUrl.searchParams.set('employee', empSelect.value);
-        const periodSelect = document.getElementById('payroll-period-select');
-        if (periodSelect && periodSelect.value) currentUrl.searchParams.set('payroll_period', periodSelect.value);
-        const monthSelect = document.getElementById('payroll-month-select');
-        if (monthSelect && monthSelect.value) currentUrl.searchParams.set('payroll_month', monthSelect.value);
-        window.location.href = currentUrl.toString();
+    if (!selectedMonth) return;
+
+    const employee    = document.getElementById('employee-select')?.value || '';
+    const period      = document.getElementById('payroll-period-select')?.value || '';
+
+    // Sync the top payroll-month selector to match
+    const monthSelect = document.getElementById('payroll-month-select');
+    if (monthSelect) monthSelect.value = selectedMonth;
+
+    // Update URL without reload so bookmarks / back-button work
+    const url = new URL(window.location);
+    url.searchParams.set('payroll_month', selectedMonth);
+    url.searchParams.delete('attendance_month');
+    if (employee) url.searchParams.set('employee', employee);
+    if (period)   url.searchParams.set('payroll_period', period);
+    history.pushState(null, '', url.toString());
+
+    // Show loading state in the table
+    const tbody = document.querySelector('.att-table tbody');
+    if (tbody) tbody.innerHTML = `<tr><td colspan="9" class="text-center py-4 text-muted"><i class="fas fa-spinner fa-spin me-2"></i>Loading...</td></tr>`;
+
+    // Fetch from the dedicated AJAX endpoint
+    const params = new URLSearchParams({ employee, payroll_month: selectedMonth, payroll_period: period });
+    fetch('api/attendance-data.php?' + params.toString())
+        .then(r => r.json())
+        .then(data => {
+            if (!data.success) throw new Error('API error');
+            _renderAttSummaryCards(data.summary);
+            _renderAttTable(data.records);
+            _renderAttPagination(data.records.length);
+            // Update subtitle text
+            const sub = document.querySelector('.att-records-subtitle');
+            if (sub) sub.textContent = data.period_label;
+            // Rebuild dropdown from real months list
+            _rebuildAttMonthDropdown(data.available_months, selectedMonth);
+        })
+        .catch(() => {
+            if (tbody) tbody.innerHTML = `<tr><td colspan="9" class="text-center py-4 text-danger"><i class="fas fa-exclamation-triangle me-2"></i>Failed to load attendance records.</td></tr>`;
+        });
+}
+
+/** Update the 4 stat cards + 4 hours pills */
+function _renderAttSummaryCards(s) {
+    const set = (sel, val) => { const el = document.querySelector(sel); if (el) el.textContent = val; };
+    set('.att-card-present .att-card-number', s.present_days);
+    set('.att-card-absent  .att-card-number', s.absent_days);
+    set('.att-card-late    .att-card-number', s.late_days);
+    set('.att-card-leave   .att-card-number', s.leave_days);
+    const pills = document.querySelectorAll('.att-hours-pill .att-hours-value');
+    if (pills[0]) pills[0].textContent = Math.round(s.total_hours)    + 'h';
+    if (pills[1]) pills[1].textContent = Math.round(s.regular_hours)  + 'h';
+    if (pills[2]) pills[2].textContent = Math.round(s.overtime_hours) + 'h';
+    if (pills[3]) pills[3].textContent = s.total_days;
+}
+
+/** Render attendance table rows */
+function _renderAttTable(records) {
+    const tbody = document.querySelector('.att-table tbody');
+    if (!tbody) return;
+    if (!records || records.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="9" class="text-center text-muted py-4"><i class="fas fa-calendar-times me-2"></i>No attendance records found for this period</td></tr>`;
+        return;
     }
+    const perPage = 10;
+    attCurrentPage = 1;
+    let html = '';
+    records.forEach((r, idx) => {
+        const n       = idx + 1;
+        const hidden  = n > perPage ? ' att-row-hidden' : '';
+        const dateFmt = _attFmtDate(r.date);
+        const day     = _attDayName(r.date);
+        const tIn     = r.time_in  ? _attFmt12(r.time_in)  : '<span class="att-dash">--:--</span>';
+        const tOut    = r.time_out ? _attFmt12(r.time_out) : '<span class="att-dash">--:--</span>';
+        const status  = r.status || 'present';
+        const label   = status.replace('_', ' ').replace(/\b\w/g, c => c.toUpperCase());
+        const hrs     = Math.floor(parseFloat(r.hours_worked));
+        const mins    = Math.round((parseFloat(r.hours_worked) - hrs) * 60);
+        const worked  = hrs + 'h' + (mins > 0 ? ' ' + String(mins).padStart(2,'0') + 'm' : '');
+        const ot      = parseFloat(r.overtime_hours) > 0
+            ? `<span class="att-ot-val">${Math.round(r.overtime_hours)}h</span>`
+            : '<span class="att-dash">0h</span>';
+        const late    = parseInt(r.late_minutes) > 0
+            ? `<span class="att-late-val">${r.late_minutes}</span>` : '0';
+        const remarks = escapeHtml(r.remarks || '-');
+        html += `<tr class="att-row${hidden}" data-att-row="${n}">
+            <td class="att-cell-date">${dateFmt}</td>
+            <td class="att-cell-day"><strong>${day}</strong></td>
+            <td>${tIn}</td><td>${tOut}</td>
+            <td><span class="att-status att-status-${status}">${label}</span></td>
+            <td>${worked}</td><td>${ot}</td><td>${late}</td>
+            <td class="att-cell-remarks"><em>${remarks}</em></td>
+        </tr>`;
+    });
+    tbody.innerHTML = html;
+}
+
+/** Rebuild pagination bar */
+function _renderAttPagination(total) {
+    const perPage   = 10;
+    const container = document.querySelector('.att-records-card');
+    if (!container) return;
+
+    // Remove existing pagination
+    const existing = container.querySelector('.att-pagination');
+    if (existing) existing.remove();
+
+    if (total <= perPage) return;
+
+    const totalPages = Math.ceil(total / perPage);
+    const shown      = Math.min(perPage, total);
+    let btns = `<button class="att-page-btn" disabled onclick="attChangePage('prev')">Previous</button>`;
+    for (let p = 1; p <= totalPages; p++) {
+        btns += `<button class="att-page-btn${p===1?' att-page-active':''}" onclick="attGoToPage(${p})">${p}</button>`;
+    }
+    btns += `<button class="att-page-btn" onclick="attChangePage('next')">Next</button>`;
+
+    const div = document.createElement('div');
+    div.className = 'att-pagination';
+    div.innerHTML = `<span class="att-page-info">Showing <strong>1</strong> to <strong>${shown}</strong> of <strong>${total}</strong> entries</span><div class="att-page-buttons" id="attPagination">${btns}</div>`;
+    container.appendChild(div);
+}
+
+/** Rebuild attendance month dropdown from server list */
+function _rebuildAttMonthDropdown(months, selectedMonth) {
+    const sel = document.getElementById('attendance-month-filter');
+    if (!sel || !months) return;
+    sel.innerHTML = months.map(m => {
+        const label    = _attMonthLabel(m);
+        const selected = m === selectedMonth ? ' selected' : '';
+        return `<option value="${m}"${selected}>${label}</option>`;
+    }).join('');
+}
+
+/** Format 'YYYY-MM-DD' → 'Mon DD, YYYY' */
+function _attFmtDate(d) {
+    if (!d) return '';
+    const dt = new Date(d + 'T00:00:00');
+    const mo = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    return mo[dt.getMonth()] + ' ' + String(dt.getDate()).padStart(2,'0') + ', ' + dt.getFullYear();
+}
+/** Return full day name from 'YYYY-MM-DD' */
+function _attDayName(d) {
+    if (!d) return '';
+    return ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][new Date(d + 'T00:00:00').getDay()];
+}
+/** Format 'HH:MM:SS' → '12:34 PM' */
+function _attFmt12(t) {
+    if (!t) return '--:--';
+    const p = t.split(':');
+    let h = parseInt(p[0], 10);
+    const m = p[1] || '00';
+    const ap = h >= 12 ? 'PM' : 'AM';
+    h = h % 12 || 12;
+    return h + ':' + m + ' ' + ap;
+}
+/** Format 'YYYY-MM' → 'Month YYYY' */
+function _attMonthLabel(ym) {
+    const mo = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    const p  = ym.split('-');
+    return mo[parseInt(p[1],10)-1] + ' ' + p[0];
 }
 
 /**
@@ -1006,6 +1192,8 @@ window.changeEmployee = changeEmployee;
 window.changePayrollPeriod = changePayrollPeriod;
 window.toggleFilters = toggleFilters;
 window.finalizePayroll = finalizePayroll;
+window.filterEmployeeSelect = filterEmployeeSelect;
+window.clearEmployeeSearch = clearEmployeeSearch;
 window.filterAttendanceByMonth = filterAttendanceByMonth;
 window.attGoToPage = attGoToPage;
 window.attChangePage = attChangePage;

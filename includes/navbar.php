@@ -65,22 +65,7 @@ if (!isset($current_user)) {
                                     class="fas fa-users me-2"></i>Payroll Management</a></li>
                     </ul>
                 </li>
-                <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle" href="#" id="reportsDropdown" role="button"
-                        data-bs-toggle="dropdown" aria-expanded="false">
-                        <i class="fas fa-file-alt me-1"></i>Reports
-                    </a>
-                    <ul class="dropdown-menu dropdown-menu-custom" aria-labelledby="reportsDropdown">
-                        <li><a class="dropdown-item" href="../modules/financial-reporting.php"><i
-                                    class="fas fa-chart-bar me-2"></i>Financial Statements</a></li>
-                        <li><a class="dropdown-item" href="../modules/financial-reporting.php"><i
-                                    class="fas fa-money-bill-wave me-2"></i>Cash Flow Report</a></li>
-                        <li><a class="dropdown-item" href="../modules/expense-tracking.php"><i
-                                    class="fas fa-clipboard-list me-2"></i>Expense Summary</a></li>
-                        <li><a class="dropdown-item" href="../modules/payroll-management.php"><i
-                                    class="fas fa-wallet me-2"></i>Payroll Report</a></li>
-                    </ul>
-                </li>
+
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle <?php echo in_array($current_page, ['bin-station.php']) ? 'active' : ''; ?>"
                         href="#" id="settingsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">

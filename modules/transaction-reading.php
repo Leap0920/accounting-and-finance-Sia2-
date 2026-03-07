@@ -236,32 +236,7 @@ try {
             padding: 32px 40px;
         }
 
-        .tr-header {
-            display: flex;
-            align-items: flex-start;
-            justify-content: space-between;
-            margin-bottom: 28px;
-        }
-
-        .tr-header__title {
-            font-size: 28px;
-            font-weight: 800;
-            color: #111827;
-            margin: 0;
-            letter-spacing: -0.5px;
-        }
-
-        .tr-header__subtitle {
-            font-size: 14px;
-            color: #6b7280;
-            margin-top: 4px;
-        }
-
-        .tr-header__actions {
-            display: flex;
-            gap: 10px;
-            align-items: center;
-        }
+        /* Header styles now in style.css */
 
         .tr-btn-import {
             display: inline-flex;
@@ -784,11 +759,6 @@ try {
                 padding: 16px;
             }
 
-            .tr-header {
-                flex-direction: column;
-                gap: 16px;
-            }
-
             .tr-stats {
                 grid-template-columns: 1fr;
             }
@@ -816,13 +786,45 @@ try {
     <?php include '../includes/navbar.php'; ?>
 
     <div class="tr-container">
-        <!-- Header -->
-        <div class="tr-header">
-            <div>
-                <h1 class="tr-header__title">Transaction Recording</h1>
-                <p class="tr-header__subtitle">Manage and review your financial entries with precision.</p>
+        <!-- Beautiful Page Header -->
+        <div class="beautiful-page-header mb-4">
+            <div class="container-fluid">
+                <div class="row align-items-center">
+                    <div class="col-lg-8">
+                        <div class="header-content">
+                            <h1 class="page-title-beautiful">
+                                <i class="fas fa-exchange-alt me-3"></i>
+                                Transaction Recording
+                            </h1>
+                            <p class="page-subtitle-beautiful">
+                                Manage and review your financial entries with precision
+                            </p>
+                        </div>
+                    </div>
+                    <div class="col-lg-4 text-lg-end">
+                        <div class="header-info-card">
+                            <div class="info-item">
+                                <div class="info-icon">
+                                    <i class="fas fa-database"></i>
+                                </div>
+                                <div class="info-content">
+                                    <div class="info-label">Database Status</div>
+                                    <div class="info-value status-connected">Connected</div>
+                                </div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-icon">
+                                    <i class="fas fa-calendar-alt"></i>
+                                </div>
+                                <div class="info-content">
+                                    <div class="info-label">Current Period</div>
+                                    <div class="info-value"><?php echo date('F Y'); ?></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
-
         </div>
 
         <!-- Stats Cards -->

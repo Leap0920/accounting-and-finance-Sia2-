@@ -808,3 +808,134 @@ body {
         font-size: 18px;
     }
 }
+
+/* ========================================
+   BEAUTIFUL PAGE HEADER (Global/Canonical)
+   Consistent header used across all modules
+   ======================================== */
+
+.beautiful-page-header {
+    background: transparent;
+    padding: 0;
+    margin-bottom: 1.5rem;
+    border: none;
+    box-shadow: none;
+}
+
+.beautiful-page-header .container-fluid {
+    padding: 0;
+}
+
+.beautiful-page-header .header-content {
+    display: flex;
+    flex-direction: column;
+}
+
+.page-title-beautiful {
+    font-size: 1.65rem;
+    font-weight: 700;
+    color: #1A1D21;
+    margin: 0;
+    letter-spacing: -0.02em;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.page-title-beautiful i {
+    color: #0A3D3D;
+    font-size: 1.2rem;
+    background: rgba(10, 61, 61, 0.08);
+    width: 44px;
+    height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+}
+
+.page-subtitle-beautiful {
+    font-size: 0.875rem;
+    color: #718096;
+    margin: 6px 0 0 56px;
+    line-height: 1.5;
+}
+
+.header-info-card {
+    background: #fff;
+    border: 1px solid #E8ECF0;
+    border-radius: 14px;
+    padding: 16px 20px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+
+.header-info-card .info-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 6px 0;
+}
+
+.header-info-card .info-item:last-child {
+    margin-bottom: 0;
+}
+
+.header-info-card .info-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(10, 61, 61, 0.08);
+    color: #0A3D3D;
+    font-size: 0.85rem;
+}
+
+.header-info-card .info-content {
+    flex: 1;
+}
+
+.header-info-card .info-label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #A0AEC0;
+    font-weight: 600;
+    margin-bottom: 2px;
+}
+
+.header-info-card .info-value {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #2D3748;
+}
+
+.header-info-card .info-value.status-connected {
+    color: #22C55E;
+}
+
+.beautiful-page-header .header-actions {
+    display: none;
+}
+
+@media (max-width: 991px) {
+    .page-title-beautiful {
+        font-size: 1.35rem;
+    }
+
+    .page-title-beautiful i {
+        width: 38px;
+        height: 38px;
+        font-size: 1rem;
+    }
+
+    .page-subtitle-beautiful {
+        margin-left: 50px;
+        font-size: 0.8rem;
+    }
+
+    .header-info-card {
+        margin-top: 1rem;
+    }
+}

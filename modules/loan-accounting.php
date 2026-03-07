@@ -500,27 +500,7 @@ if (!empty($status) && $applyFilters) {
             padding: 24px 32px;
         }
 
-        /* Header */
-        .ln-header {
-            display: flex;
-            align-items: flex-start;
-            justify-content: space-between;
-            margin-bottom: 28px;
-        }
-
-        .ln-header__title {
-            font-size: 28px;
-            font-weight: 800;
-            color: #111827;
-            margin: 0;
-            letter-spacing: -0.5px;
-        }
-
-        .ln-header__subtitle {
-            font-size: 14px;
-            color: #6b7280;
-            margin-top: 4px;
-        }
+        /* Header styles now in style.css */
 
         .ln-btn-export {
             display: inline-flex;
@@ -1230,11 +1210,6 @@ if (!empty($status) && $applyFilters) {
                 padding: 16px;
             }
 
-            .ln-header {
-                flex-direction: column;
-                gap: 16px;
-            }
-
             .ln-stats {
                 grid-template-columns: 1fr;
             }
@@ -1269,16 +1244,45 @@ if (!empty($status) && $applyFilters) {
     <!-- Main Content -->
     <div class="ln-page">
         <div class="ln-container">
-            <!-- Header -->
-            <div class="ln-header">
-                <div>
-                    <h1 class="ln-header__title">Loan Management Dashboard</h1>
-                    <p class="ln-header__subtitle">Real-time overview of your current loan portfolio and active
-                        applications.</p>
+            <!-- Beautiful Page Header -->
+            <div class="beautiful-page-header mb-4">
+                <div class="container-fluid">
+                    <div class="row align-items-center">
+                        <div class="col-lg-8">
+                            <div class="header-content">
+                                <h1 class="page-title-beautiful">
+                                    <i class="fas fa-hand-holding-usd me-3"></i>
+                                    Loan Management
+                                </h1>
+                                <p class="page-subtitle-beautiful">
+                                    Real-time overview of your current loan portfolio and active applications
+                                </p>
+                            </div>
+                        </div>
+                        <div class="col-lg-4 text-lg-end">
+                            <div class="header-info-card">
+                                <div class="info-item">
+                                    <div class="info-icon">
+                                        <i class="fas fa-database"></i>
+                                    </div>
+                                    <div class="info-content">
+                                        <div class="info-label">Database Status</div>
+                                        <div class="info-value status-connected">Connected</div>
+                                    </div>
+                                </div>
+                                <div class="info-item">
+                                    <div class="info-icon">
+                                        <i class="fas fa-calendar-alt"></i>
+                                    </div>
+                                    <div class="info-content">
+                                        <div class="info-label">Current Period</div>
+                                        <div class="info-value"><?php echo date('F Y'); ?></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <button class="ln-btn-export" onclick="exportToPDF()">
-                    <i class="fas fa-file-pdf"></i> Export PDF
-                </button>
             </div>
 
             <!-- Report Area (Target for PDF) -->

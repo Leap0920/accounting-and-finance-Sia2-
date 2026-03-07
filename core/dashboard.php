@@ -73,15 +73,8 @@ if ($payroll_result && $row = $payroll_result->fetch_assoc()) {
     <!-- Navigation -->
     <?php include '../includes/navbar.php'; ?>
 
-    <!-- Page Header -->
-    <div class="page-header">
-        <div class="container">
-            <h2>ACCOUNTING AND FINANCE</h2>
-        </div>
-    </div>
-
     <!-- Main Content -->
-    <main class="container py-4">
+    <main class="container-fluid py-4">
         <!-- KPI Section -->
         <div class="row g-4 mb-5">
             <div class="col-xl-3 col-md-6">

@@ -522,18 +522,44 @@ function buildPageUrl($page)
     <!-- Navigation -->
     <?php include '../includes/navbar.php'; ?>
 
-    <!-- Page Header -->
-    <div class="et-page-header">
-        <div class="et-page-header-left">
-            <h1>Expense Tracking</h1>
-            <p>Monitor and manage enterprise-wide expenditures</p>
-        </div>
-        <div class="et-page-header-right">
-            <?php if (!empty($expenses)): ?>
-                <button class="btn-export-report" onclick="exportToPDF()" id="btnExportReport">
-                    <i class="fas fa-download"></i> Export Report
-                </button>
-            <?php endif; ?>
+    <!-- Beautiful Page Header -->
+    <div class="beautiful-page-header mb-4" style="max-width: 1400px; margin-left: auto; margin-right: auto; padding: 0 2rem;">
+        <div class="container-fluid">
+            <div class="row align-items-center">
+                <div class="col-lg-8">
+                    <div class="header-content">
+                        <h1 class="page-title-beautiful">
+                            <i class="fas fa-receipt me-3"></i>
+                            Expense Tracking
+                        </h1>
+                        <p class="page-subtitle-beautiful">
+                            Monitor and manage enterprise-wide expenditures
+                        </p>
+                    </div>
+                </div>
+                <div class="col-lg-4 text-lg-end">
+                    <div class="header-info-card">
+                        <div class="info-item">
+                            <div class="info-icon">
+                                <i class="fas fa-database"></i>
+                            </div>
+                            <div class="info-content">
+                                <div class="info-label">Database Status</div>
+                                <div class="info-value status-connected">Connected</div>
+                            </div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-icon">
+                                <i class="fas fa-calendar-alt"></i>
+                            </div>
+                            <div class="info-content">
+                                <div class="info-label">Current Period</div>
+                                <div class="info-value"><?php echo date('F Y'); ?></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 

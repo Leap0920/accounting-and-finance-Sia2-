@@ -36,10 +36,7 @@ body {
     background: var(--et-bg) !important;
 }
 
-/* Hide the old beautiful header */
-.beautiful-page-header {
-    display: none !important;
-}
+/* Page header styles are now in style.css */
 
 /* Main content override */
 .module-content {

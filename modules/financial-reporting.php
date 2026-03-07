@@ -82,27 +82,32 @@ $current_user = getCurrentUser();
             <!-- Tab Navigation -->
             <ul class="nav nav-tabs report-tabs mb-0" id="reportTabs" role="tablist">
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link active" id="tab-bs" data-bs-toggle="tab" data-bs-target="#pane-bs" type="button" role="tab">
+                    <button class="nav-link active" id="tab-bs" data-bs-toggle="tab" data-bs-target="#pane-bs"
+                        type="button" role="tab">
                         <i class="fas fa-balance-scale me-2"></i>Balance Sheet
                     </button>
                 </li>
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="tab-is" data-bs-toggle="tab" data-bs-target="#pane-is" type="button" role="tab">
+                    <button class="nav-link" id="tab-is" data-bs-toggle="tab" data-bs-target="#pane-is" type="button"
+                        role="tab">
                         <i class="fas fa-chart-line me-2"></i>Income Statement
                     </button>
                 </li>
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="tab-cf" data-bs-toggle="tab" data-bs-target="#pane-cf" type="button" role="tab">
+                    <button class="nav-link" id="tab-cf" data-bs-toggle="tab" data-bs-target="#pane-cf" type="button"
+                        role="tab">
                         <i class="fas fa-money-bill-wave me-2"></i>Cash Flow
                     </button>
                 </li>
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="tab-tb" data-bs-toggle="tab" data-bs-target="#pane-tb" type="button" role="tab">
+                    <button class="nav-link" id="tab-tb" data-bs-toggle="tab" data-bs-target="#pane-tb" type="button"
+                        role="tab">
                         <i class="fas fa-clipboard-list me-2"></i>Trial Balance
                     </button>
                 </li>
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="tab-rr" data-bs-toggle="tab" data-bs-target="#pane-rr" type="button" role="tab">
+                    <button class="nav-link" id="tab-rr" data-bs-toggle="tab" data-bs-target="#pane-rr" type="button"
+                        role="tab">
                         <i class="fas fa-shield-alt me-2"></i>Regulatory
                     </button>
                 </li>
@@ -117,7 +122,8 @@ $current_user = getCurrentUser();
                     <div class="tab-pane-inner">
                         <div class="tab-description">
                             <i class="fas fa-info-circle me-2"></i>
-                            Shows what the company <strong>owns</strong> (Assets), what it <strong>owes</strong> (Liabilities), and the owners' <strong>net stake</strong> (Equity) at a given point in time.
+                            Shows what the company <strong>owns</strong> (Assets), what it <strong>owes</strong>
+                            (Liabilities), and the owners' <strong>net stake</strong> (Equity) at a given point in time.
                             <span class="formula-hint">Formula: <code>Assets = Liabilities + Equity</code></span>
                         </div>
 
@@ -127,11 +133,17 @@ $current_user = getCurrentUser();
                             // ============================================
                             // BALANCE SHEET KPI SNAPSHOT (All-time, no date filter)
                             // ============================================
-                            $deposits = 0; $withdrawals = 0; $transfers_in = 0; $transfers_out = 0;
-                            $interest_income = 0; $fees_collected = 0;
+                            $deposits = 0;
+                            $withdrawals = 0;
+                            $transfers_in = 0;
+                            $transfers_out = 0;
+                            $interest_income = 0;
+                            $fees_collected = 0;
 
-                            if ($conn->query("SHOW TABLES LIKE 'bank_transactions'")->num_rows > 0 &&
-                                $conn->query("SHOW TABLES LIKE 'transaction_types'")->num_rows > 0) {
+                            if (
+                                $conn->query("SHOW TABLES LIKE 'bank_transactions'")->num_rows > 0 &&
+                                $conn->query("SHOW TABLES LIKE 'transaction_types'")->num_rows > 0
+                            ) {
                                 foreach ([
                                     ['Deposit', &$deposits],
                                     ['Withdrawal', &$withdrawals],
@@ -141,42 +153,67 @@ $current_user = getCurrentUser();
                                     ['Fee', &$fees_collected],
                                 ] as [$type_name, &$var]) {
                                     $r = $conn->query("SELECT COALESCE(SUM(bt.amount),0) as t FROM bank_transactions bt INNER JOIN transaction_types tt ON bt.transaction_type_id=tt.transaction_type_id WHERE tt.type_name='$type_name'");
-                                    if ($r) { $row = $r->fetch_assoc(); $var = floatval($row['t'] ?? 0); }
+                                    if ($r) {
+                                        $row = $r->fetch_assoc();
+                                        $var = floatval($row['t'] ?? 0);
+                                    }
                                 }
                             }
 
-                            $loan_disbursed = 0; $loan_payments_total = 0;
+                            $loan_disbursed = 0;
+                            $loan_payments_total = 0;
                             if ($conn->query("SHOW TABLES LIKE 'loan_applications'")->num_rows > 0) {
                                 $r = $conn->query("SELECT COALESCE(SUM(loan_amount),0) as t FROM loan_applications WHERE status IN ('Approved','Active','Disbursed')");
-                                if ($r) { $row = $r->fetch_assoc(); $loan_disbursed = floatval($row['t'] ?? 0); }
+                                if ($r) {
+                                    $row = $r->fetch_assoc();
+                                    $loan_disbursed = floatval($row['t'] ?? 0);
+                                }
                             }
                             if ($conn->query("SHOW TABLES LIKE 'loan_payments'")->num_rows > 0) {
                                 $r = $conn->query("SELECT COALESCE(SUM(amount),0) as t FROM loan_payments");
-                                if ($r) { $row = $r->fetch_assoc(); $loan_payments_total = floatval($row['t'] ?? 0); }
+                                if ($r) {
+                                    $row = $r->fetch_assoc();
+                                    $loan_payments_total = floatval($row['t'] ?? 0);
+                                }
                             }
                             if ($conn->query("SHOW TABLES LIKE 'bank_transactions'")->num_rows > 0) {
                                 $r = $conn->query("SELECT COALESCE(SUM(bt.amount),0) as t FROM bank_transactions bt INNER JOIN transaction_types tt ON bt.transaction_type_id=tt.transaction_type_id WHERE tt.type_name='Loan Payment'");
-                                if ($r) { $row = $r->fetch_assoc(); $loan_payments_total += floatval($row['t'] ?? 0); }
+                                if ($r) {
+                                    $row = $r->fetch_assoc();
+                                    $loan_payments_total += floatval($row['t'] ?? 0);
+                                }
                             }
 
                             $bs_assets = ($deposits - $withdrawals) + ($transfers_in - $transfers_out);
                             $loans_receivable = $loan_disbursed - $loan_payments_total;
-                            if ($loans_receivable > 0) $bs_assets += $loans_receivable;
-                            if ($interest_income > 0) $bs_assets += $interest_income;
-                            if ($fees_collected > 0) $bs_assets += $fees_collected;
+                            if ($loans_receivable > 0)
+                                $bs_assets += $loans_receivable;
+                            if ($interest_income > 0)
+                                $bs_assets += $interest_income;
+                            if ($fees_collected > 0)
+                                $bs_assets += $fees_collected;
 
                             $bs_liabilities = $deposits;
                             if ($conn->query("SHOW TABLES LIKE 'points_history'")->num_rows > 0) {
                                 $r = $conn->query("SELECT COALESCE(SUM(points),0) as t FROM points_history");
-                                if ($r) { $row = $r->fetch_assoc(); $bs_liabilities += floatval($row['t'] ?? 0) * 0.01; }
+                                if ($r) {
+                                    $row = $r->fetch_assoc();
+                                    $bs_liabilities += floatval($row['t'] ?? 0) * 0.01;
+                                }
                             }
                             if ($conn->query("SHOW TABLES LIKE 'user_missions'")->num_rows > 0) {
                                 $r = $conn->query("SELECT COALESCE(SUM(points_earned),0) as t FROM user_missions WHERE status='completed'");
-                                if ($r) { $row = $r->fetch_assoc(); $bs_liabilities += floatval($row['t'] ?? 0) * 0.01; }
+                                if ($r) {
+                                    $row = $r->fetch_assoc();
+                                    $bs_liabilities += floatval($row['t'] ?? 0) * 0.01;
+                                }
                             }
                             if ($conn->query("SHOW TABLES LIKE 'payroll_runs'")->num_rows > 0) {
                                 $r = $conn->query("SELECT COALESCE(SUM(total_net),0) as t FROM payroll_runs WHERE status IN ('completed','finalized')");
-                                if ($r) { $row = $r->fetch_assoc(); $bs_liabilities += floatval($row['t'] ?? 0); }
+                                if ($r) {
+                                    $row = $r->fetch_assoc();
+                                    $bs_liabilities += floatval($row['t'] ?? 0);
+                                }
                             }
                             $bs_equity = $bs_assets - $bs_liabilities;
                             ?>
@@ -186,7 +223,8 @@ $current_user = getCurrentUser();
                                 <div class="kpi-note">All-time snapshot</div>
                             </div>
                             <div class="kpi-box kpi-amber">
-                                <div class="kpi-label"><i class="fas fa-file-invoice-dollar me-1"></i>Total Liabilities</div>
+                                <div class="kpi-label"><i class="fas fa-file-invoice-dollar me-1"></i>Total Liabilities
+                                </div>
                                 <div class="kpi-value">₱<?php echo number_format($bs_liabilities, 0); ?></div>
                                 <div class="kpi-note">All-time snapshot</div>
                             </div>
@@ -200,11 +238,14 @@ $current_user = getCurrentUser();
                         <!-- Date + Generate -->
                         <div class="tab-generate-row">
                             <div class="tab-filter-group">
-                                <label class="tab-filter-label"><i class="fas fa-calendar-alt me-1"></i>As of Date</label>
-                                <input type="date" class="form-control tab-date-input" id="bs-date" value="<?php echo date('Y-m-d'); ?>">
+                                <label class="tab-filter-label"><i class="fas fa-calendar-alt me-1"></i>As of
+                                    Date</label>
+                                <input type="date" class="form-control tab-date-input" id="bs-date"
+                                    value="<?php echo date('Y-m-d'); ?>">
                             </div>
                             <div class="tab-filter-group">
-                                <label class="tab-filter-label"><i class="fas fa-layer-group me-1"></i>Detail Level</label>
+                                <label class="tab-filter-label"><i class="fas fa-layer-group me-1"></i>Detail
+                                    Level</label>
                                 <select class="form-select tab-date-input" id="bs-detail">
                                     <option value="yes">Detailed</option>
                                     <option value="no">Summary</option>
@@ -227,7 +268,8 @@ $current_user = getCurrentUser();
                     <div class="tab-pane-inner">
                         <div class="tab-description">
                             <i class="fas fa-info-circle me-2"></i>
-                            Reports all <strong>funds received</strong> (Revenue) versus all <strong>funds paid out</strong> (Expenses) over a period, resulting in Net Income or Net Loss.
+                            Reports all <strong>funds received</strong> (Revenue) versus all <strong>funds paid
+                                out</strong> (Expenses) over a period, resulting in Net Income or Net Loss.
                             <span class="formula-hint">Formula: <code>Net Income = Revenue − Expenses</code></span>
                         </div>
 
@@ -239,29 +281,44 @@ $current_user = getCurrentUser();
                             // ============================================
                             $is_revenue = 0;
                             $loan_interest_rev = $loan_disbursed * 0.15 / 12;
-                            if ($loan_interest_rev > 0) $is_revenue += $loan_interest_rev;
-                            if ($loan_payments_total > 0) $is_revenue += $loan_payments_total;
-                            if ($deposits > 0) $is_revenue += $deposits;
-                            if ($transfers_in > 0) $is_revenue += $transfers_in;
+                            if ($loan_interest_rev > 0)
+                                $is_revenue += $loan_interest_rev;
+                            if ($loan_payments_total > 0)
+                                $is_revenue += $loan_payments_total;
+                            if ($deposits > 0)
+                                $is_revenue += $deposits;
+                            if ($transfers_in > 0)
+                                $is_revenue += $transfers_in;
 
                             $is_expenses = 0;
-                            if ($withdrawals > 0) $is_expenses += $withdrawals;
-                            if ($transfers_out > 0) $is_expenses += $transfers_out;
-                            if ($loan_disbursed > 0) $is_expenses += $loan_disbursed;
+                            if ($withdrawals > 0)
+                                $is_expenses += $withdrawals;
+                            if ($transfers_out > 0)
+                                $is_expenses += $transfers_out;
+                            if ($loan_disbursed > 0)
+                                $is_expenses += $loan_disbursed;
 
                             $rewards_exp = 0;
                             if ($conn->query("SHOW TABLES LIKE 'points_history'")->num_rows > 0) {
                                 $r = $conn->query("SELECT COALESCE(SUM(points),0) as t FROM points_history");
-                                if ($r) { $row = $r->fetch_assoc(); $rewards_exp = floatval($row['t'] ?? 0) * 0.01; }
+                                if ($r) {
+                                    $row = $r->fetch_assoc();
+                                    $rewards_exp = floatval($row['t'] ?? 0) * 0.01;
+                                }
                             }
-                            if ($rewards_exp > 0) $is_expenses += $rewards_exp;
+                            if ($rewards_exp > 0)
+                                $is_expenses += $rewards_exp;
 
                             $missions_exp = 0;
                             if ($conn->query("SHOW TABLES LIKE 'user_missions'")->num_rows > 0) {
                                 $r = $conn->query("SELECT COALESCE(SUM(points_earned),0) as t FROM user_missions WHERE status='completed'");
-                                if ($r) { $row = $r->fetch_assoc(); $missions_exp = floatval($row['t'] ?? 0) * 0.01; }
+                                if ($r) {
+                                    $row = $r->fetch_assoc();
+                                    $missions_exp = floatval($row['t'] ?? 0) * 0.01;
+                                }
                             }
-                            if ($missions_exp > 0) $is_expenses += $missions_exp;
+                            if ($missions_exp > 0)
+                                $is_expenses += $missions_exp;
 
                             $is_net_income = $is_revenue - $is_expenses;
                             ?>
@@ -285,12 +342,15 @@ $current_user = getCurrentUser();
                         <!-- Date + Generate -->
                         <div class="tab-generate-row">
                             <div class="tab-filter-group">
-                                <label class="tab-filter-label"><i class="fas fa-calendar-alt me-1"></i>Date From</label>
-                                <input type="date" class="form-control tab-date-input" id="is-date-from" value="<?php echo date('Y-01-01'); ?>">
+                                <label class="tab-filter-label"><i class="fas fa-calendar-alt me-1"></i>Date
+                                    From</label>
+                                <input type="date" class="form-control tab-date-input" id="is-date-from"
+                                    value="<?php echo date('Y-01-01'); ?>">
                             </div>
                             <div class="tab-filter-group">
                                 <label class="tab-filter-label"><i class="fas fa-calendar-alt me-1"></i>Date To</label>
-                                <input type="date" class="form-control tab-date-input" id="is-date-to" value="<?php echo date('Y-m-d'); ?>">
+                                <input type="date" class="form-control tab-date-input" id="is-date-to"
+                                    value="<?php echo date('Y-m-d'); ?>">
                             </div>
                             <button class="btn btn-generate-tab" onclick="generateTabReport('income-statement')">
                                 <i class="fas fa-file-chart-line me-2"></i>Generate Income Statement
@@ -309,8 +369,10 @@ $current_user = getCurrentUser();
                     <div class="tab-pane-inner">
                         <div class="tab-description">
                             <i class="fas fa-info-circle me-2"></i>
-                            Tracks actual <strong>cash movements</strong> split into Operating (day-to-day), Investing (assets), and Financing (loans/capital) activities.
-                            <span class="formula-hint">Formula: <code>Net Cash = Operating + Investing + Financing</code></span>
+                            Tracks actual <strong>cash movements</strong> split into Operating (day-to-day), Investing
+                            (assets), and Financing (loans/capital) activities.
+                            <span class="formula-hint">Formula:
+                                <code>Net Cash = Operating + Investing + Financing</code></span>
                         </div>
 
                         <!-- KPI Snapshot Row -->
@@ -339,12 +401,15 @@ $current_user = getCurrentUser();
                         <!-- Date + Generate -->
                         <div class="tab-generate-row">
                             <div class="tab-filter-group">
-                                <label class="tab-filter-label"><i class="fas fa-calendar-alt me-1"></i>Date From</label>
-                                <input type="date" class="form-control tab-date-input" id="cf-date-from" value="<?php echo date('Y-01-01'); ?>">
+                                <label class="tab-filter-label"><i class="fas fa-calendar-alt me-1"></i>Date
+                                    From</label>
+                                <input type="date" class="form-control tab-date-input" id="cf-date-from"
+                                    value="<?php echo date('Y-01-01'); ?>">
                             </div>
                             <div class="tab-filter-group">
                                 <label class="tab-filter-label"><i class="fas fa-calendar-alt me-1"></i>Date To</label>
-                                <input type="date" class="form-control tab-date-input" id="cf-date-to" value="<?php echo date('Y-m-d'); ?>">
+                                <input type="date" class="form-control tab-date-input" id="cf-date-to"
+                                    value="<?php echo date('Y-m-d'); ?>">
                             </div>
                             <button class="btn btn-generate-tab" onclick="generateTabReport('cash-flow')">
                                 <i class="fas fa-file-chart-line me-2"></i>Generate Cash Flow
@@ -363,7 +428,8 @@ $current_user = getCurrentUser();
                     <div class="tab-pane-inner">
                         <div class="tab-description">
                             <i class="fas fa-info-circle me-2"></i>
-                            Lists every account with its <strong>Debit</strong> and <strong>Credit</strong> total. In correct double-entry bookkeeping, total Debits must always equal total Credits.
+                            Lists every account with its <strong>Debit</strong> and <strong>Credit</strong> total. In
+                            correct double-entry bookkeeping, total Debits must always equal total Credits.
                             <span class="formula-hint">Rule: <code>Total Debits = Total Credits</code></span>
                         </div>
 
@@ -374,23 +440,35 @@ $current_user = getCurrentUser();
                             // TRIAL BALANCE KPI SNAPSHOT
                             // ============================================
                             $tb_debits = 0;
-                            if ($deposits > 0) $tb_debits += $deposits;
-                            if ($transfers_in > 0) $tb_debits += $transfers_in;
-                            if ($interest_income > 0) $tb_debits += $interest_income;
-                            if ($loan_disbursed > 0) $tb_debits += $loan_disbursed;
-                            if ($rewards_exp > 0) $tb_debits += $rewards_exp;
-                            if ($missions_exp > 0) $tb_debits += $missions_exp;
+                            if ($deposits > 0)
+                                $tb_debits += $deposits;
+                            if ($transfers_in > 0)
+                                $tb_debits += $transfers_in;
+                            if ($interest_income > 0)
+                                $tb_debits += $interest_income;
+                            if ($loan_disbursed > 0)
+                                $tb_debits += $loan_disbursed;
+                            if ($rewards_exp > 0)
+                                $tb_debits += $rewards_exp;
+                            if ($missions_exp > 0)
+                                $tb_debits += $missions_exp;
 
                             $tb_credits = 0;
-                            if ($withdrawals > 0) $tb_credits += $withdrawals;
-                            if ($transfers_out > 0) $tb_credits += $transfers_out;
-                            if ($fees_collected > 0) $tb_credits += $fees_collected;
-                            if ($loan_payments_total > 0) $tb_credits += $loan_payments_total;
+                            if ($withdrawals > 0)
+                                $tb_credits += $withdrawals;
+                            if ($transfers_out > 0)
+                                $tb_credits += $transfers_out;
+                            if ($fees_collected > 0)
+                                $tb_credits += $fees_collected;
+                            if ($loan_payments_total > 0)
+                                $tb_credits += $loan_payments_total;
 
                             // Balancing entry
                             $tb_diff = $tb_debits - $tb_credits;
-                            if ($tb_diff > 0) $tb_credits += $tb_diff;
-                            else $tb_debits += abs($tb_diff);
+                            if ($tb_diff > 0)
+                                $tb_credits += $tb_diff;
+                            else
+                                $tb_debits += abs($tb_diff);
                             $tb_balanced = abs($tb_debits - $tb_credits) < 0.01;
                             ?>
                             <div class="kpi-box kpi-red">
@@ -408,19 +486,23 @@ $current_user = getCurrentUser();
                                 <div class="kpi-value kpi-status-val">
                                     <?php echo $tb_balanced ? '<i class="fas fa-check-circle"></i> Balanced' : '<i class="fas fa-exclamation-triangle"></i> Review'; ?>
                                 </div>
-                                <div class="kpi-note"><?php echo $tb_balanced ? 'Debits = Credits' : 'Check entries'; ?></div>
+                                <div class="kpi-note"><?php echo $tb_balanced ? 'Debits = Credits' : 'Check entries'; ?>
+                                </div>
                             </div>
                         </div>
 
                         <!-- Date + Generate -->
                         <div class="tab-generate-row">
                             <div class="tab-filter-group">
-                                <label class="tab-filter-label"><i class="fas fa-calendar-alt me-1"></i>Date From</label>
-                                <input type="date" class="form-control tab-date-input" id="tb-date-from" value="<?php echo date('Y-01-01'); ?>">
+                                <label class="tab-filter-label"><i class="fas fa-calendar-alt me-1"></i>Date
+                                    From</label>
+                                <input type="date" class="form-control tab-date-input" id="tb-date-from"
+                                    value="<?php echo date('Y-01-01'); ?>">
                             </div>
                             <div class="tab-filter-group">
                                 <label class="tab-filter-label"><i class="fas fa-calendar-alt me-1"></i>Date To</label>
-                                <input type="date" class="form-control tab-date-input" id="tb-date-to" value="<?php echo date('Y-m-d'); ?>">
+                                <input type="date" class="form-control tab-date-input" id="tb-date-to"
+                                    value="<?php echo date('Y-m-d'); ?>">
                             </div>
                             <div class="tab-filter-group">
                                 <label class="tab-filter-label"><i class="fas fa-tags me-1"></i>Account Type</label>
@@ -450,24 +532,29 @@ $current_user = getCurrentUser();
                     <div class="tab-pane-inner">
                         <div class="tab-description">
                             <i class="fas fa-info-circle me-2"></i>
-                            Generates compliance summaries for <strong>BSP</strong> (Bangko Sentral ng Pilipinas), <strong>SEC</strong>, and <strong>internal audits</strong> — pulling real figures from all connected subsystems.
+                            Generates compliance summaries for <strong>BSP</strong> (Bangko Sentral ng Pilipinas),
+                            <strong>SEC</strong>, and <strong>internal audits</strong> — pulling real figures from all
+                            connected subsystems.
                         </div>
 
                         <!-- KPI Snapshot Row -->
                         <div class="kpi-snapshot-row">
                             <div class="kpi-box kpi-blue">
                                 <div class="kpi-label"><i class="fas fa-landmark me-1"></i>BSP Reports</div>
-                                <div class="kpi-value kpi-status-val"><i class="fas fa-check-circle"></i> Available</div>
+                                <div class="kpi-value kpi-status-val"><i class="fas fa-check-circle"></i> Available
+                                </div>
                                 <div class="kpi-note">Bank transaction data</div>
                             </div>
                             <div class="kpi-box kpi-teal">
                                 <div class="kpi-label"><i class="fas fa-building me-1"></i>SEC Filings</div>
-                                <div class="kpi-value kpi-status-val"><i class="fas fa-check-circle"></i> Available</div>
+                                <div class="kpi-value kpi-status-val"><i class="fas fa-check-circle"></i> Available
+                                </div>
                                 <div class="kpi-note">Corporate compliance</div>
                             </div>
                             <div class="kpi-box kpi-amber">
                                 <div class="kpi-label"><i class="fas fa-clipboard-check me-1"></i>Internal Audit</div>
-                                <div class="kpi-value kpi-status-val"><i class="fas fa-check-circle"></i> Available</div>
+                                <div class="kpi-value kpi-status-val"><i class="fas fa-check-circle"></i> Available
+                                </div>
                                 <div class="kpi-note">Internal compliance</div>
                             </div>
                         </div>
@@ -475,12 +562,15 @@ $current_user = getCurrentUser();
                         <!-- Date + Generate -->
                         <div class="tab-generate-row">
                             <div class="tab-filter-group">
-                                <label class="tab-filter-label"><i class="fas fa-calendar-alt me-1"></i>Date From</label>
-                                <input type="date" class="form-control tab-date-input" id="rr-date-from" value="<?php echo date('Y-01-01'); ?>">
+                                <label class="tab-filter-label"><i class="fas fa-calendar-alt me-1"></i>Date
+                                    From</label>
+                                <input type="date" class="form-control tab-date-input" id="rr-date-from"
+                                    value="<?php echo date('Y-01-01'); ?>">
                             </div>
                             <div class="tab-filter-group">
                                 <label class="tab-filter-label"><i class="fas fa-calendar-alt me-1"></i>Date To</label>
-                                <input type="date" class="form-control tab-date-input" id="rr-date-to" value="<?php echo date('Y-m-d'); ?>">
+                                <input type="date" class="form-control tab-date-input" id="rr-date-to"
+                                    value="<?php echo date('Y-m-d'); ?>">
                             </div>
                             <button class="btn btn-generate-tab" onclick="generateTabReport('regulatory-reports')">
                                 <i class="fas fa-file-chart-line me-2"></i>Generate Regulatory Report
@@ -508,7 +598,10 @@ $current_user = getCurrentUser();
         $payroll_exp = 0;
         if ($conn->query("SHOW TABLES LIKE 'payroll_runs'")->num_rows > 0) {
             $r = $conn->query("SELECT COALESCE(SUM(total_net),0) as t FROM payroll_runs WHERE status IN ('completed','finalized')");
-            if ($r) { $row = $r->fetch_assoc(); $payroll_exp = floatval($row['t'] ?? 0); }
+            if ($r) {
+                $row = $r->fetch_assoc();
+                $payroll_exp = floatval($row['t'] ?? 0);
+            }
         }
         ?>
 
@@ -558,6 +651,8 @@ $current_user = getCurrentUser();
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <!-- Custom JS -->
     <script src="../assets/js/dashboard.js"></script>
+    <!-- html2pdf -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script src="../assets/js/financial-reporting.js"></script>
     <script src="../assets/js/notifications.js"></script>
 </body>

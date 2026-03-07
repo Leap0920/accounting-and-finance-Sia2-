@@ -11,11 +11,11 @@ let reportModal = null;
 /**
  * Initialize on page load
  */
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     // Initialize modal (legacy — kept for backward compat)
     const modalElement = document.getElementById('reportModal');
-    if (modalElement) {
-        reportModal = new bootstrap.Modal(modalElement);
+    if (modalElement && window.bootstrap) {
+        reportModal = bootstrap.Modal.getOrCreateInstance(modalElement);
     }
 });
 
@@ -59,7 +59,7 @@ function generateTabReport(reportType) {
         method: 'GET',
         data: params,
         dataType: 'json',
-        success: function(response) {
+        success: function (response) {
             if (response.success) {
                 currentReportData = response;
                 currentReportType = reportType;
@@ -82,10 +82,10 @@ function generateTabReport(reportType) {
                 // Export buttons
                 html += `
                     <div class="d-flex justify-content-end gap-2 mt-4 no-print">
-                        <button class="btn btn-success btn-sm" onclick="exportReport('excel')">
+                        <button class="btn btn-success btn-sm" onclick="exportReport('excel', this)">
                             <i class="fas fa-file-excel me-1"></i>Export Excel
                         </button>
-                        <button class="btn btn-danger btn-sm" onclick="exportReport('pdf')">
+                        <button class="btn btn-danger btn-sm" onclick="exportReport('pdf', this)">
                             <i class="fas fa-file-pdf me-1"></i>Export PDF
                         </button>
                         <button class="btn btn-secondary btn-sm" onclick="printCurrentReport()">
@@ -99,7 +99,7 @@ function generateTabReport(reportType) {
                 outputDiv.innerHTML = `<div class="alert alert-danger mt-3"><i class="fas fa-exclamation-triangle me-2"></i>${response.message || 'Failed to generate report'}</div>`;
             }
         },
-        error: function() {
+        error: function () {
             outputDiv.innerHTML = '<div class="alert alert-danger mt-3"><i class="fas fa-exclamation-triangle me-2"></i>Connection error. Please try again.</div>';
         }
     });
@@ -110,11 +110,11 @@ function generateTabReport(reportType) {
  */
 function openReportModal(reportType) {
     currentReportType = reportType;
-    
+
     const modal = document.getElementById('reportModal');
     const title = document.getElementById('reportModalTitle');
     const content = document.getElementById('reportModalContent');
-    
+
     // Set modal title
     const titles = {
         'balance-sheet': 'Balance Sheet',
@@ -123,12 +123,12 @@ function openReportModal(reportType) {
         'trial-balance': 'Trial Balance',
         'regulatory-reports': 'Regulatory Reports'
     };
-    
+
     title.textContent = 'Generate ' + titles[reportType];
-    
+
     // Show filter options
     content.innerHTML = getReportFilterHTML(reportType);
-    
+
     // Show modal
     if (reportModal) {
         reportModal.show();
@@ -140,7 +140,7 @@ function openReportModal(reportType) {
  */
 function getReportFilterHTML(reportType) {
     let html = '<div class="row g-3 mb-4">';
-    
+
     if (reportType === 'balance-sheet') {
         html += `
             <div class="col-md-6">
@@ -158,7 +158,7 @@ function getReportFilterHTML(reportType) {
     } else {
         const firstDayOfYear = new Date(new Date().getFullYear(), 0, 1).toISOString().split('T')[0];
         const today = new Date().toISOString().split('T')[0];
-        
+
         html += `
             <div class="col-md-6">
                 <label class="form-label">Date From</label>
@@ -169,7 +169,7 @@ function getReportFilterHTML(reportType) {
                 <input type="date" class="form-control" id="report-date-to" value="${today}">
             </div>
         `;
-        
+
         if (reportType === 'trial-balance') {
             html += `
                 <div class="col-md-12">
@@ -186,9 +186,9 @@ function getReportFilterHTML(reportType) {
             `;
         }
     }
-    
+
     html += '</div>';
-    
+
     html += `
         <div class="d-flex justify-content-end gap-2">
             <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -198,7 +198,7 @@ function getReportFilterHTML(reportType) {
         </div>
         <div id="report-content" class="mt-4"></div>
     `;
-    
+
     return html;
 }
 
@@ -207,7 +207,7 @@ function getReportFilterHTML(reportType) {
  */
 function generateReport(reportType) {
     const contentDiv = document.getElementById('report-content');
-    
+
     // Show loading state
     contentDiv.innerHTML = `
         <div class="loading-state">
@@ -215,17 +215,17 @@ function generateReport(reportType) {
             <p>Generating report, please wait...</p>
         </div>
     `;
-    
+
     // Gather parameters for all reports (including regulatory)
     const params = getReportParams(reportType);
-    
+
     // Make AJAX request
     $.ajax({
         url: 'api/financial-reports.php',
         method: 'GET',
         data: params,
         dataType: 'json',
-        success: function(response) {
+        success: function (response) {
             if (response.success) {
                 currentReportData = response;
                 displayReportInModal(reportType, response);
@@ -233,7 +233,7 @@ function generateReport(reportType) {
                 showError(response.message || 'Failed to generate report');
             }
         },
-        error: function(xhr, status, error) {
+        error: function (xhr, status, error) {
             console.error('AJAX Error:', error);
             showError('Connection error. Please try again.');
         }
@@ -245,19 +245,19 @@ function generateReport(reportType) {
  */
 function getReportParams(reportType) {
     let params = { report_type: reportType };
-    
+
     if (reportType === 'balance-sheet') {
         params.as_of_date = $('#report-date').val();
         params.show_subaccounts = $('#report-detail').val();
     } else {
         params.date_from = $('#report-date-from').val();
         params.date_to = $('#report-date-to').val();
-        
+
         if (reportType === 'trial-balance') {
             params.account_type = $('#report-account-type').val();
         }
     }
-    
+
     return params;
 }
 
@@ -266,7 +266,7 @@ function getReportParams(reportType) {
  */
 function displayReportInModal(reportType, data) {
     const contentDiv = document.getElementById('report-content');
-    
+
     let html = `
         <div class="report-display">
             <div class="report-header">
@@ -275,7 +275,7 @@ function displayReportInModal(reportType, data) {
                 <div class="report-period">${data.period || data.as_of_date}</div>
             </div>
     `;
-    
+
     // Generate report content based on type
     if (reportType === 'trial-balance') {
         html += generateTrialBalanceHTML(data);
@@ -292,15 +292,15 @@ function displayReportInModal(reportType, data) {
         // Fallback for any report type
         html += generateGenericReportHTML(data);
     }
-    
+
     // Only add export buttons for non-regulatory reports
     if (reportType !== 'regulatory-reports' && reportType !== 'regulatory') {
         html += `
-            <div class="d-flex justify-content-end gap-2 mt-4 no-print">
-                <button class="btn btn-success" onclick="exportReport('excel')">
+            <div class=" d-flex justify-content-end gap-2 mt-4 no-print">
+                <button class="btn btn-success" onclick="exportReport('excel', this)">
                     <i class="fas fa-file-excel me-2"></i>Export Excel
                 </button>
-                <button class="btn btn-danger" onclick="exportReport('pdf')">
+                <button class="btn btn-danger" onclick="exportReport('pdf', this)">
                     <i class="fas fa-file-pdf me-2"></i>Export PDF
                 </button>
                 <button class="btn btn-secondary" onclick="printCurrentReport()">
@@ -309,9 +309,9 @@ function displayReportInModal(reportType, data) {
             </div>
         `;
     }
-    
+
     html += `</div>`;
-    
+
     contentDiv.innerHTML = html;
 }
 
@@ -332,7 +332,7 @@ function generateTrialBalanceHTML(data) {
             </thead>
             <tbody>
     `;
-    
+
     if (data.accounts && data.accounts.length > 0) {
         data.accounts.forEach(account => {
             html += `
@@ -346,7 +346,7 @@ function generateTrialBalanceHTML(data) {
             `;
         });
     }
-    
+
     html += `
             </tbody>
             <tfoot>
@@ -358,14 +358,14 @@ function generateTrialBalanceHTML(data) {
             </tfoot>
         </table>
     `;
-    
+
     if (data.is_balanced) {
         html += '<div class="alert alert-success mt-3"><i class="fas fa-check-circle me-2"></i><strong>BALANCED</strong> — Total Debits equal Total Credits.</div>';
     } else {
         const diff = Math.abs((data.total_debit || 0) - (data.total_credit || 0));
         html += `<div class="alert alert-warning mt-3"><i class="fas fa-exclamation-triangle me-2"></i><strong>NOT BALANCED</strong> — Difference of ${formatCurrency(diff)}. Review entries for errors.</div>`;
     }
-    
+
     return html;
 }
 
@@ -375,7 +375,7 @@ function generateTrialBalanceHTML(data) {
 function generateBalanceSheetHTML(data) {
     let html = '<div class="balance-sheet-report">';
     html += '<div class="formula-banner"><i class="fas fa-calculator me-2"></i>Formula: <code>Assets = Liabilities + Equity</code></div>';
-    
+
     // ASSETS Section
     html += '<div class="report-section">';
     html += '<h5 class="section-header-financial">ASSETS</h5>';
@@ -390,7 +390,7 @@ function generateBalanceSheetHTML(data) {
             </thead>
             <tbody>
     `;
-    
+
     if (data.assets && data.assets.length > 0) {
         data.assets.forEach(account => {
             html += `
@@ -404,7 +404,7 @@ function generateBalanceSheetHTML(data) {
     } else {
         html += '<tr><td colspan="3" style="text-align: center; color: #999;">No assets found</td></tr>';
     }
-    
+
     html += `
             </tbody>
             <tfoot>
@@ -416,7 +416,7 @@ function generateBalanceSheetHTML(data) {
         </table>
     </div>
     `;
-    
+
     // LIABILITIES Section
     html += '<div class="report-section">';
     html += '<h5 class="section-header-financial">LIABILITIES</h5>';
@@ -431,7 +431,7 @@ function generateBalanceSheetHTML(data) {
             </thead>
             <tbody>
     `;
-    
+
     if (data.liabilities && data.liabilities.length > 0) {
         data.liabilities.forEach(account => {
             html += `
@@ -445,7 +445,7 @@ function generateBalanceSheetHTML(data) {
     } else {
         html += '<tr><td colspan="3" style="text-align: center; color: #999;">No liabilities found</td></tr>';
     }
-    
+
     html += `
             </tbody>
             <tfoot>
@@ -457,7 +457,7 @@ function generateBalanceSheetHTML(data) {
         </table>
     </div>
     `;
-    
+
     // EQUITY Section
     html += '<div class="report-section">';
     html += '<h5 class="section-header-financial">EQUITY</h5>';
@@ -472,7 +472,7 @@ function generateBalanceSheetHTML(data) {
             </thead>
             <tbody>
     `;
-    
+
     if (data.equity && data.equity.length > 0) {
         data.equity.forEach(account => {
             html += `
@@ -486,7 +486,7 @@ function generateBalanceSheetHTML(data) {
     } else {
         html += '<tr><td colspan="3" style="text-align: center; color: #999;">No equity found</td></tr>';
     }
-    
+
     html += `
             </tbody>
             <tfoot>
@@ -498,7 +498,7 @@ function generateBalanceSheetHTML(data) {
         </table>
     </div>
     `;
-    
+
     // Final Total
     html += `
         <div class="final-total-section">
@@ -508,15 +508,15 @@ function generateBalanceSheetHTML(data) {
             </div>
         </div>
     `;
-    
+
     if (data.is_balanced) {
         html += '<div class="alert alert-success mt-3 no-print"><i class="fas fa-check-circle me-2"></i>Balance Sheet is balanced!</div>';
     } else {
         html += '<div class="alert alert-warning mt-3 no-print"><i class="fas fa-exclamation-triangle me-2"></i>Warning: Balance Sheet is not balanced!</div>';
     }
-    
+
     html += '</div>'; // Close balance-sheet-report
-    
+
     return html;
 }
 
@@ -528,10 +528,10 @@ function generateIncomeStatementHTML(data) {
 
     html += '<h5 class="section-header-financial mt-4 mb-3">REVENUE</h5>';
     html += generateAccountTable(data.revenue, data.total_revenue, 'TOTAL REVENUE');
-    
+
     html += '<h5 class="section-header-financial mt-4 mb-3">EXPENSES</h5>';
     html += generateAccountTable(data.expenses, data.total_expenses, 'TOTAL EXPENSES');
-    
+
     const alertClass = data.net_income >= 0 ? 'alert-success' : 'alert-danger';
     const incomeLabel = data.net_income >= 0 ? 'NET INCOME' : 'NET LOSS';
     html += `
@@ -544,7 +544,7 @@ function generateIncomeStatementHTML(data) {
             </div>
         </div>
     `;
-    
+
     return html;
 }
 
@@ -605,14 +605,14 @@ function generateRegulatoryReportsHTML(data) {
                     </thead>
                     <tbody>
     `;
-    
+
     if (data.reports && data.reports.length > 0) {
         data.reports.forEach((report) => {
-            const statusBadge = report.status === 'Compliant' ? 'bg-success' : 
-                               report.status === 'Pending' ? 'bg-warning' : 'bg-danger';
-            const scoreColor = report.compliance_score >= 80 ? 'text-success' : 
-                              report.compliance_score >= 60 ? 'text-warning' : 'text-danger';
-            
+            const statusBadge = report.status === 'Compliant' ? 'bg-success' :
+                report.status === 'Pending' ? 'bg-warning' : 'bg-danger';
+            const scoreColor = report.compliance_score >= 80 ? 'text-success' :
+                report.compliance_score >= 60 ? 'text-warning' : 'text-danger';
+
             html += `
                 <tr>
                     <td><code class="text-primary">${report.report_id || 'N/A'}</code></td>
@@ -643,7 +643,7 @@ function generateRegulatoryReportsHTML(data) {
             </tr>
         `;
     }
-    
+
     html += `
                     </tbody>
                 </table>
@@ -652,20 +652,20 @@ function generateRegulatoryReportsHTML(data) {
             <!-- Export Actions -->
             <div class="mt-4 text-center">
                 <div class="d-flex justify-content-center gap-2">
-                    <button class="btn btn-success" onclick="exportRegulatoryReport()">
+                    <button class="btn btn-success" onclick="exportRegulatoryReport(this)">
                         <i class="fas fa-file-excel me-2"></i>Export Excel
                     </button>
-                    <button class="btn btn-danger" onclick="printRegulatoryReportPDF()">
+                    <button class="btn btn-danger" onclick="printRegulatoryReportPDF(this)">
                         <i class="fas fa-file-pdf me-2"></i>Export PDF
                     </button>
-                    <button class="btn btn-secondary" onclick="printRegulatoryReportPDF()">
+                    <button class="btn btn-secondary" onclick="printRegulatoryReportPDF(this)">
                         <i class="fas fa-print me-2"></i>Print
                     </button>
                 </div>
             </div>
         </div>
     `;
-    
+
     return html;
 }
 
@@ -681,7 +681,7 @@ function generateGenericReportHTML(data) {
             <p class="mb-0">Generated: ${new Date().toLocaleString()}</p>
         </div>
     `;
-    
+
     if (data.summary) {
         html += `
             <div class="mt-4">
@@ -692,7 +692,7 @@ function generateGenericReportHTML(data) {
             </div>
         `;
     }
-    
+
     return html;
 }
 
@@ -711,7 +711,7 @@ function generateAccountTable(accounts, total, totalLabel) {
             </thead>
             <tbody>
     `;
-    
+
     if (accounts && accounts.length > 0) {
         accounts.forEach((account) => {
             html += `
@@ -725,7 +725,7 @@ function generateAccountTable(accounts, total, totalLabel) {
     } else {
         html += '<tr><td colspan="3" class="text-center text-muted">No accounts found</td></tr>';
     }
-    
+
     html += `
             </tbody>
             <tfoot>
@@ -736,7 +736,7 @@ function generateAccountTable(accounts, total, totalLabel) {
             </tfoot>
         </table>
     `;
-    
+
     return html;
 }
 
@@ -759,7 +759,7 @@ function formatCurrency(amount) {
     if (amount === null || amount === undefined) {
         return '₱0.00';
     }
-    
+
     const formatted = Math.abs(amount).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,');
     return amount < 0 ? `(₱${formatted})` : `₱${formatted}`;
 }
@@ -772,25 +772,23 @@ function printCurrentReport() {
         showNotification('Please generate a report first.', 'warning');
         return;
     }
-    
+
     if (!currentReportType) {
         showNotification('Report type not identified. Please regenerate the report.', 'warning');
         return;
     }
-    
+
     showNotification('Preparing report for printing...', 'info');
-    
+
     // Add print-specific body classes based on report type
     document.body.classList.add('printing-report');
     document.body.classList.add(`printing-${currentReportType}`);
-    
-    // Ensure modal is visible if printing from modal
-    const modal = document.querySelector('.modal.show, .modal');
-    if (modal) {
-        modal.style.display = 'block';
-        modal.classList.add('show');
+
+    // Ensure report modal is visible if we're printing while it's open
+    if (reportModal && document.getElementById('reportModal').classList.contains('show')) {
+        // Modal is already open, nothing to do
     }
-    
+
     // Small delay to ensure CSS is applied
     setTimeout(() => {
         // Focus on print content
@@ -798,16 +796,16 @@ function printCurrentReport() {
         if (reportContent) {
             reportContent.focus();
         }
-        
+
         // Trigger print dialog
         window.print();
-        
+
         // Clean up after print dialog closes
         setTimeout(() => {
             // Remove print classes
             document.body.classList.remove('printing-report');
             document.body.classList.remove(`printing-${currentReportType}`);
-            
+
             // Show success message
             showNotification('Print dialog opened. Use your browser\'s print options to save as PDF or print.', 'success');
         }, 100);
@@ -817,21 +815,104 @@ function printCurrentReport() {
 /**
  * Export report
  */
-function exportReport(format) {
+function exportReport(format, btn) {
     if (!currentReportData) {
         alert('Please generate a report first.');
         return;
     }
-    
+
     if (format === 'pdf') {
-        // For PDF, use print dialog with proper styling
-        printCurrentReport();
+        // For PDF, use html2pdf for automatic download
+        generatePDF(btn);
     } else if (format === 'excel') {
         // Prepare data for Excel export
         exportToExcel();
     } else {
         alert(`Exporting ${currentReportType} report as ${format.toUpperCase()}...\nThis feature will download the report in the selected format.`);
     }
+}
+
+/**
+ * Generate PDF using html2pdf.js for automatic download
+ */
+function generatePDF(btn) {
+    if (!currentReportData) return;
+
+    // Find the element to export
+    let element = null;
+
+    // 1. Try to find the container based on the button context
+    if (btn) {
+        element = btn.closest('.report-display') ||
+            btn.closest('.balance-sheet-report') ||
+            btn.closest('.regulatory-reports-display') ||
+            btn.closest('.tab-pane.active') ||
+            btn.closest('.modal-body');
+    }
+
+    // 2. Fallbacks if button context didn't work or wasn't provided
+    if (!element) {
+        element = document.querySelector('.tab-pane.show.active .report-display') ||
+            document.querySelector('.tab-pane.show.active .balance-sheet-report') ||
+            document.querySelector('#report-content .report-display') ||
+            document.querySelector('#report-content .balance-sheet-report');
+    }
+
+    if (!element) {
+        // Final fallback: any report display
+        element = document.querySelector('.report-display, .balance-sheet-report, .regulatory-reports-display');
+    }
+
+    if (!element) {
+        alert('Report content area not found! Please ensure the report is visible on screen.');
+        return;
+    }
+
+    // Determine orientation based on report type
+    const orientation = (currentReportType === 'trial-balance' ||
+        currentReportType === 'regulatory-reports' ||
+        currentReportType === 'regulatory') ? 'landscape' : 'portrait';
+
+    // Configure PDF options
+    const opt = {
+        margin: [10, 10, 10, 10],
+        filename: `${currentReportType}_Report_${new Date().toISOString().split('T')[0]}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: {
+            scale: 2,
+            useCORS: true,
+            logging: false,
+            letterRendering: true,
+            scrollX: 0,
+            scrollY: 0,
+            windowWidth: document.documentElement.offsetWidth,
+            windowHeight: document.documentElement.offsetHeight
+        },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: orientation },
+        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+    };
+
+    showNotification('Preparing PDF download...', 'info');
+
+    // Hide buttons before capture
+    const buttons = element.querySelectorAll('.no-print, button');
+    buttons.forEach(b => b.setAttribute('data-print-original-display', b.style.display));
+    buttons.forEach(b => b.style.display = 'none');
+
+    // Use html2pdf to generate and save
+    html2pdf().set(opt).from(element).save()
+        .then(() => {
+            showNotification('Report downloaded successfully!', 'success');
+            // Restore buttons
+            buttons.forEach(b => b.style.display = b.getAttribute('data-print-original-display') || '');
+        })
+        .catch(err => {
+            console.error('PDF Generation Error:', err);
+            // Restore buttons
+            buttons.forEach(b => b.style.display = b.getAttribute('data-print-original-display') || '');
+            showNotification('Auto-download failed. Opening print dialog...', 'warning');
+            printCurrentReport();
+        });
 }
 
 /**
@@ -842,10 +923,10 @@ function exportToExcel() {
         alert('No report data available to export.');
         return;
     }
-    
+
     // Create CSV content based on report type
     let csvContent = '';
-    
+
     if (currentReportType === 'balance-sheet') {
         csvContent = generateBalanceSheetCSV(currentReportData);
     } else if (currentReportType === 'income-statement') {
@@ -860,21 +941,21 @@ function exportToExcel() {
         alert('Excel export not supported for this report type yet.');
         return;
     }
-    
+
     // Create blob and download
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
-    
+
     link.setAttribute('href', url);
     link.setAttribute('download', `${currentReportType}_${new Date().toISOString().split('T')[0]}.csv`);
     link.style.visibility = 'hidden';
-    
+
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
-    
+
     showNotification('Report exported successfully!', 'success');
 }
 
@@ -885,7 +966,7 @@ function generateBalanceSheetCSV(data) {
     let csv = 'EVERGREEN ACCOUNTING & FINANCE\n';
     csv += 'BALANCE SHEET\n';
     csv += `${data.as_of_date}\n\n`;
-    
+
     // Assets
     csv += 'ASSETS\n';
     csv += 'Account Code,Account Name,Amount\n';
@@ -896,7 +977,7 @@ function generateBalanceSheetCSV(data) {
     }
     csv += `,,${data.total_assets}\n`;
     csv += `TOTAL ASSETS,,${data.total_assets}\n\n`;
-    
+
     // Liabilities
     csv += 'LIABILITIES\n';
     csv += 'Account Code,Account Name,Amount\n';
@@ -906,7 +987,7 @@ function generateBalanceSheetCSV(data) {
         });
     }
     csv += `TOTAL LIABILITIES,,${data.total_liabilities}\n\n`;
-    
+
     // Equity
     csv += 'EQUITY\n';
     csv += 'Account Code,Account Name,Amount\n';
@@ -916,9 +997,9 @@ function generateBalanceSheetCSV(data) {
         });
     }
     csv += `TOTAL EQUITY,,${data.total_equity}\n\n`;
-    
+
     csv += `Total Liabilities & Equity,,${data.total_liabilities_equity}\n`;
-    
+
     return csv;
 }
 
@@ -929,7 +1010,7 @@ function generateIncomeStatementCSV(data) {
     let csv = 'EVERGREEN ACCOUNTING & FINANCE\n';
     csv += 'INCOME STATEMENT\n';
     csv += `${data.period}\n\n`;
-    
+
     csv += 'REVENUE\n';
     csv += 'Account Code,Account Name,Amount\n';
     if (data.revenue && data.revenue.length > 0) {
@@ -938,7 +1019,7 @@ function generateIncomeStatementCSV(data) {
         });
     }
     csv += `TOTAL REVENUE,,${data.total_revenue}\n\n`;
-    
+
     csv += 'EXPENSES\n';
     csv += 'Account Code,Account Name,Amount\n';
     if (data.expenses && data.expenses.length > 0) {
@@ -947,9 +1028,9 @@ function generateIncomeStatementCSV(data) {
         });
     }
     csv += `TOTAL EXPENSES,,${data.total_expenses}\n\n`;
-    
+
     csv += `NET INCOME,,${data.net_income}\n`;
-    
+
     return csv;
 }
 
@@ -960,7 +1041,7 @@ function generateTrialBalanceCSV(data) {
     let csv = 'EVERGREEN ACCOUNTING & FINANCE\n';
     csv += 'TRIAL BALANCE\n';
     csv += `${data.period}\n\n`;
-    
+
     csv += 'Account Code,Account Name,Type,Debit,Credit\n';
     if (data.accounts && data.accounts.length > 0) {
         data.accounts.forEach(acc => {
@@ -968,7 +1049,7 @@ function generateTrialBalanceCSV(data) {
         });
     }
     csv += `TOTAL,,,${data.total_debit},${data.total_credit}\n`;
-    
+
     return csv;
 }
 
@@ -979,13 +1060,13 @@ function generateCashFlowCSV(data) {
     let csv = 'EVERGREEN ACCOUNTING & FINANCE\n';
     csv += 'CASH FLOW STATEMENT\n';
     csv += `${data.period || data.as_of_date || new Date().toLocaleDateString()}\n\n`;
-    
+
     csv += 'Category,Amount\n';
     csv += `Cash from Operating Activities,${data.cash_from_operations || 0}\n`;
     csv += `Cash from Investing Activities,${data.cash_from_investing || 0}\n`;
     csv += `Cash from Financing Activities,${data.cash_from_financing || 0}\n`;
     csv += `\nNET CASH CHANGE,${data.net_cash_change || 0}\n`;
-    
+
     return csv;
 }
 
@@ -996,11 +1077,11 @@ function generateRegulatoryReportsCSVFromData(data) {
     let csv = 'EVERGREEN ACCOUNTING & FINANCE\n';
     csv += 'REGULATORY REPORTS\n';
     csv += `Generated: ${new Date().toLocaleDateString()}\n\n`;
-    
+
     // If data contains reports array, use it
     if (data.reports && Array.isArray(data.reports) && data.reports.length > 0) {
         csv += 'Report ID,Report Type,Period,Status,Generated Date,Compliance Score (%)\n';
-        
+
         data.reports.forEach(report => {
             const escapeCSV = (field) => {
                 if (field === null || field === undefined) return '';
@@ -1010,20 +1091,20 @@ function generateRegulatoryReportsCSVFromData(data) {
                 }
                 return str;
             };
-            
+
             csv += `${escapeCSV(report.id || '')},${escapeCSV(report.type || '')},${escapeCSV(report.period || '')},${escapeCSV(report.status || '')},${escapeCSV(report.generatedDate || '')},${escapeCSV(report.score || '')}\n`;
         });
-        
+
         // Add summary
         csv += '\n';
         csv += `Total Records,${data.reports.length}\n`;
-        
+
         const compliantCount = data.reports.filter(r => r.status && r.status.toLowerCase().includes('compliant')).length;
         const pendingCount = data.reports.filter(r => r.status && r.status.toLowerCase().includes('pending')).length;
-        
+
         csv += `Compliant,${compliantCount}\n`;
         csv += `Pending,${pendingCount}\n`;
-        
+
         if (data.reports.length > 0) {
             const avgScore = data.reports.reduce((sum, r) => sum + parseFloat(r.score || 0), 0) / data.reports.length;
             csv += `Average Compliance Score,${avgScore.toFixed(2)}%\n`;
@@ -1035,7 +1116,7 @@ function generateRegulatoryReportsCSVFromData(data) {
             const rows = tbody.querySelectorAll('tr');
             if (rows.length > 0) {
                 csv += 'Report ID,Report Type,Period,Status,Generated Date,Compliance Score (%)\n';
-                
+
                 rows.forEach(row => {
                     const cells = row.querySelectorAll('td');
                     if (cells.length >= 6) {
@@ -1045,7 +1126,7 @@ function generateRegulatoryReportsCSVFromData(data) {
                         const status = cells[3].textContent.trim();
                         const generatedDate = cells[4].textContent.trim();
                         const score = cells[5].textContent.trim().replace('%', '').trim();
-                        
+
                         const escapeCSV = (field) => {
                             if (field === null || field === undefined) return '';
                             const str = String(field);
@@ -1054,7 +1135,7 @@ function generateRegulatoryReportsCSVFromData(data) {
                             }
                             return str;
                         };
-                        
+
                         csv += `${escapeCSV(reportId)},${escapeCSV(reportTypeCol)},${escapeCSV(period)},${escapeCSV(status)},${escapeCSV(generatedDate)},${escapeCSV(score)}\n`;
                     }
                 });
@@ -1065,7 +1146,7 @@ function generateRegulatoryReportsCSVFromData(data) {
             csv += 'No data available\n';
         }
     }
-    
+
     return csv;
 }
 
@@ -1075,14 +1156,14 @@ function generateRegulatoryReportsCSVFromData(data) {
 function viewRegulatoryReport(reportType) {
     const reportTable = document.getElementById('regulatory-report-table');
     const tbody = document.getElementById('regulatory-data-tbody');
-    
+
     // Report type names for display
     const reportNames = {
         'bsp': 'BSP (Bangko Sentral ng Pilipinas) Reports',
         'sec': 'SEC (Securities and Exchange Commission) Filings',
         'internal': 'Internal Compliance Templates'
     };
-    
+
     // Show loading state
     tbody.innerHTML = `
         <tr>
@@ -1092,10 +1173,10 @@ function viewRegulatoryReport(reportType) {
             </td>
         </tr>
     `;
-    
+
     // Show the report table (Step 2 of flowchart)
     reportTable.style.display = 'block';
-    
+
     // Simulate loading data
     setTimeout(() => {
         displayRegulatoryReportData(reportType);
@@ -1108,7 +1189,7 @@ function viewRegulatoryReport(reportType) {
  */
 function displayRegulatoryReportData(reportType) {
     const tbody = document.getElementById('regulatory-data-tbody');
-    
+
     // Show message that regulatory reports are not available
     tbody.innerHTML = `
         <tr>
@@ -1119,7 +1200,7 @@ function displayRegulatoryReportData(reportType) {
             </td>
         </tr>
     `;
-    
+
     showNotification('Regulatory reports are not available with real data', 'warning');
 }
 
@@ -1129,12 +1210,12 @@ function displayRegulatoryReportData(reportType) {
 function exportRegulatoryReport() {
     const tbody = document.getElementById('regulatory-data-tbody');
     const rows = tbody.querySelectorAll('tr');
-    
+
     if (rows.length === 0) {
         showNotification('No data to export', 'warning');
         return;
     }
-    
+
     // Get report type from the table header or stored value
     let reportType = 'regulatory';
     const reportTypeLabel = document.querySelector('.card-header.bg-success h5');
@@ -1144,9 +1225,9 @@ function exportRegulatoryReport() {
         else if (text.includes('sec')) reportType = 'sec';
         else if (text.includes('internal')) reportType = 'internal';
     }
-    
+
     showNotification('Exporting regulatory report...', 'info');
-    
+
     // Extract data from table rows
     const reportData = [];
     rows.forEach(row => {
@@ -1158,7 +1239,7 @@ function exportRegulatoryReport() {
             const status = cells[3].textContent.trim();
             const generatedDate = cells[4].textContent.trim();
             const score = cells[5].textContent.trim();
-            
+
             reportData.push({
                 id: reportId,
                 type: reportTypeCol,
@@ -1169,31 +1250,31 @@ function exportRegulatoryReport() {
             });
         }
     });
-    
+
     // Generate CSV content
     const csvContent = generateRegulatoryReportCSV(reportData, reportType);
-    
+
     // Create blob and download
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
-    
+
     const reportTypeNames = {
         'bsp': 'BSP',
         'sec': 'SEC',
         'internal': 'Internal',
         'regulatory': 'Regulatory'
     };
-    
+
     link.setAttribute('href', url);
     link.setAttribute('download', `${reportTypeNames[reportType]}_Report_${new Date().toISOString().split('T')[0]}.csv`);
     link.style.visibility = 'hidden';
-    
+
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
-    
+
     showNotification('Regulatory report exported successfully!', 'success');
 }
 
@@ -1207,14 +1288,14 @@ function generateRegulatoryReportCSV(data, reportType) {
         'internal': 'Internal Compliance Templates',
         'regulatory': 'Regulatory Reports'
     };
-    
+
     let csv = 'EVERGREEN ACCOUNTING & FINANCE\n';
     csv += `${reportTypeNames[reportType] || 'REGULATORY REPORTS'}\n`;
     csv += `Generated: ${new Date().toLocaleDateString()}\n\n`;
-    
+
     // CSV Headers
     csv += 'Report ID,Report Type,Period,Status,Generated Date,Compliance Score (%)\n';
-    
+
     // CSV Data Rows
     if (data && data.length > 0) {
         data.forEach(report => {
@@ -1227,26 +1308,26 @@ function generateRegulatoryReportCSV(data, reportType) {
                 }
                 return str;
             };
-            
+
             csv += `${escapeCSV(report.id)},${escapeCSV(report.type)},${escapeCSV(report.period)},${escapeCSV(report.status)},${escapeCSV(report.generatedDate)},${escapeCSV(report.score)}\n`;
         });
     }
-    
+
     // Add summary
     csv += '\n';
     csv += `Total Records,${data.length}\n`;
-    
+
     const compliantCount = data.filter(r => r.status.toLowerCase().includes('compliant')).length;
     const pendingCount = data.filter(r => r.status.toLowerCase().includes('pending')).length;
-    
+
     csv += `Compliant,${compliantCount}\n`;
     csv += `Pending,${pendingCount}\n`;
-    
+
     if (data.length > 0) {
         const avgScore = data.reduce((sum, r) => sum + parseFloat(r.score || 0), 0) / data.length;
         csv += `Average Compliance Score,${avgScore.toFixed(2)}%\n`;
     }
-    
+
     return csv;
 }
 
@@ -1255,22 +1336,22 @@ function generateRegulatoryReportCSV(data, reportType) {
  */
 function printRegulatoryReport() {
     const reportTable = document.getElementById('regulatory-report-table');
-    
+
     if (!reportTable || reportTable.style.display === 'none') {
         showNotification('No report data to print', 'warning');
         return;
     }
-    
+
     showNotification('Preparing report for printing...', 'info');
-    
+
     // Add print-specific body class
     document.body.classList.add('printing-report');
     document.body.classList.add('printing-regulatory-reports');
-    
+
     // Trigger print dialog
     setTimeout(() => {
         window.print();
-        
+
         // Remove print classes after printing
         document.body.classList.remove('printing-report');
         document.body.classList.remove('printing-regulatory-reports');
@@ -1280,28 +1361,46 @@ function printRegulatoryReport() {
 /**
  * Print Regulatory Report as PDF
  */
-function printRegulatoryReportPDF() {
+function printRegulatoryReportPDF(btn) {
     const reportTable = document.getElementById('regulatory-report-table');
-    
+
     if (!reportTable || reportTable.style.display === 'none') {
-        showNotification('No report data to print', 'warning');
+        showNotification('No report data to export', 'warning');
         return;
     }
-    
+
     showNotification('Preparing PDF export...', 'info');
-    
-    // Add print-specific body class
-    document.body.classList.add('printing-report');
-    document.body.classList.add('printing-regulatory-reports');
-    
-    // Trigger print dialog
-    setTimeout(() => {
-        window.print();
-        
-        // Remove print classes after printing
-        document.body.classList.remove('printing-report');
-        document.body.classList.remove('printing-regulatory-reports');
-    }, 500);
+
+    const opt = {
+        margin: [10, 10, 10, 10],
+        filename: `Regulatory_Report_${new Date().toISOString().split('T')[0]}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: {
+            scale: 2,
+            useCORS: true,
+            logging: false,
+            scrollX: 0,
+            scrollY: 0
+        },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
+    };
+
+    // Hide buttons during export
+    const container = btn ? btn.closest('.regulatory-reports-display') : reportTable;
+    const buttons = container ? container.querySelectorAll('.no-print, button') : [];
+    buttons.forEach(b => b.style.setProperty('display', 'none', 'important'));
+
+    html2pdf().set(opt).from(reportTable).save()
+        .then(() => {
+            showNotification('Regulatory report downloaded successfully!', 'success');
+            buttons.forEach(b => b.style.display = '');
+        })
+        .catch(err => {
+            console.error('PDF Error:', err);
+            buttons.forEach(b => b.style.display = '');
+            showNotification('Auto-download failed. Opening print dialog...', 'warning');
+            printRegulatoryReport();
+        });
 }
 
 /**
@@ -1325,13 +1424,13 @@ function refreshAllReports() {
  * Show notification
  */
 function showNotification(message, type = 'info') {
-    const alertClass = type === 'success' ? 'alert-success' : 
-                      type === 'error' ? 'alert-danger' : 
-                      type === 'warning' ? 'alert-warning' : 'alert-info';
-    const iconClass = type === 'success' ? 'check-circle' : 
-                     type === 'error' ? 'exclamation-triangle' : 
-                     type === 'warning' ? 'exclamation-triangle' : 'info-circle';
-    
+    const alertClass = type === 'success' ? 'alert-success' :
+        type === 'error' ? 'alert-danger' :
+            type === 'warning' ? 'alert-warning' : 'alert-info';
+    const iconClass = type === 'success' ? 'check-circle' :
+        type === 'error' ? 'exclamation-triangle' :
+            type === 'warning' ? 'exclamation-triangle' : 'info-circle';
+
     const notification = `
         <div class="alert ${alertClass} alert-dismissible fade show position-fixed" 
              style="top: 20px; right: 20px; z-index: 9999; min-width: 300px;" role="alert">
@@ -1340,9 +1439,9 @@ function showNotification(message, type = 'info') {
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
     `;
-    
+
     document.body.insertAdjacentHTML('beforeend', notification);
-    
+
     setTimeout(() => {
         const alerts = document.querySelectorAll('.alert.position-fixed');
         if (alerts.length > 0) {

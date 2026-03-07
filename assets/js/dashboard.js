@@ -225,21 +225,18 @@
      */
     function initLogoutConfirmation() {
         const logoutLinks = document.querySelectorAll('.dropdown-item.text-danger[href*="logout.php"]');
+        const logoutModalEl = document.getElementById('logoutModal');
+
+        if (!logoutModalEl) return;
 
         logoutLinks.forEach(link => {
             link.addEventListener('click', function (e) {
-                // If the modal exists in the DOM, let the modal handle it
-                const logoutModal = document.getElementById('logoutModal');
-                if (logoutModal) {
-                    e.preventDefault();
-                    // We check if bootstrap is available to avoid errors
-                    if (window.bootstrap && window.bootstrap.Modal) {
-                        const modal = new bootstrap.Modal(logoutModal);
-                        modal.show();
-                    } else if (window.jQuery && jQuery.fn.modal) {
-                        // Fallback to jQuery if already loaded
-                        jQuery('#logoutModal').modal('show');
-                    }
+                e.preventDefault();
+                if (window.bootstrap) {
+                    const modal = bootstrap.Modal.getOrCreateInstance(logoutModalEl);
+                    modal.show();
+                } else if (window.jQuery && jQuery.fn.modal) {
+                    jQuery('#logoutModal').modal('show');
                 }
             });
         });

@@ -3,18 +3,18 @@
  * Dynamically loads notifications from activity_logs via API
  */
 
-(function() {
+(function () {
     'use strict';
-    
+
     // Configuration - determine API path based on current location
     const currentPath = window.location.pathname;
     const isCorePage = currentPath.includes('/core/');
     const NOTIFICATIONS_API = isCorePage ? '../modules/api/notifications.php' : '../modules/api/notifications.php';
     const REFRESH_INTERVAL = 30000; // 30 seconds
     const MAX_NOTIFICATIONS = 10;
-    
+
     let refreshTimer = null;
-    
+
     /**
      * Initialize notifications on page load
      */
@@ -22,21 +22,21 @@
         console.log('Initializing notifications...');
         console.log('API Path:', NOTIFICATIONS_API);
         loadNotifications();
-        
+
         // Set up auto-refresh
         if (refreshTimer) {
             clearInterval(refreshTimer);
         }
         refreshTimer = setInterval(loadNotifications, REFRESH_INTERVAL);
     }
-    
+
     /**
      * Load notifications from API
      */
     function loadNotifications() {
         const url = NOTIFICATIONS_API + '?limit=' + MAX_NOTIFICATIONS;
         console.log('Loading notifications from:', url);
-        
+
         fetch(url, {
             method: 'GET',
             credentials: 'same-origin',
@@ -67,7 +67,7 @@
                 handleNotificationError();
             });
     }
-    
+
     /**
      * Update notification badge count
      */
@@ -83,7 +83,7 @@
             }
         }
     }
-    
+
     /**
      * Update notification dropdown content
      */
@@ -93,81 +93,48 @@
             console.warn('Notifications dropdown not found in DOM');
             return;
         }
-        
+
         console.log('Updating dropdown with', notifications.length, 'notifications');
-        
-        // Find the container (after header and divider)
-        const header = dropdown.querySelector('.dropdown-header');
-        const firstDivider = dropdown.querySelector('hr');
-        
-        // Clear existing notifications (keep header and dividers)
-        // Remove all items except header and "View All" link
-        const allItems = dropdown.querySelectorAll('li');
-        allItems.forEach(item => {
-            // Keep header
-            if (item.classList.contains('dropdown-header')) {
-                return;
-            }
-            // Keep "View All Notifications" link
-            const link = item.querySelector('a');
-            if (link && link.textContent.includes('View All Notifications')) {
-                return;
-            }
-            // Remove everything else
-            item.remove();
-        });
-        
-        // Remove all dividers except the last one (before "View All")
-        const dividers = dropdown.querySelectorAll('hr');
-        if (dividers.length > 1) {
-            // Keep first and last divider
-            for (let i = 1; i < dividers.length - 1; i++) {
-                dividers[i].remove();
-            }
+
+        // Target the dedicated scrollable list container
+        const listContainer = document.getElementById('notification-list');
+        if (!listContainer) {
+            console.warn('Notification list container (#notification-list) not found');
+            return;
         }
-        
-        // Get current page path to determine correct activity-log.php path
+
+        // Clear the scrollable area
+        listContainer.innerHTML = '';
+
+        // Determine correct path for activity-log
         const currentPath = window.location.pathname;
         const isCorePage = currentPath.includes('/core/');
         const activityLogPath = isCorePage ? '../modules/activity-log.php' : 'activity-log.php';
-        
-        // Ensure we have a divider after header
-        if (!firstDivider) {
-            const divider = document.createElement('li');
-            divider.innerHTML = '<hr class="dropdown-divider">';
-            dropdown.appendChild(divider);
+
+        // Update existing "View All" link href
+        const viewAllLink = dropdown.querySelector('a[href*="activity-log"]');
+        if (viewAllLink) {
+            viewAllLink.href = activityLogPath;
         }
-        
-        // Insert new notifications
+
         if (notifications.length === 0) {
-            // Show "no notifications" message
             const noNotifications = document.createElement('li');
-            noNotifications.className = 'dropdown-item text-center text-muted';
+            noNotifications.className = 'dropdown-item text-center text-muted py-3';
             noNotifications.innerHTML = '<small>No new notifications</small>';
-            
-            const divider = dropdown.querySelector('hr');
-            if (divider && divider.parentNode === dropdown && divider.nextSibling) {
-                dropdown.insertBefore(noNotifications, divider.nextSibling);
-            } else if (divider && divider.parentNode === dropdown) {
-                dropdown.insertBefore(noNotifications, divider);
-            } else {
-                dropdown.appendChild(noNotifications);
-            }
+            listContainer.appendChild(noNotifications);
         } else {
             notifications.forEach((notification, index) => {
                 const listItem = document.createElement('li');
-                listItem.className = 'dropdown-item notification-item';
-                
+
                 const link = document.createElement('a');
                 link.href = '#';
                 link.className = 'dropdown-item notification-item';
                 link.style.textDecoration = 'none';
-                link.onclick = function(e) {
+                link.onclick = function (e) {
                     e.preventDefault();
-                    // Could navigate to specific activity log entry if needed
                     window.location.href = activityLogPath;
                 };
-                
+
                 link.innerHTML = `
                     <i class="fas ${notification.icon} ${notification.color}"></i>
                     <div class="notification-content">
@@ -176,53 +143,20 @@
                         <br><small class="text-muted" style="font-size: 0.75rem;">${notification.time_ago}</small>
                     </div>
                 `;
-                
+
                 listItem.appendChild(link);
-                
-                // Insert after first divider (or at the end if no divider)
-                const divider = dropdown.querySelector('hr');
-                if (divider && divider.parentNode === dropdown && divider.nextSibling) {
-                    dropdown.insertBefore(listItem, divider.nextSibling);
-                } else if (divider && divider.parentNode === dropdown) {
-                    dropdown.insertBefore(listItem, divider);
-                } else {
-                    dropdown.appendChild(listItem);
-                }
-                
-                // Add divider between notifications (except after last one)
+                listContainer.appendChild(listItem);
+
+                // Add divider between notifications (except after last)
                 if (index < notifications.length - 1) {
                     const itemDivider = document.createElement('li');
-                    itemDivider.innerHTML = '<hr class="dropdown-divider">';
-                    if (listItem.nextSibling && listItem.parentNode === dropdown) {
-                        dropdown.insertBefore(itemDivider, listItem.nextSibling);
-                    } else {
-                        dropdown.appendChild(itemDivider);
-                    }
+                    itemDivider.innerHTML = '<hr class="dropdown-divider my-0">';
+                    listContainer.appendChild(itemDivider);
                 }
             });
         }
-        
-        // Ensure "View All Notifications" link exists
-        const viewAllLink = dropdown.querySelector('a[href*="activity-log"]');
-        if (!viewAllLink) {
-            // Create the link if it doesn't exist
-            const divider = document.createElement('li');
-            divider.innerHTML = '<hr class="dropdown-divider">';
-            dropdown.appendChild(divider);
-            
-            const viewAll = document.createElement('li');
-            const link = document.createElement('a');
-            link.className = 'dropdown-item text-center small';
-            link.href = activityLogPath;
-            link.textContent = 'View All Notifications';
-            viewAll.appendChild(link);
-            dropdown.appendChild(viewAll);
-        } else {
-            // Update existing link
-            viewAllLink.href = activityLogPath;
-        }
     }
-    
+
     /**
      * Handle notification loading error
      */
@@ -232,17 +166,14 @@
         if (badge) {
             badge.style.display = 'none';
         }
-        
-        // Update dropdown to show error message
-        const dropdown = document.querySelector('.notifications-dropdown');
-        if (dropdown) {
-            const loadingMsg = dropdown.querySelector('.text-muted');
-            if (loadingMsg && loadingMsg.textContent.includes('Loading')) {
-                loadingMsg.innerHTML = '<small>Unable to load notifications</small>';
-            }
+
+        // Update the scroll container to show error message
+        const listContainer = document.getElementById('notification-list');
+        if (listContainer) {
+            listContainer.innerHTML = '<li class="dropdown-item text-center text-muted py-3"><small>Unable to load notifications</small></li>';
         }
     }
-    
+
     /**
      * Escape HTML to prevent XSS
      */
@@ -256,7 +187,7 @@
         };
         return text ? String(text).replace(/[&<>"']/g, m => map[m]) : '';
     }
-    
+
     /**
      * Clean up on page unload
      */
@@ -266,16 +197,16 @@
             refreshTimer = null;
         }
     }
-    
+
     // Initialize when DOM is ready
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', initNotifications);
     } else {
         initNotifications();
     }
-    
+
     // Cleanup on page unload
     window.addEventListener('beforeunload', cleanup);
-    
+
 })();
 

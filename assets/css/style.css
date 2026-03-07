@@ -567,6 +567,35 @@ body {
     text-align: center;
 }
 
+/* Notifications dropdown: fixed width + scrollable list */
+.notifications-dropdown {
+    min-width: 320px;
+}
+
+.notification-scroll-area {
+    max-height: 320px;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+/* Custom scrollbar for notification area */
+.notification-scroll-area::-webkit-scrollbar {
+    width: 4px;
+}
+
+.notification-scroll-area::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+.notification-scroll-area::-webkit-scrollbar-thumb {
+    background: #0A3D3D;
+    border-radius: 4px;
+}
+
+.notification-scroll-area::-webkit-scrollbar-thumb:hover {
+    background: #165A5A;
+}
+
 /* Page Title */
 .page-title {
     background-color: #FFF;

@@ -93,11 +93,13 @@ if (!isset($current_user)) {
                     aria-labelledby="notificationsDropdown">
                     <li class="dropdown-header">Notifications</li>
                     <li>
-                        <hr class="dropdown-divider">
+                        <hr class="dropdown-divider mt-0">
                     </li>
-                    <li class="dropdown-item text-center text-muted"><small>Loading notifications...</small></li>
+                    <div id="notification-list" class="notification-scroll-area">
+                        <li class="dropdown-item text-center text-muted"><small>Loading notifications...</small></li>
+                    </div>
                     <li>
-                        <hr class="dropdown-divider">
+                        <hr class="dropdown-divider mb-0">
                     </li>
                     <li><a class="dropdown-item text-center small" href="../modules/activity-log.php">View All
                             Notifications</a></li>

@@ -7,46 +7,106 @@
 let currentReportData = null;
 let currentReportType = null;
 let reportModal = null;
-let filteredData = null;
-let showMoreDetails = false;
-let isFiltering = false; // Flag to prevent multiple simultaneous filter requests
-
-// Pagination variables
-let currentPage = 1;
-let entriesPerPage = 25;
-let totalEntries = 0;
-let totalPages = 0;
 
 /**
  * Initialize on page load
  */
 document.addEventListener('DOMContentLoaded', function() {
-    // Initialize modal
+    // Initialize modal (legacy — kept for backward compat)
     const modalElement = document.getElementById('reportModal');
     if (modalElement) {
         reportModal = new bootstrap.Modal(modalElement);
     }
-    
-    // Set default dates for filters
-    setDefaultFilterDates();
 });
 
 /**
- * Set default dates for filters
+ * Generate report inline within a tab pane
  */
-function setDefaultFilterDates() {
-    const today = new Date().toISOString().split('T')[0];
-    const firstDayOfYear = new Date(new Date().getFullYear(), 0, 1).toISOString().split('T')[0];
-    
-    // Set filter dates
-    const filterDateFrom = document.getElementById('filter-date-from');
-    const filterDateTo = document.getElementById('filter-date-to');
-    if (filterDateFrom) filterDateFrom.value = firstDayOfYear;
-    if (filterDateTo) filterDateTo.value = today;
+function generateTabReport(reportType) {
+    const outputDiv = document.getElementById('output-' + reportType);
+    if (!outputDiv) return;
+
+    // Show loading
+    outputDiv.innerHTML = `
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status"></div>
+            <p class="mt-3 text-muted">Generating report, please wait...</p>
+        </div>
+    `;
+
+    // Gather parameters from tab-specific inputs
+    const params = { report_type: reportType };
+    if (reportType === 'balance-sheet') {
+        params.as_of_date = $('#bs-date').val();
+        params.show_subaccounts = $('#bs-detail').val();
+    } else if (reportType === 'income-statement') {
+        params.date_from = $('#is-date-from').val();
+        params.date_to = $('#is-date-to').val();
+    } else if (reportType === 'cash-flow') {
+        params.date_from = $('#cf-date-from').val();
+        params.date_to = $('#cf-date-to').val();
+    } else if (reportType === 'trial-balance') {
+        params.date_from = $('#tb-date-from').val();
+        params.date_to = $('#tb-date-to').val();
+        params.account_type = $('#tb-account-type').val();
+    } else if (reportType === 'regulatory-reports') {
+        params.date_from = $('#rr-date-from').val();
+        params.date_to = $('#rr-date-to').val();
+    }
+
+    $.ajax({
+        url: 'api/financial-reports.php',
+        method: 'GET',
+        data: params,
+        dataType: 'json',
+        success: function(response) {
+            if (response.success) {
+                currentReportData = response;
+                currentReportType = reportType;
+                let html = '<div class="report-display">';
+                html += `
+                    <div class="report-header">
+                        <div class="company-name">EVERGREEN ACCOUNTING & FINANCE</div>
+                        <h3>${response.report_title}</h3>
+                        <div class="report-period">${response.period || response.as_of_date || ''}</div>
+                    </div>
+                `;
+
+                if (reportType === 'balance-sheet') html += generateBalanceSheetHTML(response);
+                else if (reportType === 'income-statement') html += generateIncomeStatementHTML(response);
+                else if (reportType === 'cash-flow') html += generateCashFlowHTML(response);
+                else if (reportType === 'trial-balance') html += generateTrialBalanceHTML(response);
+                else if (reportType === 'regulatory-reports') html += generateRegulatoryReportsHTML(response);
+                else html += generateGenericReportHTML(response);
+
+                // Export buttons
+                html += `
+                    <div class="d-flex justify-content-end gap-2 mt-4 no-print">
+                        <button class="btn btn-success btn-sm" onclick="exportReport('excel')">
+                            <i class="fas fa-file-excel me-1"></i>Export Excel
+                        </button>
+                        <button class="btn btn-danger btn-sm" onclick="exportReport('pdf')">
+                            <i class="fas fa-file-pdf me-1"></i>Export PDF
+                        </button>
+                        <button class="btn btn-secondary btn-sm" onclick="printCurrentReport()">
+                            <i class="fas fa-print me-1"></i>Print
+                        </button>
+                    </div>
+                `;
+                html += '</div>';
+                outputDiv.innerHTML = html;
+            } else {
+                outputDiv.innerHTML = `<div class="alert alert-danger mt-3"><i class="fas fa-exclamation-triangle me-2"></i>${response.message || 'Failed to generate report'}</div>`;
+            }
+        },
+        error: function() {
+            outputDiv.innerHTML = '<div class="alert alert-danger mt-3"><i class="fas fa-exclamation-triangle me-2"></i>Connection error. Please try again.</div>';
+        }
+    });
 }
 
 /**
- * Open report generation modal
+ * Open report generation modal (legacy)
  */
 function openReportModal(reportType) {
     currentReportType = reportType;
@@ -300,7 +360,10 @@ function generateTrialBalanceHTML(data) {
     `;
     
     if (data.is_balanced) {
-        html += '<div class="alert alert-success mt-3"><i class="fas fa-check-circle me-2"></i>Trial Balance is balanced!</div>';
+        html += '<div class="alert alert-success mt-3"><i class="fas fa-check-circle me-2"></i><strong>BALANCED</strong> — Total Debits equal Total Credits.</div>';
+    } else {
+        const diff = Math.abs((data.total_debit || 0) - (data.total_credit || 0));
+        html += `<div class="alert alert-warning mt-3"><i class="fas fa-exclamation-triangle me-2"></i><strong>NOT BALANCED</strong> — Difference of ${formatCurrency(diff)}. Review entries for errors.</div>`;
     }
     
     return html;
@@ -311,6 +374,7 @@ function generateTrialBalanceHTML(data) {
  */
 function generateBalanceSheetHTML(data) {
     let html = '<div class="balance-sheet-report">';
+    html += '<div class="formula-banner"><i class="fas fa-calculator me-2"></i>Formula: <code>Assets = Liabilities + Equity</code></div>';
     
     // ASSETS Section
     html += '<div class="report-section">';
@@ -460,17 +524,24 @@ function generateBalanceSheetHTML(data) {
  * Generate Income Statement HTML
  */
 function generateIncomeStatementHTML(data) {
-    let html = '<h5 class="section-header-financial mt-4 mb-3">REVENUE</h5>';
+    let html = '<div class="formula-banner"><i class="fas fa-calculator me-2"></i>Formula: <code>Net Income = Revenue − Expenses</code></div>';
+
+    html += '<h5 class="section-header-financial mt-4 mb-3">REVENUE</h5>';
     html += generateAccountTable(data.revenue, data.total_revenue, 'TOTAL REVENUE');
     
     html += '<h5 class="section-header-financial mt-4 mb-3">EXPENSES</h5>';
     html += generateAccountTable(data.expenses, data.total_expenses, 'TOTAL EXPENSES');
     
-    const alertClass = data.net_income >= 0 ? 'alert-success' : 'alert-warning';
+    const alertClass = data.net_income >= 0 ? 'alert-success' : 'alert-danger';
+    const incomeLabel = data.net_income >= 0 ? 'NET INCOME' : 'NET LOSS';
     html += `
         <div class="alert ${alertClass} mt-3">
-            <h5><strong>NET INCOME:</strong> ${formatCurrency(data.net_income)}</h5>
-            <p class="mb-0">Profit Margin: ${data.net_income_percentage.toFixed(2)}%</p>
+            <h5 class="mb-1"><strong>${incomeLabel}:</strong> ${formatCurrency(data.net_income)}</h5>
+            <small>Profit Margin: ${(data.net_income_percentage || 0).toFixed(2)}%</small>
+            <div class="mt-2" style="font-size:0.85rem;">
+                <span class="me-3">➕ Revenue: ${formatCurrency(data.total_revenue)}</span>
+                <span>➖ Expenses: ${formatCurrency(data.total_expenses)}</span>
+            </div>
         </div>
     `;
     
@@ -481,37 +552,36 @@ function generateIncomeStatementHTML(data) {
  * Generate Cash Flow HTML
  */
 function generateCashFlowHTML(data) {
-    let html = `
-        <table class="report-table">
-            <thead>
-                <tr>
-                    <th>Category</th>
-                    <th style="text-align: right;">Amount</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td><strong>Cash from Operating Activities</strong></td>
-                    <td class="amount">${formatCurrency(data.cash_from_operations)}</td>
-                </tr>
-                <tr>
-                    <td><strong>Cash from Investing Activities</strong></td>
-                    <td class="amount">${formatCurrency(data.cash_from_investing)}</td>
-                </tr>
-                <tr>
-                    <td><strong>Cash from Financing Activities</strong></td>
-                    <td class="amount">${formatCurrency(data.cash_from_financing)}</td>
-                </tr>
-            </tbody>
-            <tfoot>
-                <tr>
-                    <td><strong>NET CASH CHANGE</strong></td>
-                    <td class="amount"><strong>${formatCurrency(data.net_cash_change)}</strong></td>
-                </tr>
-            </tfoot>
-        </table>
+    let html = '<div class="formula-banner"><i class="fas fa-calculator me-2"></i>Formula: <code>Net Cash = Operating + Investing + Financing</code></div>';
+
+    // Helper to render a detail section
+    function renderSection(title, amount, detailItems) {
+        let s = `<h6 class="section-header-financial mt-4 mb-2">${title}</h6>`;
+        if (detailItems && detailItems.length > 0) {
+            s += '<table class="report-table"><tbody>';
+            detailItems.forEach(item => {
+                const name = item.name || item.description || item.label || 'Item';
+                const val = item.amount || item.value || 0;
+                s += `<tr><td style="padding-left:1.5rem">${name}</td><td class="amount">${formatCurrency(val)}</td></tr>`;
+            });
+            s += `</tbody><tfoot><tr><td><strong>Subtotal</strong></td><td class="amount"><strong>${formatCurrency(amount)}</strong></td></tr></tfoot></table>`;
+        } else {
+            s += `<table class="report-table"><tbody><tr><td>Total</td><td class="amount"><strong>${formatCurrency(amount)}</strong></td></tr></tbody></table>`;
+        }
+        return s;
+    }
+
+    const details = data.details || {};
+    html += renderSection('Cash from Operating Activities', data.cash_from_operations, details.operating);
+    html += renderSection('Cash from Investing Activities', data.cash_from_investing, details.investing);
+    html += renderSection('Cash from Financing Activities', data.cash_from_financing, details.financing);
+
+    const changeClass = (data.net_cash_change || 0) >= 0 ? 'alert-success' : 'alert-danger';
+    html += `
+        <div class="alert ${changeClass} mt-4">
+            <h5 class="mb-0"><strong>NET CASH CHANGE:</strong> ${formatCurrency(data.net_cash_change)}</h5>
+        </div>
     `;
-    
     return html;
 }
 
@@ -1234,516 +1304,6 @@ function printRegulatoryReportPDF() {
     }, 500);
 }
 
-// ===== FILTERING FUNCTIONS =====
-
-/**
- * Apply filters to financial data
- */
-function applyFilters() {
-    // Prevent multiple simultaneous requests
-    if (isFiltering) {
-        console.log('Filter request already in progress, ignoring...');
-        return;
-    }
-    
-    isFiltering = true; // Set flag
-    
-    const dateFrom = document.getElementById('filter-date-from').value;
-    const dateTo = document.getElementById('filter-date-to').value;
-    const subsystem = document.getElementById('filter-subsystem').value;
-    const accountType = document.getElementById('filter-account-type').value;
-    const customSearch = document.getElementById('filter-custom-search').value;
-    
-    // Show loading state
-    const resultsSection = document.getElementById('filtered-results');
-    const tbody = document.getElementById('filtered-results-tbody');
-    const noResultsMessage = document.getElementById('no-results-message');
-    
-    resultsSection.style.display = 'block';
-    tbody.innerHTML = `
-        <tr>
-            <td colspan="7" class="text-center text-muted py-3">
-                <div class="spinner-border spinner-border-sm text-primary me-2" role="status">
-                    <span class="visually-hidden">Loading...</span>
-                </div>
-                Applying filters...
-            </td>
-        </tr>
-    `;
-    noResultsMessage.style.display = 'none';
-    
-    // Show notification
-    showNotification('Applying filters...', 'info');
-    
-    // Make AJAX request to real API
-    console.log('Making AJAX request to filter-data.php...');
-    console.log('Filter parameters:', {
-        date_from: dateFrom,
-        date_to: dateTo,
-        subsystem: subsystem,
-        account_type: accountType,
-        custom_search: customSearch
-    });
-    
-    $.ajax({
-        url: 'api/filter-data.php',
-        method: 'GET',
-        data: {
-            action: 'filter_data',
-            date_from: dateFrom,
-            date_to: dateTo,
-            subsystem: subsystem,
-            account_type: accountType,
-            custom_search: customSearch
-        },
-        dataType: 'json',
-        timeout: 10000, // 10 second timeout
-        success: function(response) {
-            console.log('AJAX Success Response:', response);
-            
-            try {
-                // Hide loading spinner
-                const tbody = document.getElementById('filtered-results-tbody');
-                if (tbody) {
-                    tbody.innerHTML = '';
-                }
-                
-                if (response.success) {
-                    if (response.data && response.data.length > 0) {
-                        console.log('Processing', response.data.length, 'records');
-                        filteredData = response.data;
-                        
-                        // Ensure the results section is visible
-                        const resultsSection = document.getElementById('filtered-results');
-                        if (resultsSection) {
-                            resultsSection.style.display = 'block';
-                        }
-                        
-                        // Initialize pagination and display the data
-                        currentPage = 1;
-                        updatePagination();
-                        displayCurrentPageData();
-                        showNotification(response.message || `Found ${response.data.length} records`, 'success');
-                    } else {
-                        console.log('No data in response');
-                        showNoResults();
-                        showNotification('No records found matching your criteria', 'warning');
-                    }
-                } else {
-                    console.log('Response indicates failure');
-                    showNoResults();
-                    showNotification(response.message || 'Error applying filters', 'error');
-                }
-            } finally {
-                isFiltering = false; // Reset flag
-            }
-        },
-        error: function(xhr, status, error) {
-            console.error('AJAX Error:', error);
-            console.error('Status:', status);
-            console.error('Response:', xhr.responseText);
-            
-            try {
-                // Handle timeout - no mock data fallback
-                if (status === 'timeout') {
-                    console.log('Request timed out');
-                    showNoResults();
-                    showNotification('Request timed out. Please check your connection and try again.', 'error');
-                }
-                // If it's a 404 or connection error - no mock data fallback
-                else if (xhr.status === 404 || xhr.status === 0) {
-                    console.log('Connection error - database not available');
-                    showNoResults();
-                    showNotification('Database connection error. Please ensure operational subsystems are properly connected.', 'error');
-                } else {
-                    showNoResults();
-                    showNotification('Connection error. Please try again.', 'error');
-                }
-            } finally {
-                isFiltering = false; // Reset flag
-            }
-        }
-    });
-}
-
-/**
- * Generate mock filtered data - REMOVED
- * This function has been completely removed.
- * All data now comes from real operational subsystems via filter-data.php API:
- * - Bank System: customer_accounts, bank_transactions, bank_customers
- * - Loan Subsystem: loan_applications
- * - HRIS/Payroll: payroll_runs, payslips, employee
- * 
- * NO mock data is used. If the API fails, show an error instead of generating fake data.
- */
-function generateMockFilteredData(dateFrom, dateTo, subsystem, accountType, customSearch) {
-    // Function completely disabled - return empty array
-    console.error('Mock data generation is disabled. All data must come from real operational subsystems.');
-    return [];
-}
-
-/**
- * Display filtered information
- */
-function displayFilteredInformation(data) {
-    const tbody = document.getElementById('filtered-results-tbody');
-    const noResultsMessage = document.getElementById('no-results-message');
-    const resultsSummary = document.getElementById('results-summary');
-    const filterStatus = document.getElementById('filter-status');
-    
-    console.log('displayFilteredInformation called with', data ? data.length : 0, 'records');
-    
-    if (!data || data.length === 0) {
-        console.log('No data, showing no results');
-        showNoResults();
-        return;
-    }
-    
-    try {
-        // Update summary with total count (not just page count)
-        const totalCount = filteredData ? filteredData.length : data.length;
-        if (resultsSummary) {
-            resultsSummary.textContent = `Found ${totalCount} record${totalCount !== 1 ? 's' : ''} matching your criteria`;
-        }
-        
-        if (filterStatus) {
-            filterStatus.textContent = `${totalCount} result${totalCount !== 1 ? 's' : ''} found`;
-            filterStatus.className = 'badge bg-success text-white fs-6 px-3 py-2';
-        }
-        
-        let html = '';
-        data.forEach((record, index) => {
-            const rowClass = index % 2 === 0 ? '' : 'table-light';
-            const dateStr = record.date ? formatDate(record.date) : 'N/A';
-            const accountCode = record.account_code || 'N/A';
-            const accountName = record.account_name || 'N/A';
-            const description = record.description || 'No description';
-            
-            html += `
-                <tr class="${rowClass}">
-                    <td>
-                        <span class="badge bg-light text-dark">${dateStr}</span>
-                    </td>
-                    <td>
-                        <code class="text-primary fw-bold">${accountCode}</code>
-                    </td>
-                    <td>
-                        <span class="fw-semibold">${accountName}</span>
-                    </td>
-                    <td>
-                        <span class="text-muted">${description}</span>
-                    </td>
-                    <td class="text-end">
-                        ${record.debit > 0 ? `<span class="text-danger fw-bold">${formatCurrency(record.debit)}</span>` : '<span class="text-muted">-</span>'}
-                    </td>
-                    <td class="text-end">
-                        ${record.credit > 0 ? `<span class="text-success fw-bold">${formatCurrency(record.credit)}</span>` : '<span class="text-muted">-</span>'}
-                    </td>
-                    <td class="text-end">
-                        <span class="text-primary fw-bold">${formatCurrency(record.balance)}</span>
-                    </td>
-                </tr>
-            `;
-        });
-        
-        if (tbody) {
-            tbody.innerHTML = html;
-        }
-        
-        if (noResultsMessage) {
-            noResultsMessage.style.display = 'none';
-        }
-        
-        console.log('Successfully displayed', data.length, 'records');
-    } catch (error) {
-        console.error('Error displaying filtered information:', error);
-        if (tbody) {
-            tbody.innerHTML = `<tr><td colspan="7" class="text-center text-danger">Error displaying data: ${error.message}</td></tr>`;
-        }
-    }
-}
-
-/**
- * Show more information (drill-down)
- */
-function showMoreInformation() {
-    const showMoreBtn = document.getElementById('show-more-btn');
-    const tbody = document.getElementById('filtered-results-tbody');
-    
-    if (!showMoreDetails) {
-        // Show detailed view
-        showMoreBtn.innerHTML = '<i class="fas fa-compress me-1"></i>Show Less Information';
-        showMoreDetails = true;
-        
-        // Add more detailed columns or expand existing rows
-        // This is a simplified implementation
-        alert('Showing more detailed information...\nIn a full implementation, this would expand rows with additional details.');
-    } else {
-        // Show summary view
-        showMoreBtn.innerHTML = '<i class="fas fa-expand me-1"></i>Show More Information';
-        showMoreDetails = false;
-        
-        // Collapse back to summary view
-        alert('Showing summary information...\nIn a full implementation, this would collapse rows to summary view.');
-    }
-}
-
-/**
- * Show no results message
- */
-function showNoResults() {
-    const tbody = document.getElementById('filtered-results-tbody');
-    const noResultsMessage = document.getElementById('no-results-message');
-    const resultsSummary = document.getElementById('results-summary');
-    const filterStatus = document.getElementById('filter-status');
-    
-    tbody.innerHTML = '';
-    noResultsMessage.style.display = 'block';
-    resultsSummary.textContent = 'No records found matching your criteria';
-    filterStatus.textContent = 'No results';
-    filterStatus.className = 'badge bg-warning';
-}
-
-/**
- * Clear all filters
- */
-function clearFilters() {
-    try {
-        document.getElementById('filter-date-from').value = '';
-        document.getElementById('filter-date-to').value = '';
-        document.getElementById('filter-subsystem').value = '';
-        document.getElementById('filter-account-type').value = '';
-        document.getElementById('filter-custom-search').value = '';
-        
-        // Hide results section
-        document.getElementById('filtered-results').style.display = 'none';
-        showMoreDetails = false;
-        
-        // Reset show more button
-        const showMoreBtn = document.getElementById('show-more-btn');
-        if (showMoreBtn) {
-            showMoreBtn.innerHTML = '<i class="fas fa-expand me-1"></i>Show More Information';
-        }
-        
-        // Reset filter status
-        const filterStatus = document.getElementById('filter-status');
-        if (filterStatus) {
-            filterStatus.textContent = 'No filters applied';
-            filterStatus.className = 'badge bg-light text-dark';
-        }
-        
-        // Show success message
-        showNotification('Filters cleared successfully', 'success');
-    } catch (error) {
-        console.error('Error clearing filters:', error);
-        showNotification('Error clearing filters', 'error');
-    }
-}
-
-/**
- * Quick test function to verify filtering works
- */
-function testFilters() {
-    console.log('Testing filters...');
-    applyFilters();
-}
-
-/**
- * Export filtered data
- */
-function exportFilteredData(format) {
-    if (!filteredData || filteredData.length === 0) {
-        showNotification('No filtered data to export. Please apply filters first.', 'warning');
-        return;
-    }
-    
-    if (format === 'excel') {
-        exportFilteredDataToExcel();
-    } else if (format === 'pdf') {
-        exportFilteredDataToPDF();
-    } else {
-        showNotification('Unsupported export format', 'error');
-    }
-}
-
-/**
- * Export filtered data to Excel (CSV)
- */
-function exportFilteredDataToExcel() {
-    if (!filteredData || filteredData.length === 0) {
-        showNotification('No data to export', 'warning');
-        return;
-    }
-    
-    showNotification('Exporting to Excel...', 'info');
-    
-    // Generate CSV content
-    let csv = 'EVERGREEN ACCOUNTING & FINANCE\n';
-    csv += 'FILTERED RESULTS REPORT\n';
-    csv += `Generated: ${new Date().toLocaleDateString()}\n\n`;
-    
-    // Get filter information
-    const dateFrom = document.getElementById('filter-date-from').value || 'All';
-    const dateTo = document.getElementById('filter-date-to').value || 'All';
-    const subsystem = document.getElementById('filter-subsystem').value || 'All';
-    const accountType = document.getElementById('filter-account-type').value || 'All';
-    
-    csv += 'Filter Criteria:\n';
-    csv += `Date From,${dateFrom}\n`;
-    csv += `Date To,${dateTo}\n`;
-    csv += `Subsystem,${subsystem}\n`;
-    csv += `Account Type,${accountType}\n\n`;
-    
-    // CSV Headers
-    csv += 'Date,Account Code,Account Name,Description,Debit,Credit,Balance\n';
-    
-    // CSV Data Rows
-    filteredData.forEach(record => {
-        const escapeCSV = (field) => {
-            if (field === null || field === undefined) return '';
-            const str = String(field);
-            if (str.includes(',') || str.includes('"') || str.includes('\n')) {
-                return `"${str.replace(/"/g, '""')}"`;
-            }
-            return str;
-        };
-        
-        const dateStr = record.date ? formatDate(record.date) : 'N/A';
-        const debit = record.debit || 0;
-        const credit = record.credit || 0;
-        const balance = record.balance || 0;
-        
-        csv += `${escapeCSV(dateStr)},${escapeCSV(record.account_code || 'N/A')},${escapeCSV(record.account_name || 'N/A')},${escapeCSV(record.description || '')},${debit},${credit},${balance}\n`;
-    });
-    
-    // Add summary
-    csv += '\n';
-    csv += `Total Records,${filteredData.length}\n`;
-    
-    const totalDebit = filteredData.reduce((sum, r) => sum + (parseFloat(r.debit) || 0), 0);
-    const totalCredit = filteredData.reduce((sum, r) => sum + (parseFloat(r.credit) || 0), 0);
-    
-    csv += `Total Debit,${totalDebit.toFixed(2)}\n`;
-    csv += `Total Credit,${totalCredit.toFixed(2)}\n`;
-    csv += `Net Balance,${(totalDebit - totalCredit).toFixed(2)}\n`;
-    
-    // Create blob and download
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    
-    link.setAttribute('href', url);
-    link.setAttribute('download', `Filtered_Results_${new Date().toISOString().split('T')[0]}.csv`);
-    link.style.visibility = 'hidden';
-    
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-    
-    showNotification('Excel export completed successfully!', 'success');
-}
-
-/**
- * Export filtered data to PDF (using print dialog)
- */
-function exportFilteredDataToPDF() {
-    if (!filteredData || filteredData.length === 0) {
-        showNotification('No data to export', 'warning');
-        return;
-    }
-    
-    showNotification('Preparing PDF export...', 'info');
-    
-    // Temporarily display ALL filtered data (not just current page)
-    displayAllFilteredDataForPrint();
-    
-    // Add a class to body for print styling
-    document.body.classList.add('printing-filtered-results');
-    
-    // Trigger print dialog
-    setTimeout(() => {
-        window.print();
-        document.body.classList.remove('printing-filtered-results');
-        // Restore pagination after printing
-        displayCurrentPageData();
-        showNotification('PDF export ready. Use "Save as PDF" in the print dialog.', 'info');
-    }, 500);
-}
-
-/**
- * Print filtered data
- */
-function printFilteredData() {
-    if (!filteredData || filteredData.length === 0) {
-        showNotification('No filtered data to print. Please apply filters first.', 'warning');
-        return;
-    }
-    
-    showNotification('Preparing for printing...', 'info');
-    
-    // Temporarily display ALL filtered data (not just current page)
-    displayAllFilteredDataForPrint();
-    
-    // Add a class to body for print styling
-    document.body.classList.add('printing-filtered-results');
-    
-    // Trigger print dialog
-    setTimeout(() => {
-        window.print();
-        document.body.classList.remove('printing-filtered-results');
-        // Restore pagination after printing
-        displayCurrentPageData();
-    }, 500);
-}
-
-/**
- * Display all filtered data for printing (without pagination)
- */
-function displayAllFilteredDataForPrint() {
-    if (!filteredData || filteredData.length === 0) return;
-    
-    const tbody = document.getElementById('filtered-results-tbody');
-    if (!tbody) return;
-    
-    let html = '';
-    filteredData.forEach((record, index) => {
-        const rowClass = index % 2 === 0 ? '' : 'table-light';
-        const dateStr = record.date ? formatDate(record.date) : 'N/A';
-        const accountCode = record.account_code || 'N/A';
-        const accountName = record.account_name || 'N/A';
-        const description = record.description || 'No description';
-        
-        html += `
-            <tr class="${rowClass}">
-                <td>
-                    <span class="badge bg-light text-dark">${dateStr}</span>
-                </td>
-                <td>
-                    <code class="text-primary fw-bold">${accountCode}</code>
-                </td>
-                <td>
-                    <span class="fw-semibold">${accountName}</span>
-                </td>
-                <td>
-                    <span class="text-muted">${description}</span>
-                </td>
-                <td class="text-end">
-                    ${record.debit > 0 ? `<span class="text-danger fw-bold">${formatCurrency(record.debit)}</span>` : '<span class="text-muted">-</span>'}
-                </td>
-                <td class="text-end">
-                    ${record.credit > 0 ? `<span class="text-success fw-bold">${formatCurrency(record.credit)}</span>` : '<span class="text-muted">-</span>'}
-                </td>
-                <td class="text-end">
-                    <span class="text-primary fw-bold">${formatCurrency(record.balance)}</span>
-                </td>
-            </tr>
-        `;
-    });
-    
-    tbody.innerHTML = html;
-}
-
 /**
  * Format date helper
  */
@@ -1756,18 +1316,9 @@ function formatDate(dateString) {
  */
 function refreshAllReports() {
     showNotification('Refreshing all report data...', 'info');
-    
-    // Simulate refresh process
     setTimeout(() => {
-        showNotification('All reports refreshed successfully!', 'success');
-        
-        // In a real implementation, this would:
-        // 1. Reload the page or refresh data via AJAX
-        // 2. Update all report cards with fresh data
-        // 3. Clear any cached data
-        
-        console.log('All reports refreshed');
-    }, 2000);
+        location.reload();
+    }, 500);
 }
 
 /**
@@ -1777,11 +1328,14 @@ function showNotification(message, type = 'info') {
     const alertClass = type === 'success' ? 'alert-success' : 
                       type === 'error' ? 'alert-danger' : 
                       type === 'warning' ? 'alert-warning' : 'alert-info';
+    const iconClass = type === 'success' ? 'check-circle' : 
+                     type === 'error' ? 'exclamation-triangle' : 
+                     type === 'warning' ? 'exclamation-triangle' : 'info-circle';
     
     const notification = `
         <div class="alert ${alertClass} alert-dismissible fade show position-fixed" 
              style="top: 20px; right: 20px; z-index: 9999; min-width: 300px;" role="alert">
-            <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-triangle' : type === 'warning' ? 'exclamation-triangle' : 'info-circle'} me-2"></i>
+            <i class="fas fa-${iconClass} me-2"></i>
             ${message}
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
@@ -1789,84 +1343,14 @@ function showNotification(message, type = 'info') {
     
     document.body.insertAdjacentHTML('beforeend', notification);
     
-    // Auto-remove after 5 seconds
     setTimeout(() => {
-        const alert = document.querySelector('.alert');
-        if (alert) {
-            const bsAlert = new bootstrap.Alert(alert);
-            bsAlert.close();
+        const alerts = document.querySelectorAll('.alert.position-fixed');
+        if (alerts.length > 0) {
+            const lastAlert = alerts[alerts.length - 1];
+            if (lastAlert) {
+                const bsAlert = bootstrap.Alert.getOrCreateInstance(lastAlert);
+                bsAlert.close();
+            }
         }
     }, 5000);
-}
-
-/**
- * Pagination Functions
- */
-
-function changeEntriesPerPage() {
-    entriesPerPage = parseInt(document.getElementById('entries-per-page').value);
-    currentPage = 1; // Reset to first page
-    updatePagination();
-    displayCurrentPageData();
-}
-
-function goToPage(page) {
-    if (page >= 1 && page <= totalPages) {
-        currentPage = page;
-        updatePagination();
-        displayCurrentPageData();
-    }
-}
-
-function goToPreviousPage() {
-    if (currentPage > 1) {
-        goToPage(currentPage - 1);
-    }
-}
-
-function goToNextPage() {
-    if (currentPage < totalPages) {
-        goToPage(currentPage + 1);
-    }
-}
-
-function goToLastPage() {
-    goToPage(totalPages);
-}
-
-function updatePagination() {
-    if (!filteredData) return;
-    
-    totalEntries = filteredData.length;
-    totalPages = Math.ceil(totalEntries / entriesPerPage);
-    
-    // Update pagination info
-    const startEntry = (currentPage - 1) * entriesPerPage + 1;
-    const endEntry = Math.min(currentPage * entriesPerPage, totalEntries);
-    
-    document.getElementById('pagination-info').textContent = 
-        `Showing ${startEntry} to ${endEntry} of ${totalEntries} entries`;
-    
-    // Update pagination controls
-    const controls = document.getElementById('pagination-controls');
-    const firstBtn = controls.querySelector('li:first-child');
-    const prevBtn = controls.querySelector('li:nth-child(2)');
-    const nextBtn = controls.querySelector('li:nth-child(3)');
-    const lastBtn = controls.querySelector('li:last-child');
-    
-    // Enable/disable buttons
-    firstBtn.classList.toggle('disabled', currentPage === 1);
-    prevBtn.classList.toggle('disabled', currentPage === 1);
-    nextBtn.classList.toggle('disabled', currentPage === totalPages);
-    lastBtn.classList.toggle('disabled', currentPage === totalPages);
-}
-
-function displayCurrentPageData() {
-    if (!filteredData) return;
-    
-    const startIndex = (currentPage - 1) * entriesPerPage;
-    const endIndex = startIndex + entriesPerPage;
-    const pageData = filteredData.slice(startIndex, endIndex);
-    
-    displayFilteredInformation(pageData);
 }

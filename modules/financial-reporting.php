@@ -77,679 +77,459 @@ $current_user = getCurrentUser();
             </div>
         </div>
 
-        <!-- Reports Section -->
+        <!-- Reports Section: Tab Layout -->
         <div class="reports-section">
-            <div class="section-header-simple mb-4">
-                <h2 class="section-title-simple">Financial Reports</h2>
-                <p class="section-subtitle-simple">Select a report type to generate detailed financial analysis</p>
-            </div>
+            <!-- Tab Navigation -->
+            <ul class="nav nav-tabs report-tabs mb-0" id="reportTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="tab-bs" data-bs-toggle="tab" data-bs-target="#pane-bs" type="button" role="tab">
+                        <i class="fas fa-balance-scale me-2"></i>Balance Sheet
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="tab-is" data-bs-toggle="tab" data-bs-target="#pane-is" type="button" role="tab">
+                        <i class="fas fa-chart-line me-2"></i>Income Statement
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="tab-cf" data-bs-toggle="tab" data-bs-target="#pane-cf" type="button" role="tab">
+                        <i class="fas fa-money-bill-wave me-2"></i>Cash Flow
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="tab-tb" data-bs-toggle="tab" data-bs-target="#pane-tb" type="button" role="tab">
+                        <i class="fas fa-clipboard-list me-2"></i>Trial Balance
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="tab-rr" data-bs-toggle="tab" data-bs-target="#pane-rr" type="button" role="tab">
+                        <i class="fas fa-shield-alt me-2"></i>Regulatory
+                    </button>
+                </li>
+            </ul>
 
+            <div class="tab-content report-tab-content" id="reportTabContent">
 
-            <!-- Report Cards Grid -->
-            <div class="row g-4 mb-5">
-                <!-- Balance Sheet Card -->
-                <div class="col-lg-4 col-md-6">
-                    <div class="report-card-modern h-100">
-                        <div class="card-header-modern">
-                            <div class="report-icon">
-                                <i class="fas fa-balance-scale"></i>
+                <!-- ==============================
+                     BALANCE SHEET TAB
+                     ============================== -->
+                <div class="tab-pane fade show active" id="pane-bs" role="tabpanel">
+                    <div class="tab-pane-inner">
+                        <div class="tab-description">
+                            <i class="fas fa-info-circle me-2"></i>
+                            Shows what the company <strong>owns</strong> (Assets), what it <strong>owes</strong> (Liabilities), and the owners' <strong>net stake</strong> (Equity) at a given point in time.
+                            <span class="formula-hint">Formula: <code>Assets = Liabilities + Equity</code></span>
+                        </div>
+
+                        <!-- KPI Snapshot Row -->
+                        <div class="kpi-snapshot-row">
+                            <?php
+                            // ============================================
+                            // BALANCE SHEET KPI SNAPSHOT (All-time, no date filter)
+                            // ============================================
+                            $deposits = 0; $withdrawals = 0; $transfers_in = 0; $transfers_out = 0;
+                            $interest_income = 0; $fees_collected = 0;
+
+                            if ($conn->query("SHOW TABLES LIKE 'bank_transactions'")->num_rows > 0 &&
+                                $conn->query("SHOW TABLES LIKE 'transaction_types'")->num_rows > 0) {
+                                foreach ([
+                                    ['Deposit', &$deposits],
+                                    ['Withdrawal', &$withdrawals],
+                                    ['Transfer In', &$transfers_in],
+                                    ['Transfer Out', &$transfers_out],
+                                    ['Interest Payment', &$interest_income],
+                                    ['Fee', &$fees_collected],
+                                ] as [$type_name, &$var]) {
+                                    $r = $conn->query("SELECT COALESCE(SUM(bt.amount),0) as t FROM bank_transactions bt INNER JOIN transaction_types tt ON bt.transaction_type_id=tt.transaction_type_id WHERE tt.type_name='$type_name'");
+                                    if ($r) { $row = $r->fetch_assoc(); $var = floatval($row['t'] ?? 0); }
+                                }
+                            }
+
+                            $loan_disbursed = 0; $loan_payments_total = 0;
+                            if ($conn->query("SHOW TABLES LIKE 'loan_applications'")->num_rows > 0) {
+                                $r = $conn->query("SELECT COALESCE(SUM(loan_amount),0) as t FROM loan_applications WHERE status IN ('Approved','Active','Disbursed')");
+                                if ($r) { $row = $r->fetch_assoc(); $loan_disbursed = floatval($row['t'] ?? 0); }
+                            }
+                            if ($conn->query("SHOW TABLES LIKE 'loan_payments'")->num_rows > 0) {
+                                $r = $conn->query("SELECT COALESCE(SUM(amount),0) as t FROM loan_payments");
+                                if ($r) { $row = $r->fetch_assoc(); $loan_payments_total = floatval($row['t'] ?? 0); }
+                            }
+                            if ($conn->query("SHOW TABLES LIKE 'bank_transactions'")->num_rows > 0) {
+                                $r = $conn->query("SELECT COALESCE(SUM(bt.amount),0) as t FROM bank_transactions bt INNER JOIN transaction_types tt ON bt.transaction_type_id=tt.transaction_type_id WHERE tt.type_name='Loan Payment'");
+                                if ($r) { $row = $r->fetch_assoc(); $loan_payments_total += floatval($row['t'] ?? 0); }
+                            }
+
+                            $bs_assets = ($deposits - $withdrawals) + ($transfers_in - $transfers_out);
+                            $loans_receivable = $loan_disbursed - $loan_payments_total;
+                            if ($loans_receivable > 0) $bs_assets += $loans_receivable;
+                            if ($interest_income > 0) $bs_assets += $interest_income;
+                            if ($fees_collected > 0) $bs_assets += $fees_collected;
+
+                            $bs_liabilities = $deposits;
+                            if ($conn->query("SHOW TABLES LIKE 'points_history'")->num_rows > 0) {
+                                $r = $conn->query("SELECT COALESCE(SUM(points),0) as t FROM points_history");
+                                if ($r) { $row = $r->fetch_assoc(); $bs_liabilities += floatval($row['t'] ?? 0) * 0.01; }
+                            }
+                            if ($conn->query("SHOW TABLES LIKE 'user_missions'")->num_rows > 0) {
+                                $r = $conn->query("SELECT COALESCE(SUM(points_earned),0) as t FROM user_missions WHERE status='completed'");
+                                if ($r) { $row = $r->fetch_assoc(); $bs_liabilities += floatval($row['t'] ?? 0) * 0.01; }
+                            }
+                            if ($conn->query("SHOW TABLES LIKE 'payroll_runs'")->num_rows > 0) {
+                                $r = $conn->query("SELECT COALESCE(SUM(total_net),0) as t FROM payroll_runs WHERE status IN ('completed','finalized')");
+                                if ($r) { $row = $r->fetch_assoc(); $bs_liabilities += floatval($row['t'] ?? 0); }
+                            }
+                            $bs_equity = $bs_assets - $bs_liabilities;
+                            ?>
+                            <div class="kpi-box kpi-blue">
+                                <div class="kpi-label"><i class="fas fa-coins me-1"></i>Total Assets</div>
+                                <div class="kpi-value">₱<?php echo number_format($bs_assets, 0); ?></div>
+                                <div class="kpi-note">All-time snapshot</div>
                             </div>
-                            <div class="report-meta">
-                                <h5 class="report-title">Balance Sheet</h5>
-                                <p class="report-subtitle">Assets, Liabilities, and Equity</p>
+                            <div class="kpi-box kpi-amber">
+                                <div class="kpi-label"><i class="fas fa-file-invoice-dollar me-1"></i>Total Liabilities</div>
+                                <div class="kpi-value">₱<?php echo number_format($bs_liabilities, 0); ?></div>
+                                <div class="kpi-note">All-time snapshot</div>
+                            </div>
+                            <div class="kpi-box <?php echo $bs_equity >= 0 ? 'kpi-green' : 'kpi-red'; ?>">
+                                <div class="kpi-label"><i class="fas fa-university me-1"></i>Equity</div>
+                                <div class="kpi-value">₱<?php echo number_format($bs_equity, 0); ?></div>
+                                <div class="kpi-note">Assets − Liabilities</div>
                             </div>
                         </div>
-                        <div class="card-body-modern">
-                            <div class="report-summary">
-                                <?php
-                                // ============================================
-                                // BALANCE SHEET CALCULATION - Matches API exactly
-                                // ============================================
-                                
-                                // ASSETS: Cash (Deposits - Withdrawals) + Net Transfers + Loans Receivable + Interest + Fees
-                                $assets = 0;
-                                $deposits = 0;
-                                $withdrawals = 0;
-                                $transfers_in = 0;
-                                $transfers_out = 0;
-                                $interest_income = 0;
-                                $fees_collected = 0;
 
-                                if (
-                                    $conn->query("SHOW TABLES LIKE 'bank_transactions'")->num_rows > 0 &&
-                                    $conn->query("SHOW TABLES LIKE 'transaction_types'")->num_rows > 0
-                                ) {
-                                    // Deposits
-                                    $result = $conn->query("SELECT COALESCE(SUM(bt.amount), 0) as total FROM bank_transactions bt INNER JOIN transaction_types tt ON bt.transaction_type_id = tt.transaction_type_id WHERE tt.type_name = 'Deposit'");
-                                    if ($result) {
-                                        $row = $result->fetch_assoc();
-                                        $deposits = floatval($row['total'] ?? 0);
-                                    }
-
-                                    // Withdrawals
-                                    $result = $conn->query("SELECT COALESCE(SUM(bt.amount), 0) as total FROM bank_transactions bt INNER JOIN transaction_types tt ON bt.transaction_type_id = tt.transaction_type_id WHERE tt.type_name = 'Withdrawal'");
-                                    if ($result) {
-                                        $row = $result->fetch_assoc();
-                                        $withdrawals = floatval($row['total'] ?? 0);
-                                    }
-
-                                    // Transfers In
-                                    $result = $conn->query("SELECT COALESCE(SUM(bt.amount), 0) as total FROM bank_transactions bt INNER JOIN transaction_types tt ON bt.transaction_type_id = tt.transaction_type_id WHERE tt.type_name = 'Transfer In'");
-                                    if ($result) {
-                                        $row = $result->fetch_assoc();
-                                        $transfers_in = floatval($row['total'] ?? 0);
-                                    }
-
-                                    // Transfers Out
-                                    $result = $conn->query("SELECT COALESCE(SUM(bt.amount), 0) as total FROM bank_transactions bt INNER JOIN transaction_types tt ON bt.transaction_type_id = tt.transaction_type_id WHERE tt.type_name = 'Transfer Out'");
-                                    if ($result) {
-                                        $row = $result->fetch_assoc();
-                                        $transfers_out = floatval($row['total'] ?? 0);
-                                    }
-
-                                    // Interest Income
-                                    $result = $conn->query("SELECT COALESCE(SUM(bt.amount), 0) as total FROM bank_transactions bt INNER JOIN transaction_types tt ON bt.transaction_type_id = tt.transaction_type_id WHERE tt.type_name = 'Interest Payment'");
-                                    if ($result) {
-                                        $row = $result->fetch_assoc();
-                                        $interest_income = floatval($row['total'] ?? 0);
-                                    }
-
-                                    // Fees
-                                    $result = $conn->query("SELECT COALESCE(SUM(bt.amount), 0) as total FROM bank_transactions bt INNER JOIN transaction_types tt ON bt.transaction_type_id = tt.transaction_type_id WHERE tt.type_name = 'Fee'");
-                                    if ($result) {
-                                        $row = $result->fetch_assoc();
-                                        $fees_collected = floatval($row['total'] ?? 0);
-                                    }
-                                }
-
-                                // Loans Receivable
-                                $loan_disbursed = 0;
-                                $loan_payments_total = 0;
-                                if ($conn->query("SHOW TABLES LIKE 'loan_applications'")->num_rows > 0) {
-                                    $result = $conn->query("SELECT COALESCE(SUM(loan_amount), 0) as total FROM loan_applications WHERE status IN ('Approved', 'Active', 'Disbursed')");
-                                    if ($result) {
-                                        $row = $result->fetch_assoc();
-                                        $loan_disbursed = floatval($row['total'] ?? 0);
-                                    }
-                                }
-                                if ($conn->query("SHOW TABLES LIKE 'loan_payments'")->num_rows > 0) {
-                                    $result = $conn->query("SELECT COALESCE(SUM(amount), 0) as total FROM loan_payments");
-                                    if ($result) {
-                                        $row = $result->fetch_assoc();
-                                        $loan_payments_total = floatval($row['total'] ?? 0);
-                                    }
-                                }
-                                // Add loan payments from bank_transactions
-                                if ($conn->query("SHOW TABLES LIKE 'bank_transactions'")->num_rows > 0) {
-                                    $result = $conn->query("SELECT COALESCE(SUM(bt.amount), 0) as total FROM bank_transactions bt INNER JOIN transaction_types tt ON bt.transaction_type_id = tt.transaction_type_id WHERE tt.type_name = 'Loan Payment'");
-                                    if ($result) {
-                                        $row = $result->fetch_assoc();
-                                        $loan_payments_total += floatval($row['total'] ?? 0);
-                                    }
-                                }
-
-                                $cash_net = $deposits - $withdrawals;
-                                $transfers_net = $transfers_in - $transfers_out;
-                                $loans_receivable = $loan_disbursed - $loan_payments_total;
-
-                                if ($cash_net != 0)
-                                    $assets += $cash_net;
-                                if ($transfers_net != 0)
-                                    $assets += $transfers_net;
-                                if ($loans_receivable > 0)
-                                    $assets += $loans_receivable;
-                                if ($interest_income > 0)
-                                    $assets += $interest_income;
-                                if ($fees_collected > 0)
-                                    $assets += $fees_collected;
-
-                                // LIABILITIES: Customer Deposits Payable + Rewards + Missions + Payroll
-                                $liabilities = 0;
-                                if ($deposits > 0)
-                                    $liabilities += $deposits;
-
-                                // Rewards Points Liability
-                                if ($conn->query("SHOW TABLES LIKE 'points_history'")->num_rows > 0) {
-                                    $result = $conn->query("SELECT COALESCE(SUM(points), 0) as total FROM points_history");
-                                    if ($result) {
-                                        $row = $result->fetch_assoc();
-                                        $liabilities += floatval($row['total'] ?? 0) * 0.01;
-                                    }
-                                }
-
-                                // Missions Liability
-                                if ($conn->query("SHOW TABLES LIKE 'user_missions'")->num_rows > 0) {
-                                    $result = $conn->query("SELECT COALESCE(SUM(points_earned), 0) as total FROM user_missions WHERE status = 'completed'");
-                                    if ($result) {
-                                        $row = $result->fetch_assoc();
-                                        $liabilities += floatval($row['total'] ?? 0) * 0.01;
-                                    }
-                                }
-
-                                // Payroll Expenses
-                                if ($conn->query("SHOW TABLES LIKE 'payroll_runs'")->num_rows > 0) {
-                                    $result = $conn->query("SELECT COALESCE(SUM(total_net), 0) as total FROM payroll_runs WHERE status IN ('completed', 'finalized')");
-                                    if ($result) {
-                                        $row = $result->fetch_assoc();
-                                        $liabilities += floatval($row['total'] ?? 0);
-                                    }
-                                }
-
-                                // EQUITY = Assets - Liabilities
-                                $equity = $assets - $liabilities;
-                                ?>
-                                <div class="summary-item">
-                                    <span class="summary-label">Assets</span>
-                                    <span
-                                        class="summary-value text-primary">₱<?php echo number_format($assets, 0); ?></span>
-                                </div>
-                                <div class="summary-item">
-                                    <span class="summary-label">Liabilities</span>
-                                    <span
-                                        class="summary-value text-warning">₱<?php echo number_format($liabilities, 0); ?></span>
-                                </div>
-                                <div class="summary-item">
-                                    <span class="summary-label">Equity</span>
-                                    <span
-                                        class="summary-value text-success">₱<?php echo number_format($equity, 0); ?></span>
-                                </div>
+                        <!-- Date + Generate -->
+                        <div class="tab-generate-row">
+                            <div class="tab-filter-group">
+                                <label class="tab-filter-label"><i class="fas fa-calendar-alt me-1"></i>As of Date</label>
+                                <input type="date" class="form-control tab-date-input" id="bs-date" value="<?php echo date('Y-m-d'); ?>">
                             </div>
-                        </div>
-                        <div class="card-footer-modern">
-                            <button class="btn btn-primary btn-generate-modern"
-                                onclick="openReportModal('balance-sheet')">
-                                <i class="fas fa-file-alt me-2"></i>Generate Report
+                            <div class="tab-filter-group">
+                                <label class="tab-filter-label"><i class="fas fa-layer-group me-1"></i>Detail Level</label>
+                                <select class="form-select tab-date-input" id="bs-detail">
+                                    <option value="yes">Detailed</option>
+                                    <option value="no">Summary</option>
+                                </select>
+                            </div>
+                            <button class="btn btn-generate-tab" onclick="generateTabReport('balance-sheet')">
+                                <i class="fas fa-file-chart-line me-2"></i>Generate Balance Sheet
                             </button>
                         </div>
+
+                        <!-- Inline Report Output -->
+                        <div class="tab-report-output" id="output-balance-sheet"></div>
                     </div>
                 </div>
 
-                <!-- Income Statement Card -->
-                <div class="col-lg-4 col-md-6">
-                    <div class="report-card-modern h-100">
-                        <div class="card-header-modern">
-                            <div class="report-icon">
-                                <i class="fas fa-chart-line"></i>
+                <!-- ==============================
+                     INCOME STATEMENT TAB
+                     ============================== -->
+                <div class="tab-pane fade" id="pane-is" role="tabpanel">
+                    <div class="tab-pane-inner">
+                        <div class="tab-description">
+                            <i class="fas fa-info-circle me-2"></i>
+                            Reports all <strong>funds received</strong> (Revenue) versus all <strong>funds paid out</strong> (Expenses) over a period, resulting in Net Income or Net Loss.
+                            <span class="formula-hint">Formula: <code>Net Income = Revenue − Expenses</code></span>
+                        </div>
+
+                        <!-- KPI Snapshot Row -->
+                        <div class="kpi-snapshot-row">
+                            <?php
+                            // ============================================
+                            // INCOME STATEMENT KPI SNAPSHOT (All-time)
+                            // ============================================
+                            $is_revenue = 0;
+                            $loan_interest_rev = $loan_disbursed * 0.15 / 12;
+                            if ($loan_interest_rev > 0) $is_revenue += $loan_interest_rev;
+                            if ($loan_payments_total > 0) $is_revenue += $loan_payments_total;
+                            if ($deposits > 0) $is_revenue += $deposits;
+                            if ($transfers_in > 0) $is_revenue += $transfers_in;
+
+                            $is_expenses = 0;
+                            if ($withdrawals > 0) $is_expenses += $withdrawals;
+                            if ($transfers_out > 0) $is_expenses += $transfers_out;
+                            if ($loan_disbursed > 0) $is_expenses += $loan_disbursed;
+
+                            $rewards_exp = 0;
+                            if ($conn->query("SHOW TABLES LIKE 'points_history'")->num_rows > 0) {
+                                $r = $conn->query("SELECT COALESCE(SUM(points),0) as t FROM points_history");
+                                if ($r) { $row = $r->fetch_assoc(); $rewards_exp = floatval($row['t'] ?? 0) * 0.01; }
+                            }
+                            if ($rewards_exp > 0) $is_expenses += $rewards_exp;
+
+                            $missions_exp = 0;
+                            if ($conn->query("SHOW TABLES LIKE 'user_missions'")->num_rows > 0) {
+                                $r = $conn->query("SELECT COALESCE(SUM(points_earned),0) as t FROM user_missions WHERE status='completed'");
+                                if ($r) { $row = $r->fetch_assoc(); $missions_exp = floatval($row['t'] ?? 0) * 0.01; }
+                            }
+                            if ($missions_exp > 0) $is_expenses += $missions_exp;
+
+                            $is_net_income = $is_revenue - $is_expenses;
+                            ?>
+                            <div class="kpi-box kpi-green">
+                                <div class="kpi-label"><i class="fas fa-arrow-trend-up me-1"></i>Total Revenue</div>
+                                <div class="kpi-value">₱<?php echo number_format($is_revenue, 0); ?></div>
+                                <div class="kpi-note">Funds received (cash basis)</div>
                             </div>
-                            <div class="report-meta">
-                                <h5 class="report-title">Income Statement</h5>
-                                <p class="report-subtitle">Revenue, expenses, and Net income</p>
+                            <div class="kpi-box kpi-red">
+                                <div class="kpi-label"><i class="fas fa-arrow-trend-down me-1"></i>Total Expenses</div>
+                                <div class="kpi-value">₱<?php echo number_format($is_expenses, 0); ?></div>
+                                <div class="kpi-note">All-time snapshot</div>
+                            </div>
+                            <div class="kpi-box <?php echo $is_net_income >= 0 ? 'kpi-green' : 'kpi-red'; ?>">
+                                <div class="kpi-label"><i class="fas fa-calculator me-1"></i>Net Income</div>
+                                <div class="kpi-value">₱<?php echo number_format($is_net_income, 0); ?></div>
+                                <div class="kpi-note">Revenue − Expenses</div>
                             </div>
                         </div>
-                        <div class="card-body-modern">
-                            <div class="report-summary">
-                                <?php
-                                // ============================================
-                                // INCOME STATEMENT - Matches API generateIncomeStatement() exactly
-                                // Revenue: Loan Interest + Loan Payments + Deposits + Transfers In
-                                // Expenses: Withdrawals + Transfers Out + Loan Disbursements + Rewards
-                                // Note: API doesn't include Payroll in Income Statement expenses
-                                // ============================================
-                                
-                                // REVENUE
-                                $revenue = 0;
-                                // Loan Interest Income (15% annual rate / 12 months)
-                                $loan_interest_rev = $loan_disbursed * 0.15 / 12;
-                                if ($loan_interest_rev > 0)
-                                    $revenue += $loan_interest_rev;
-                                if ($loan_payments_total > 0)
-                                    $revenue += $loan_payments_total;
-                                if ($deposits > 0)
-                                    $revenue += $deposits;
-                                if ($transfers_in > 0)
-                                    $revenue += $transfers_in;
 
-                                // EXPENSES (matching API - no payroll)
-                                $expenses = 0;
-                                if ($withdrawals > 0)
-                                    $expenses += $withdrawals;
-                                if ($transfers_out > 0)
-                                    $expenses += $transfers_out;
-                                if ($loan_disbursed > 0)
-                                    $expenses += $loan_disbursed;
-
-                                // Rewards expense
-                                $rewards_exp = 0;
-                                if ($conn->query("SHOW TABLES LIKE 'points_history'")->num_rows > 0) {
-                                    $result = $conn->query("SELECT COALESCE(SUM(points), 0) as total FROM points_history");
-                                    if ($result) {
-                                        $row = $result->fetch_assoc();
-                                        $rewards_exp = floatval($row['total'] ?? 0) * 0.01;
-                                    }
-                                }
-                                if ($rewards_exp > 0)
-                                    $expenses += $rewards_exp;
-
-                                // Missions expense
-                                $missions_exp = 0;
-                                if ($conn->query("SHOW TABLES LIKE 'user_missions'")->num_rows > 0) {
-                                    $result = $conn->query("SELECT COALESCE(SUM(points_earned), 0) as total FROM user_missions WHERE status = 'completed'");
-                                    if ($result) {
-                                        $row = $result->fetch_assoc();
-                                        $missions_exp = floatval($row['total'] ?? 0) * 0.01;
-                                    }
-                                }
-                                if ($missions_exp > 0)
-                                    $expenses += $missions_exp;
-
-                                // Payroll expense (for Trial Balance only, not Income Statement per API)
-                                $payroll_exp = 0;
-                                if ($conn->query("SHOW TABLES LIKE 'payroll_runs'")->num_rows > 0) {
-                                    $result = $conn->query("SELECT COALESCE(SUM(total_net), 0) as total FROM payroll_runs WHERE status IN ('completed', 'finalized')");
-                                    if ($result) {
-                                        $row = $result->fetch_assoc();
-                                        $payroll_exp = floatval($row['total'] ?? 0);
-                                    }
-                                }
-
-                                $net_income = $revenue - $expenses;
-                                ?>
-                                <div class="summary-item">
-                                    <span class="summary-label">Revenue</span>
-                                    <span
-                                        class="summary-value text-success">₱<?php echo number_format($revenue, 0); ?></span>
-                                </div>
-                                <div class="summary-item">
-                                    <span class="summary-label">Expenses</span>
-                                    <span
-                                        class="summary-value text-danger">₱<?php echo number_format($expenses, 0); ?></span>
-                                </div>
-                                <div class="summary-item">
-                                    <span class="summary-label">Net Income</span>
-                                    <span
-                                        class="summary-value <?php echo $net_income >= 0 ? 'text-success' : 'text-danger'; ?>">₱<?php echo number_format($net_income, 0); ?></span>
-                                </div>
+                        <!-- Date + Generate -->
+                        <div class="tab-generate-row">
+                            <div class="tab-filter-group">
+                                <label class="tab-filter-label"><i class="fas fa-calendar-alt me-1"></i>Date From</label>
+                                <input type="date" class="form-control tab-date-input" id="is-date-from" value="<?php echo date('Y-01-01'); ?>">
                             </div>
-                        </div>
-                        <div class="card-footer-modern">
-                            <button class="btn btn-primary btn-generate-modern"
-                                onclick="openReportModal('income-statement')">
-                                <i class="fas fa-file-alt me-2"></i>Generate Report
+                            <div class="tab-filter-group">
+                                <label class="tab-filter-label"><i class="fas fa-calendar-alt me-1"></i>Date To</label>
+                                <input type="date" class="form-control tab-date-input" id="is-date-to" value="<?php echo date('Y-m-d'); ?>">
+                            </div>
+                            <button class="btn btn-generate-tab" onclick="generateTabReport('income-statement')">
+                                <i class="fas fa-file-chart-line me-2"></i>Generate Income Statement
                             </button>
                         </div>
+
+                        <!-- Inline Report Output -->
+                        <div class="tab-report-output" id="output-income-statement"></div>
                     </div>
                 </div>
 
-                <!-- Cash Flow Statement Card -->
-                <div class="col-lg-4 col-md-6">
-                    <div class="report-card-modern h-100">
-                        <div class="card-header-modern">
-                            <div class="report-icon">
-                                <i class="fas fa-money-bill-wave"></i>
+                <!-- ==============================
+                     CASH FLOW TAB
+                     ============================== -->
+                <div class="tab-pane fade" id="pane-cf" role="tabpanel">
+                    <div class="tab-pane-inner">
+                        <div class="tab-description">
+                            <i class="fas fa-info-circle me-2"></i>
+                            Tracks actual <strong>cash movements</strong> split into Operating (day-to-day), Investing (assets), and Financing (loans/capital) activities.
+                            <span class="formula-hint">Formula: <code>Net Cash = Operating + Investing + Financing</code></span>
+                        </div>
+
+                        <!-- KPI Snapshot Row -->
+                        <div class="kpi-snapshot-row">
+                            <?php
+                            $cf_operating = $deposits - $withdrawals + $transfers_in - $transfers_out + $interest_income + $fees_collected;
+                            $cf_financing = $loan_payments_total - $loan_disbursed;
+                            ?>
+                            <div class="kpi-box kpi-teal">
+                                <div class="kpi-label"><i class="fas fa-piggy-bank me-1"></i>Cash Balance</div>
+                                <div class="kpi-value">₱<?php echo number_format($deposits, 0); ?></div>
+                                <div class="kpi-note">Total deposits received</div>
                             </div>
-                            <div class="report-meta">
-                                <h5 class="report-title">Cash Flow Statement</h5>
-                                <p class="report-subtitle">Operating, Investing, and Financing Activities</p>
+                            <div class="kpi-box <?php echo $cf_operating >= 0 ? 'kpi-green' : 'kpi-red'; ?>">
+                                <div class="kpi-label"><i class="fas fa-cogs me-1"></i>Operating</div>
+                                <div class="kpi-value">₱<?php echo number_format($cf_operating, 0); ?></div>
+                                <div class="kpi-note">Day-to-day cash flow</div>
+                            </div>
+                            <div class="kpi-box <?php echo $cf_financing >= 0 ? 'kpi-green' : 'kpi-red'; ?>">
+                                <div class="kpi-label"><i class="fas fa-handshake me-1"></i>Financing</div>
+                                <div class="kpi-value">₱<?php echo number_format($cf_financing, 0); ?></div>
+                                <div class="kpi-note">Loan payments − disbursements</div>
                             </div>
                         </div>
-                        <div class="card-body-modern">
-                            <div class="report-summary">
-                                <?php
-                                // ============================================
-                                // CASH FLOW STATEMENT - Matches API exactly
-                                // ============================================
-                                
-                                // Cash Balance = Total Deposits (same as API summary.total_deposits)
-                                $cash_balance = $deposits;
 
-                                // Operating = Deposits - Withdrawals + Transfers In - Transfers Out + Interest + Fees
-                                $operating_cash = $deposits - $withdrawals + $transfers_in - $transfers_out + $interest_income + $fees_collected;
-
-                                // Financing = Loan Payments Received - Loan Disbursements
-                                $financing_cash = $loan_payments_total - $loan_disbursed;
-                                ?>
-                                <div class="summary-item">
-                                    <span class="summary-label">Cash Balance</span>
-                                    <span
-                                        class="summary-value text-info">₱<?php echo number_format($cash_balance, 0); ?></span>
-                                </div>
-                                <div class="summary-item">
-                                    <span class="summary-label">Operating</span>
-                                    <span
-                                        class="summary-value <?php echo $operating_cash >= 0 ? 'text-success' : 'text-danger'; ?>">₱<?php echo number_format($operating_cash, 0); ?></span>
-                                </div>
-                                <div class="summary-item">
-                                    <span class="summary-label">Financing</span>
-                                    <span
-                                        class="summary-value <?php echo $financing_cash >= 0 ? 'text-success' : 'text-danger'; ?>">₱<?php echo number_format($financing_cash, 0); ?></span>
-                                </div>
+                        <!-- Date + Generate -->
+                        <div class="tab-generate-row">
+                            <div class="tab-filter-group">
+                                <label class="tab-filter-label"><i class="fas fa-calendar-alt me-1"></i>Date From</label>
+                                <input type="date" class="form-control tab-date-input" id="cf-date-from" value="<?php echo date('Y-01-01'); ?>">
                             </div>
-                        </div>
-                        <div class="card-footer-modern">
-                            <button class="btn btn-primary btn-generate-modern" onclick="openReportModal('cash-flow')">
-                                <i class="fas fa-file-alt me-2"></i>Generate Report
+                            <div class="tab-filter-group">
+                                <label class="tab-filter-label"><i class="fas fa-calendar-alt me-1"></i>Date To</label>
+                                <input type="date" class="form-control tab-date-input" id="cf-date-to" value="<?php echo date('Y-m-d'); ?>">
+                            </div>
+                            <button class="btn btn-generate-tab" onclick="generateTabReport('cash-flow')">
+                                <i class="fas fa-file-chart-line me-2"></i>Generate Cash Flow
                             </button>
                         </div>
+
+                        <!-- Inline Report Output -->
+                        <div class="tab-report-output" id="output-cash-flow"></div>
                     </div>
                 </div>
 
-                <!-- Trial Balance Card -->
-                <div class="col-lg-4 col-md-6">
-                    <div class="report-card-modern h-100">
-                        <div class="card-header-modern">
-                            <div class="report-icon">
-                                <i class="fas fa-clipboard-list"></i>
+                <!-- ==============================
+                     TRIAL BALANCE TAB
+                     ============================== -->
+                <div class="tab-pane fade" id="pane-tb" role="tabpanel">
+                    <div class="tab-pane-inner">
+                        <div class="tab-description">
+                            <i class="fas fa-info-circle me-2"></i>
+                            Lists every account with its <strong>Debit</strong> and <strong>Credit</strong> total. In correct double-entry bookkeeping, total Debits must always equal total Credits.
+                            <span class="formula-hint">Rule: <code>Total Debits = Total Credits</code></span>
+                        </div>
+
+                        <!-- KPI Snapshot Row -->
+                        <div class="kpi-snapshot-row">
+                            <?php
+                            // ============================================
+                            // TRIAL BALANCE KPI SNAPSHOT
+                            // ============================================
+                            $tb_debits = 0;
+                            if ($deposits > 0) $tb_debits += $deposits;
+                            if ($transfers_in > 0) $tb_debits += $transfers_in;
+                            if ($interest_income > 0) $tb_debits += $interest_income;
+                            if ($loan_disbursed > 0) $tb_debits += $loan_disbursed;
+                            if ($rewards_exp > 0) $tb_debits += $rewards_exp;
+                            if ($missions_exp > 0) $tb_debits += $missions_exp;
+
+                            $tb_credits = 0;
+                            if ($withdrawals > 0) $tb_credits += $withdrawals;
+                            if ($transfers_out > 0) $tb_credits += $transfers_out;
+                            if ($fees_collected > 0) $tb_credits += $fees_collected;
+                            if ($loan_payments_total > 0) $tb_credits += $loan_payments_total;
+
+                            // Balancing entry
+                            $tb_diff = $tb_debits - $tb_credits;
+                            if ($tb_diff > 0) $tb_credits += $tb_diff;
+                            else $tb_debits += abs($tb_diff);
+                            $tb_balanced = abs($tb_debits - $tb_credits) < 0.01;
+                            ?>
+                            <div class="kpi-box kpi-red">
+                                <div class="kpi-label"><i class="fas fa-arrow-up me-1"></i>Total Debits</div>
+                                <div class="kpi-value">₱<?php echo number_format($tb_debits, 0); ?></div>
+                                <div class="kpi-note">All debit entries</div>
                             </div>
-                            <div class="report-meta">
-                                <h5 class="report-title">Trial Balance</h5>
-                                <p class="report-subtitle">Account Balances and Totals</p>
+                            <div class="kpi-box kpi-green">
+                                <div class="kpi-label"><i class="fas fa-arrow-down me-1"></i>Total Credits</div>
+                                <div class="kpi-value">₱<?php echo number_format($tb_credits, 0); ?></div>
+                                <div class="kpi-note">All credit entries</div>
+                            </div>
+                            <div class="kpi-box <?php echo $tb_balanced ? 'kpi-green' : 'kpi-amber'; ?>">
+                                <div class="kpi-label"><i class="fas fa-check-circle me-1"></i>Status</div>
+                                <div class="kpi-value kpi-status-val">
+                                    <?php echo $tb_balanced ? '<i class="fas fa-check-circle"></i> Balanced' : '<i class="fas fa-exclamation-triangle"></i> Review'; ?>
+                                </div>
+                                <div class="kpi-note"><?php echo $tb_balanced ? 'Debits = Credits' : 'Check entries'; ?></div>
                             </div>
                         </div>
-                        <div class="card-body-modern">
-                            <div class="report-summary">
-                                <?php
-                                // ============================================
-                                // TRIAL BALANCE - Matches API exactly
-                                // API includes: Deposits, Transfers In, Interest, Loan Disbursements, Rewards (as debits)
-                                // API includes: Withdrawals, Transfers Out, Fees, Loan Payments (as credits)
-                                // API does NOT include payroll in trial balance
-                                // ============================================
-                                
-                                // DEBITS: Deposits, Transfers In, Interest, Loan Disbursements, Rewards
-                                $total_debits = 0;
-                                if ($deposits > 0)
-                                    $total_debits += $deposits;
-                                if ($transfers_in > 0)
-                                    $total_debits += $transfers_in;
-                                if ($interest_income > 0)
-                                    $total_debits += $interest_income;
-                                if ($loan_disbursed > 0)
-                                    $total_debits += $loan_disbursed;
-                                if ($rewards_exp > 0)
-                                    $total_debits += $rewards_exp;
-                                if ($missions_exp > 0)
-                                    $total_debits += $missions_exp;
-                                // Note: Payroll is NOT included in API trial balance
-                                
-                                // CREDITS: Withdrawals, Transfers Out, Fees, Loan Payments
-                                $total_credits = 0;
-                                if ($withdrawals > 0)
-                                    $total_credits += $withdrawals;
-                                if ($transfers_out > 0)
-                                    $total_credits += $transfers_out;
-                                if ($fees_collected > 0)
-                                    $total_credits += $fees_collected;
-                                if ($loan_payments_total > 0)
-                                    $total_credits += $loan_payments_total;
 
-                                // Balancing entry - Retained Earnings
-                                $difference = $total_debits - $total_credits;
-                                if (abs($difference) > 0.01) {
-                                    if ($difference > 0) {
-                                        $total_credits += $difference;
-                                    } else {
-                                        $total_debits += abs($difference);
-                                    }
-                                }
-
-                                $is_balanced = abs($total_debits - $total_credits) < 0.01;
-                                ?>
-                                <div class="summary-item">
-                                    <span class="summary-label">Total Debits</span>
-                                    <span
-                                        class="summary-value text-danger">₱<?php echo number_format($total_debits, 2); ?></span>
-                                </div>
-                                <div class="summary-item">
-                                    <span class="summary-label">Total Credits</span>
-                                    <span
-                                        class="summary-value text-success">₱<?php echo number_format($total_credits, 2); ?></span>
-                                </div>
-                                <div class="summary-item">
-                                    <span class="summary-label">Status</span>
-                                    <span
-                                        class="summary-value <?php echo $is_balanced ? 'text-success' : 'text-warning'; ?>">
-                                        <?php echo $is_balanced ? "✓ Balanced" : "⚠ Unbalanced"; ?>
-                                    </span>
-                                </div>
+                        <!-- Date + Generate -->
+                        <div class="tab-generate-row">
+                            <div class="tab-filter-group">
+                                <label class="tab-filter-label"><i class="fas fa-calendar-alt me-1"></i>Date From</label>
+                                <input type="date" class="form-control tab-date-input" id="tb-date-from" value="<?php echo date('Y-01-01'); ?>">
                             </div>
-                        </div>
-                        <div class="card-footer-modern">
-                            <button class="btn btn-primary btn-generate-modern"
-                                onclick="openReportModal('trial-balance')">
-                                <i class="fas fa-file-alt me-2"></i>Generate Report
+                            <div class="tab-filter-group">
+                                <label class="tab-filter-label"><i class="fas fa-calendar-alt me-1"></i>Date To</label>
+                                <input type="date" class="form-control tab-date-input" id="tb-date-to" value="<?php echo date('Y-m-d'); ?>">
+                            </div>
+                            <div class="tab-filter-group">
+                                <label class="tab-filter-label"><i class="fas fa-tags me-1"></i>Account Type</label>
+                                <select class="form-select tab-date-input" id="tb-account-type">
+                                    <option value="">All Types</option>
+                                    <option value="asset">Assets</option>
+                                    <option value="liability">Liabilities</option>
+                                    <option value="equity">Equity</option>
+                                    <option value="revenue">Revenue</option>
+                                    <option value="expense">Expenses</option>
+                                </select>
+                            </div>
+                            <button class="btn btn-generate-tab" onclick="generateTabReport('trial-balance')">
+                                <i class="fas fa-file-chart-line me-2"></i>Generate Trial Balance
                             </button>
                         </div>
+
+                        <!-- Inline Report Output -->
+                        <div class="tab-report-output" id="output-trial-balance"></div>
                     </div>
                 </div>
 
-                <!-- Regulatory Reports Card -->
-                <div class="col-lg-4 col-md-6">
-                    <div class="report-card-modern h-100">
-                        <div class="card-header-modern">
-                            <div class="report-icon">
-                                <i class="fas fa-shield-alt"></i>
+                <!-- ==============================
+                     REGULATORY REPORTS TAB
+                     ============================== -->
+                <div class="tab-pane fade" id="pane-rr" role="tabpanel">
+                    <div class="tab-pane-inner">
+                        <div class="tab-description">
+                            <i class="fas fa-info-circle me-2"></i>
+                            Generates compliance summaries for <strong>BSP</strong> (Bangko Sentral ng Pilipinas), <strong>SEC</strong>, and <strong>internal audits</strong> — pulling real figures from all connected subsystems.
+                        </div>
+
+                        <!-- KPI Snapshot Row -->
+                        <div class="kpi-snapshot-row">
+                            <div class="kpi-box kpi-blue">
+                                <div class="kpi-label"><i class="fas fa-landmark me-1"></i>BSP Reports</div>
+                                <div class="kpi-value kpi-status-val"><i class="fas fa-check-circle"></i> Available</div>
+                                <div class="kpi-note">Bank transaction data</div>
                             </div>
-                            <div class="report-meta">
-                                <h5 class="report-title">Regulatory Reports</h5>
-                                <p class="report-subtitle">BSP, SEC, or internal compliance templates</p>
+                            <div class="kpi-box kpi-teal">
+                                <div class="kpi-label"><i class="fas fa-building me-1"></i>SEC Filings</div>
+                                <div class="kpi-value kpi-status-val"><i class="fas fa-check-circle"></i> Available</div>
+                                <div class="kpi-note">Corporate compliance</div>
+                            </div>
+                            <div class="kpi-box kpi-amber">
+                                <div class="kpi-label"><i class="fas fa-clipboard-check me-1"></i>Internal Audit</div>
+                                <div class="kpi-value kpi-status-val"><i class="fas fa-check-circle"></i> Available</div>
+                                <div class="kpi-note">Internal compliance</div>
                             </div>
                         </div>
-                        <div class="card-body-modern">
-                            <div class="report-summary">
-                                <div class="summary-item">
-                                    <span class="summary-label">BSP Reports</span>
-                                    <span class="summary-value text-primary">Available</span>
-                                </div>
-                                <div class="summary-item">
-                                    <span class="summary-label">SEC Filings</span>
-                                    <span class="summary-value text-success">Available</span>
-                                </div>
-                                <div class="summary-item">
-                                    <span class="summary-label">Internal Compliance</span>
-                                    <span class="summary-value text-warning">Available</span>
-                                </div>
+
+                        <!-- Date + Generate -->
+                        <div class="tab-generate-row">
+                            <div class="tab-filter-group">
+                                <label class="tab-filter-label"><i class="fas fa-calendar-alt me-1"></i>Date From</label>
+                                <input type="date" class="form-control tab-date-input" id="rr-date-from" value="<?php echo date('Y-01-01'); ?>">
                             </div>
-                        </div>
-                        <div class="card-footer-modern">
-                            <button class="btn btn-primary btn-generate-modern"
-                                onclick="openReportModal('regulatory-reports')">
-                                <i class="fas fa-file-alt me-2"></i>Generate Report
+                            <div class="tab-filter-group">
+                                <label class="tab-filter-label"><i class="fas fa-calendar-alt me-1"></i>Date To</label>
+                                <input type="date" class="form-control tab-date-input" id="rr-date-to" value="<?php echo date('Y-m-d'); ?>">
+                            </div>
+                            <button class="btn btn-generate-tab" onclick="generateTabReport('regulatory-reports')">
+                                <i class="fas fa-file-chart-line me-2"></i>Generate Regulatory Report
                             </button>
                         </div>
-                    </div>
-                </div>
-            </div>
-        </div>
 
-        <!-- Filtering Section -->
-        <div class="filtering-section-modern">
-            <div class="section-header-simple mb-4">
-                <h2 class="section-title-simple">
-                    <i class="fas fa-filter me-2" style="color: var(--primary-teal);"></i>Data Filtering & Search
-                </h2>
-                <p class="section-subtitle-simple">Filter and search financial data across all reports</p>
-            </div>
-
-            <div class="filtering-card">
-                <div class="row g-4 mb-4">
-                    <div class="col-lg-3 col-md-6">
-                        <div class="filter-group">
-                            <label class="filter-label">
-                                <i class="fas fa-calendar-alt me-2" style="color: var(--primary-teal);"></i>Date From
-                            </label>
-                            <input type="date" class="form-control form-control-modern" id="filter-date-from">
-                        </div>
-                    </div>
-                    <div class="col-lg-3 col-md-6">
-                        <div class="filter-group">
-                            <label class="filter-label">
-                                <i class="fas fa-calendar-alt me-2" style="color: var(--primary-teal);"></i>Date To
-                            </label>
-                            <input type="date" class="form-control form-control-modern" id="filter-date-to">
-                        </div>
-                    </div>
-
-                    <div class="col-lg-3 col-md-6">
-                        <div class="filter-group">
-                            <label class="filter-label">
-                                <i class="fas fa-cogs me-2" style="color: var(--primary-teal);"></i>Subsystem
-                            </label>
-                            <select class="form-select form-select-modern" id="filter-subsystem">
-                                <option value="">All Subsystems</option>
-                                <option value="bank-system">Bank System (Real Customer Accounts)</option>
-                                <option value="loan">Loan Subsystem (Real Borrowers)</option>
-                                <option value="payroll">Payroll (Real Employees - HRIS Integration)</option>
-                                <option value="hris-sia">HRIS-SIA (Real Employee Contracts)</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="col-lg-3 col-md-6">
-                        <div class="filter-group">
-                            <label class="filter-label">
-                                <i class="fas fa-tags me-2" style="color: var(--primary-teal);"></i>Account Type
-                            </label>
-                            <select class="form-select form-select-modern" id="filter-account-type">
-                                <option value="">All Types</option>
-                                <option value="asset">Assets</option>
-                                <option value="liability">Liabilities</option>
-                                <option value="equity">Equity</option>
-                                <option value="revenue">Revenue</option>
-                                <option value="expense">Expenses</option>
-                            </select>
-                        </div>
+                        <!-- Inline Report Output -->
+                        <div class="tab-report-output" id="output-regulatory-reports"></div>
                     </div>
                 </div>
 
-                <div class="row g-4">
-                    <div class="col-lg-8">
-                        <div class="filter-group">
-                            <label class="filter-label">
-                                <i class="fas fa-search me-2" style="color: var(--primary-teal);"></i>Custom Search
-                            </label>
-                            <input type="text" class="form-control form-control-modern" id="filter-custom-search"
-                                placeholder="Search by account name, description, or reference number...">
-                        </div>
-                    </div>
-                    <div class="col-lg-4 d-flex align-items-end">
-                        <div class="filter-actions">
-                            <button class="btn btn-primary btn-lg me-3 px-4" onclick="applyFilters()">
-                                <i class="fas fa-search me-2"></i>Apply Filters
-                            </button>
-                            <button class="btn btn-outline-secondary btn-lg px-3" onclick="clearFilters()">
-                                <i class="fas fa-times"></i>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+            </div><!-- /.tab-content -->
+        </div><!-- /.reports-section -->
 
-        <!-- Filtered Results Section -->
-        <div class="filtered-results-modern" id="filtered-results" style="display: none;">
-            <div class="section-header-simple mb-4">
-                <div class="d-flex justify-content-between align-items-center flex-wrap">
-                    <div>
-                        <h2 class="section-title-simple mb-2">
-                            <i class="fas fa-table me-2" style="color: var(--primary-teal);"></i>Filtered Results
-                        </h2>
-                        <p class="section-subtitle-simple mb-2" id="results-summary">Showing filtered results</p>
-                        <span class="badge bg-success text-white fs-6 px-3 py-2" id="filter-status">No filters
-                            applied</span>
-                    </div>
-                    <!-- Action Buttons -->
-                    <div class="results-actions-simple mt-2">
-                        <button class="btn btn-success btn-lg me-2" onclick="exportFilteredData('excel')">
-                            <i class="fas fa-file-excel me-2"></i>Export Excel
-                        </button>
-                        <button class="btn btn-danger btn-lg me-2" onclick="exportFilteredData('pdf')">
-                            <i class="fas fa-file-pdf me-2"></i>Export PDF
-                        </button>
-                        <button class="btn btn-secondary btn-lg" onclick="printFilteredData()">
-                            <i class="fas fa-print me-2"></i>Print
-                        </button>
-                    </div>
-                </div>
-            </div>
+        <!-- LEGACY: Report Generation Modal (kept for backward compatibility) -->
+        <?php
+        // We keep the modal below the tabs — the tab Generate buttons now load inline instead.
+        // The openReportModal() function still works if called from elsewhere.
+        // The below is dummied out but the JS still targets it.
+        ?>
+        <!-- Hidden legacy vars for old card grid — remove when fully migrated -->
+        <?php
+        // Declare vars expected by removed card grid PHP blocks so the page doesn't error
+        // (payroll_exp is still used by the old TB card logic which we removed)
+        $payroll_exp = 0;
+        if ($conn->query("SHOW TABLES LIKE 'payroll_runs'")->num_rows > 0) {
+            $r = $conn->query("SELECT COALESCE(SUM(total_net),0) as t FROM payroll_runs WHERE status IN ('completed','finalized')");
+            if ($r) { $row = $r->fetch_assoc(); $payroll_exp = floatval($row['t'] ?? 0); }
+        }
+        ?>
 
-            <!-- Pagination Controls -->
-            <div class="pagination-controls mb-3">
-                <div class="row align-items-center">
-                    <div class="col-md-6">
-                        <div class="d-flex align-items-center">
-                            <label for="entries-per-page" class="form-label me-2 mb-0">Show</label>
-                            <select class="form-select form-select-sm" id="entries-per-page" style="width: auto;"
-                                onchange="changeEntriesPerPage()">
-                                <option value="10">10</option>
-                                <option value="25" selected>25</option>
-                                <option value="50">50</option>
-                                <option value="100">100</option>
-                            </select>
-                            <span class="ms-2">entries per page</span>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="d-flex justify-content-end align-items-center">
-                            <span class="text-muted me-3" id="pagination-info">Showing 0 to 0 of 0 entries</span>
-                            <nav aria-label="Pagination">
-                                <ul class="pagination pagination-sm mb-0" id="pagination-controls">
-                                    <li class="page-item disabled">
-                                        <a class="page-link" href="#" onclick="goToPage(1)">First</a>
-                                    </li>
-                                    <li class="page-item disabled">
-                                        <a class="page-link" href="#" onclick="goToPreviousPage()">Previous</a>
-                                    </li>
-                                    <li class="page-item disabled">
-                                        <a class="page-link" href="#" onclick="goToNextPage()">Next</a>
-                                    </li>
-                                    <li class="page-item disabled">
-                                        <a class="page-link" href="#" onclick="goToLastPage()">Last</a>
-                                    </li>
-                                </ul>
-                            </nav>
-                        </div>
-                    </div>
-                </div>
-            </div>
+        <!-- === REMOVED: Old Card Grid was here === -->
+        <!-- === REMOVED: Data Filtering & Search section === -->
+        <!-- === REMOVED: Filtered Results section === -->
 
-            <div class="results-table-container">
-                <div class="table-responsive">
-                    <table class="table table-modern" id="filtered-results-table">
-                        <thead>
-                            <tr>
-                                <th><i class="fas fa-calendar me-1" style="color: var(--primary-teal);"></i>Date</th>
-                                <th><i class="fas fa-hashtag me-1" style="color: var(--primary-teal);"></i>Account Code
-                                </th>
-                                <th><i class="fas fa-tag me-1" style="color: var(--primary-teal);"></i>Account Name</th>
-                                <th><i class="fas fa-align-left me-1"
-                                        style="color: var(--primary-teal);"></i>Description</th>
-                                <th class="text-end"><i class="fas fa-arrow-up me-1"
-                                        style="color: var(--accent-gold);"></i>Debit</th>
-                                <th class="text-end"><i class="fas fa-arrow-down me-1"
-                                        style="color: var(--primary-teal);"></i>Credit</th>
-                                <th class="text-end"><i class="fas fa-balance-scale me-1"
-                                        style="color: var(--primary-teal);"></i>Balance</th>
-                            </tr>
-                        </thead>
-                        <tbody id="filtered-results-tbody">
-                            <!-- Filtered results will be loaded here -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+        <!-- (Spacer for footer breathing room) -->
+        <div class="mb-4"></div>
 
-            <!-- No Results Message -->
-            <div class="no-results-modern" id="no-results-message" style="display: none;">
-                <div class="text-center py-5">
-                    <div class="no-results-icon mb-4">
-                        <i class="fas fa-search fa-4x text-muted opacity-50"></i>
-                    </div>
-                    <h3 class="text-muted mb-3">No Results Found</h3>
-                    <p class="text-muted mb-4">No records match your current filter criteria. Try adjusting your
-                        filters.</p>
-                    <div class="d-flex justify-content-center gap-3">
-                        <button class="btn btn-outline-primary" onclick="clearFilters()">
-                            <i class="fas fa-times me-1"></i>Clear Filters
-                        </button>
-                        <button class="btn btn-primary" onclick="applyFilters()">
-                            <i class="fas fa-search me-1"></i>Try Different Filters
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
+        <!-- DUMMY: PHP vars declared in tabs above are in scope below this point. -->
+        <?php
+        // Suppress unused-var notices. These were declared in the tab KPI PHP blocks above.
+        unset($r, $row);
+        ?>
+
+        <!-- ============ END OF OLD CARD GRID (removed) ============ -->
+
     </main>
 
-    <!-- Report Generation Modal -->
+    <!-- Report Generation Modal (legacy — kept for openReportModal() backward compat) -->
     <div class="modal fade" id="reportModal" tabindex="-1">
         <div class="modal-dialog modal-xl">
             <div class="modal-content">

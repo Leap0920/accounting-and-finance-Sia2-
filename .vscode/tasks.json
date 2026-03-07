@@ -1,0 +1,50 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "truncate-php-file",
+			"type": "shell",
+			"command": "powershell -Command \"$content = Get-Content 'c:\\xampp\\htdocs\\accounting-and-finance-Sia2-\\modules\\financial-reporting.php' -TotalCount 565; Set-Content 'c:\\xampp\\htdocs\\accounting-and-finance-Sia2-\\modules\\financial-reporting.php' -Value ($content -join \\\"`n\\\")\""
+		},
+		{
+			"label": "Truncate financial-reporting.php",
+			"type": "shell",
+			"command": "powershell -Command \"$content = Get-Content 'c:\\xampp\\htdocs\\accounting-and-finance-Sia2-\\modules\\financial-reporting.php' -TotalCount 565; $content -join [char]10 | Set-Content 'c:\\xampp\\htdocs\\accounting-and-finance-Sia2-\\modules\\financial-reporting.php' -NoNewline -Encoding UTF8\""
+		},
+		{
+			"label": "Truncate PHP to 565 lines",
+			"type": "shell",
+			"command": "powershell -Command \"(Get-Content 'modules/financial-reporting.php' -TotalCount 565) | Set-Content 'modules/financial-reporting.php' -Encoding UTF8\""
+		},
+		{
+			"label": "Truncate PHP file",
+			"type": "shell",
+			"command": "php tmp/truncate_file.php"
+		},
+		{
+			"label": "Truncate PHP file",
+			"type": "shell",
+			"command": "php -r \"$f='c:/xampp/htdocs/accounting-and-finance-Sia2-/modules/financial-reporting.php'; $lines=file($f); file_put_contents($f, implode('', array_slice($lines, 0, 565)));\""
+		},
+		{
+			"label": "Truncate financial-reporting.php",
+			"type": "shell",
+			"command": "powershell -Command \"$f = 'c:\\xampp\\htdocs\\accounting-and-finance-Sia2-\\modules\\financial-reporting.php'; $lines = Get-Content $f -TotalCount 565; [System.IO.File]::WriteAllText($f, ($lines -join \\\"`r`n\\\") + \\\"`r`n\\\")\""
+		},
+		{
+			"label": "Truncate JS file to 1305 lines",
+			"type": "shell",
+			"command": "powershell -Command \"$f = 'c:\\xampp\\htdocs\\accounting-and-finance-Sia2-\\assets\\js\\financial-reporting.js'; $lines = Get-Content $f -TotalCount 1305; [System.IO.File]::WriteAllText($f, ($lines -join \\\"`r`n\\\") + \\\"`r`n\\\")\""
+		},
+		{
+			"label": "Truncate JS to 1305 lines",
+			"type": "shell",
+			"command": "php -r \"$f='c:/xampp/htdocs/accounting-and-finance-Sia2-/assets/js/financial-reporting.js'; $lines=file($f); file_put_contents($f, implode('', array_slice($lines, 0, 1305)));\""
+		},
+		{
+			"label": "Run JS truncation script",
+			"type": "shell",
+			"command": "php tmp/truncate_js.php"
+		}
+	]
+}

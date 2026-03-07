@@ -774,6 +774,39 @@ $current_user = getCurrentUser();
         </div>
     </div>
 
+    <!-- Void Journal Entry Confirmation Modal -->
+    <div class="modal fade" id="voidJournalEntryConfirmModal" tabindex="-1" aria-labelledby="voidJournalEntryConfirmModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header bg-danger text-white border-0">
+                    <h5 class="modal-title" id="voidJournalEntryConfirmModalLabel">
+                        <i class="fas fa-ban me-2"></i>Void Journal Entry
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body py-4">
+                    <div class="text-center">
+                        <div class="mb-3">
+                            <i class="fas fa-exclamation-triangle fa-3x text-danger"></i>
+                        </div>
+                        <h5 class="mb-2">Void this journal entry?</h5>
+                        <p class="text-muted mb-1">Journal No: <strong id="voidJEConfirmNo">-</strong></p>
+                        <p class="text-muted small mb-0">This will reverse all account balance changes.<br>This action <strong>cannot be undone</strong>.</p>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 justify-content-center pb-4">
+                    <button type="button" class="btn btn-outline-secondary px-4" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i>Cancel
+                    </button>
+                    <button type="button" class="btn btn-danger px-4" id="confirmVoidJEBtn" onclick="executeVoidJournalEntry()">
+                        <i class="fas fa-ban me-1"></i>Yes, Void Entry
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Account Detail Modal -->
     <div class="modal fade" id="accountDetailModal" tabindex="-1" aria-labelledby="accountDetailModalLabel"
         aria-hidden="true">

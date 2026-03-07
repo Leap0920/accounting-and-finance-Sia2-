@@ -1113,7 +1113,7 @@ function updateAccountBalances($conn, $journalEntryId, $fiscalPeriodId)
                 WHERE account_id = ? AND fiscal_period_id = ?
             ";
             $updateStmt = $conn->prepare($updateSql);
-            $updateStmt->bind_param('ddddii', $newDebitMovements, $newCreditMovements, $newClosingBalance, $accountId, $fiscalPeriodId);
+            $updateStmt->bind_param('dddii', $newDebitMovements, $newCreditMovements, $newClosingBalance, $accountId, $fiscalPeriodId);
             $updateStmt->execute();
         } else {
             // Create new balance record
@@ -1170,7 +1170,7 @@ function reverseAccountBalances($conn, $journalEntryId, $fiscalPeriodId)
                 WHERE account_id = ? AND fiscal_period_id = ?
             ";
             $updateStmt = $conn->prepare($updateSql);
-            $updateStmt->bind_param('ddddii', $newDebitMovements, $newCreditMovements, $newClosingBalance, $accountId, $fiscalPeriodId);
+            $updateStmt->bind_param('dddii', $newDebitMovements, $newCreditMovements, $newClosingBalance, $accountId, $fiscalPeriodId);
             $updateStmt->execute();
         }
     }

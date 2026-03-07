@@ -1429,6 +1429,7 @@ function getFallbackTransactions() {
 // ========================================
 
 let currentJournalEntryId = null;
+let currentJournalNo = null;
 
 function viewTransactionDetailsById(entryId, journalNo, source = 'journal') {
     console.log('View transaction details:', { entryId, journalNo, source });
@@ -1749,6 +1750,9 @@ function displayJournalEntryDetails(entry) {
 
     body.innerHTML = html;
 
+    // Store journal number for void modal
+    currentJournalNo = entry.journal_no || '';
+
     // Show/hide action buttons based on permissions
     const postBtn = document.getElementById('postJournalEntryBtn');
     const voidBtn = document.getElementById('voidJournalEntryBtn');
@@ -1814,17 +1818,32 @@ function postJournalEntry() {
 function voidJournalEntry() {
     if (!currentJournalEntryId) return;
 
-    const reason = prompt('Please enter a reason for voiding this journal entry:');
-    if (!reason) return;
+    const noEl = document.getElementById('voidJEConfirmNo');
+    if (noEl) noEl.textContent = currentJournalNo || currentJournalEntryId;
 
-    if (!confirm('Are you sure you want to void this journal entry? This will reverse all account balances.')) {
-        return;
+    const confirmBtn = document.getElementById('confirmVoidJEBtn');
+    if (confirmBtn) {
+        confirmBtn.disabled = false;
+        confirmBtn.innerHTML = '<i class="fas fa-ban me-1"></i>Yes, Void Entry';
+    }
+
+    const confirmModal = new bootstrap.Modal(document.getElementById('voidJournalEntryConfirmModal'));
+    confirmModal.show();
+}
+
+function executeVoidJournalEntry() {
+    if (!currentJournalEntryId) return;
+
+    const confirmBtn = document.getElementById('confirmVoidJEBtn');
+    if (confirmBtn) {
+        confirmBtn.disabled = true;
+        confirmBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Voiding...';
     }
 
     const formData = new FormData();
     formData.append('action', 'void_journal_entry');
     formData.append('journal_entry_id', currentJournalEntryId);
-    formData.append('reason', reason);
+    formData.append('reason', 'Voided via General Ledger');
 
     fetch('../modules/api/general-ledger-data.php', {
         method: 'POST',
@@ -1832,19 +1851,32 @@ function voidJournalEntry() {
     })
         .then(response => response.json())
         .then(data => {
+            const confirmModalEl = document.getElementById('voidJournalEntryConfirmModal');
+            const confirmModalInst = bootstrap.Modal.getInstance(confirmModalEl);
+            if (confirmModalInst) confirmModalInst.hide();
+
             if (data.success) {
-                showNotification(data.message, 'success');
-                const modal = bootstrap.Modal.getInstance(document.getElementById('journalEntryDetailModal'));
-                modal.hide();
+                showNotification(data.message || 'Journal entry voided successfully', 'success');
+                const detailModal = bootstrap.Modal.getInstance(document.getElementById('journalEntryDetailModal'));
+                if (detailModal) detailModal.hide();
                 loadTransactionsTable();
                 loadStatistics();
+                if (typeof loadPayrollJournalEntries === 'function') loadPayrollJournalEntries();
             } else {
                 showNotification(data.message || 'Error voiding journal entry', 'error');
+                if (confirmBtn) {
+                    confirmBtn.disabled = false;
+                    confirmBtn.innerHTML = '<i class="fas fa-ban me-1"></i>Yes, Void Entry';
+                }
             }
         })
         .catch(error => {
             console.error('Error:', error);
             showNotification('Error voiding journal entry', 'error');
+            if (confirmBtn) {
+                confirmBtn.disabled = false;
+                confirmBtn.innerHTML = '<i class="fas fa-ban me-1"></i>Yes, Void Entry';
+            }
         });
 }
 

@@ -2667,6 +2667,126 @@ if ($attendance_payroll_adjustments && isset($attendance_payroll_adjustments['at
         </div>
     </div>
 
+    <!-- Employee Selection Modal (Pre-GL Posting) -->
+    <div class="modal fade" id="employeeSelectionModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+        <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content border-0 shadow-lg emp-selection-modal">
+                <!-- Header -->
+                <div class="modal-header emp-selection-header">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="emp-selection-icon">
+                            <i class="fas fa-users-cog"></i>
+                        </div>
+                        <div>
+                            <h5 class="modal-title text-white mb-0">Select Employees for Payroll</h5>
+                            <small class="text-white-50">Review and choose which employees to include in this payroll run</small>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+
+                <!-- Body -->
+                <div class="modal-body p-0">
+                    <!-- Period Info + Controls Bar -->
+                    <div class="emp-selection-toolbar">
+                        <div class="row align-items-center g-2">
+                            <div class="col-md-4">
+                                <div class="period-info-badge">
+                                    <i class="fas fa-calendar-alt me-2"></i>
+                                    <span id="empModalPeriodLabel">Loading...</span>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="input-group input-group-sm emp-search-group">
+                                    <span class="input-group-text"><i class="fas fa-search"></i></span>
+                                    <input type="text" class="form-control" id="empModalSearch" placeholder="Search employee, department, position...">
+                                </div>
+                            </div>
+                            <div class="col-md-4 text-end">
+                                <button type="button" class="btn btn-sm emp-btn-select-all" onclick="toggleSelectAllEmployees()">
+                                    <i class="fas fa-check-double me-1"></i>
+                                    <span id="selectAllLabel">Deselect All</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Loading State -->
+                    <div id="empModalLoading" class="text-center py-5">
+                        <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="mt-3 text-muted">Calculating payroll for all employees...</p>
+                    </div>
+
+                    <!-- Employee Table -->
+                    <div id="empModalTableWrapper" class="emp-table-wrapper" style="display:none;">
+                        <table class="table table-hover mb-0 emp-selection-table">
+                            <thead>
+                                <tr>
+                                    <th class="text-center" style="width:45px;">
+                                        <input type="checkbox" class="form-check-input emp-check-all" id="empCheckAll" checked onchange="toggleSelectAllEmployees(this.checked)">
+                                    </th>
+                                    <th>Employee</th>
+                                    <th>Department</th>
+                                    <th>Position</th>
+                                    <th class="text-end">Gross Pay</th>
+                                    <th class="text-end">Deductions</th>
+                                    <th class="text-end">Net Pay</th>
+                                </tr>
+                            </thead>
+                            <tbody id="empModalTableBody">
+                                <!-- Populated by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Empty State -->
+                    <div id="empModalEmpty" class="text-center py-5" style="display:none;">
+                        <i class="fas fa-user-slash fa-3x text-muted mb-3"></i>
+                        <h6 class="text-muted">No active employees found</h6>
+                        <p class="text-muted small">Make sure employees have an active employment status and are linked in the system.</p>
+                    </div>
+                </div>
+
+                <!-- Footer with summary -->
+                <div class="modal-footer emp-selection-footer">
+                    <div class="row w-100 align-items-center g-2">
+                        <div class="col-md-7">
+                            <div class="emp-selection-summary">
+                                <div class="summary-item">
+                                    <span class="summary-label">Selected:</span>
+                                    <span class="summary-value" id="empSelectedCount">0</span>
+                                    <span class="summary-label">of</span>
+                                    <span class="summary-value" id="empTotalCount">0</span>
+                                    <span class="summary-label">employees</span>
+                                </div>
+                                <div class="summary-divider"></div>
+                                <div class="summary-item">
+                                    <span class="summary-label">Total Gross:</span>
+                                    <span class="summary-value text-success" id="empTotalGross">₱0.00</span>
+                                </div>
+                                <div class="summary-divider"></div>
+                                <div class="summary-item">
+                                    <span class="summary-label">Total Net:</span>
+                                    <span class="summary-value text-primary" id="empTotalNet">₱0.00</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-5 text-end">
+                            <button type="button" class="btn btn-outline-secondary px-4 me-2" data-bs-dismiss="modal">
+                                <i class="fas fa-times me-1"></i>Cancel
+                            </button>
+                            <button type="button" class="btn emp-btn-confirm px-4" id="empConfirmBtn" onclick="confirmPostToGL()">
+                                <i class="fas fa-check-double me-2"></i>Process & Post to GL
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <!-- jQuery -->

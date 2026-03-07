@@ -15,10 +15,12 @@ if (!isLoggedIn()) {
     exit;
 }
 
-$action = $_POST['action'] ?? '';
+$action = $_POST['action'] ?? ($_GET['action'] ?? '');
 
 if ($action === 'finalize_payroll') {
     finalizePayroll($conn);
+} elseif ($action === 'preview_payroll') {
+    previewPayroll($conn);
 } else {
     header('Content-Type: application/json');
     echo json_encode(['success' => false, 'error' => 'Invalid action']);
@@ -77,6 +79,16 @@ function finalizePayroll($conn)
         return;
     }
 
+    // Check if specific employees were selected
+    $selected_employees_json = $_POST['selected_employees'] ?? '';
+    $selected_employees = [];
+    if (!empty($selected_employees_json)) {
+        $selected_employees = json_decode($selected_employees_json, true);
+        if (!is_array($selected_employees)) {
+            $selected_employees = [];
+        }
+    }
+
     // 1. Fetch all active employees
     $employees_query = "SELECT 
                             e.employee_id, 
@@ -119,6 +131,11 @@ function finalizePayroll($conn)
     // 2. Calculate payroll for each employee
     while ($emp = $employees_result->fetch_assoc()) {
         $ext_no = $emp['external_employee_no'];
+
+        // Skip employees not in the selected list (if a selection was provided)
+        if (!empty($selected_employees) && !in_array($ext_no, $selected_employees)) {
+            continue;
+        }
 
         // Use existing calculation function
         $calc = calculatePayrollFromAttendance($conn, $ext_no, $date_from, $date_to);
@@ -365,4 +382,135 @@ function finalizePayroll($conn)
         $conn->rollback();
         echo json_encode(['success' => false, 'error' => 'Database error: ' . $e->getMessage()]);
     }
+}
+
+/**
+ * Preview payroll calculations for all active employees (read-only, no DB writes)
+ */
+function previewPayroll($conn)
+{
+    header('Content-Type: application/json');
+
+    $month = $_POST['month'] ?? ($_GET['month'] ?? '');
+    $period = $_POST['period'] ?? ($_GET['period'] ?? '');
+
+    if (empty($month) || empty($period)) {
+        echo json_encode(['success' => false, 'error' => 'Month and period are required']);
+        return;
+    }
+
+    if (!preg_match('/^\d{4}-\d{2}$/', $month)) {
+        echo json_encode(['success' => false, 'error' => 'Invalid month format']);
+        return;
+    }
+
+    if (!in_array($period, ['first', 'second', 'full'])) {
+        echo json_encode(['success' => false, 'error' => 'Invalid period value']);
+        return;
+    }
+
+    $last_day = date('t', strtotime($month . '-01'));
+    if ($period === 'first') {
+        $date_from = $month . '-01';
+        $date_to = $month . '-15';
+    } elseif ($period === 'second') {
+        $date_from = $month . '-16';
+        $date_to = $month . '-' . $last_day;
+    } else {
+        $date_from = $month . '-01';
+        $date_to = $month . '-' . $last_day;
+    }
+
+    // Fetch all active employees with department and position info
+    $employees_query = "SELECT 
+                            e.employee_id, 
+                            e.first_name, 
+                            e.last_name, 
+                            er.external_employee_no,
+                            c.salary as contract_salary,
+                            er.base_monthly_salary,
+                            COALESCE(d.department_name, er.department, '') as department,
+                            COALESCE(p.position_title, er.position, '') as position
+                        FROM employee e 
+                        INNER JOIN employee_refs er ON e.employee_id = CAST(SUBSTRING(er.external_employee_no, 4) AS UNSIGNED)
+                        LEFT JOIN contract c ON e.contract_id = c.contract_id
+                        LEFT JOIN department d ON e.department_id = d.department_id
+                        LEFT JOIN `position` p ON e.position_id = p.position_id
+                        WHERE e.employment_status = 'active'
+                        ORDER BY e.last_name, e.first_name";
+
+    $employees_result = $conn->query($employees_query);
+    if (!$employees_result) {
+        echo json_encode(['success' => false, 'error' => 'Failed to fetch employees: ' . $conn->error]);
+        return;
+    }
+
+    // Pre-fetch other deductions
+    $other_deductions_total_per_emp = 0;
+    $deductions_res = $conn->query("SELECT code, value FROM salary_components WHERE type = 'deduction' AND is_active = 1");
+    if ($deductions_res) {
+        while ($ded = $deductions_res->fetch_assoc()) {
+            if (!in_array($ded['code'], ['SSS_EMP', 'PAGIBIG_EMP', 'PHILHEALTH_EMP', 'WHT'])) {
+                $other_deductions_total_per_emp += floatval($ded['value'] ?? 0);
+            }
+        }
+    }
+
+    $employees = [];
+    $total_gross = 0;
+    $total_deductions = 0;
+    $total_net = 0;
+
+    while ($emp = $employees_result->fetch_assoc()) {
+        $ext_no = $emp['external_employee_no'];
+        $name = trim($emp['first_name'] . ' ' . $emp['last_name']);
+
+        $calc = calculatePayrollFromAttendance($conn, $ext_no, $date_from, $date_to);
+
+        if ($calc && isset($calc['salary_adjustments'])) {
+            $adj = $calc['salary_adjustments'];
+            $gross = $adj['gross_salary'] ?? 0;
+
+            $basic_for_contrib = $adj['prorated_base_salary'] ?? ($emp['contract_salary'] > 0 ? $emp['contract_salary'] : $emp['base_monthly_salary']);
+            $sss = calculateSSSContribution($basic_for_contrib);
+            $philhealth = calculatePhilHealthContribution($basic_for_contrib);
+            $pagibig = calculatePagIBIGContribution($basic_for_contrib);
+
+            $taxable = $gross - $sss['employee'] - $philhealth['employee'] - $pagibig['employee'];
+            $wht = calculateBIRWithholdingTax($taxable);
+
+            $net = ($adj['net_salary_before_tax'] ?? $gross) - $sss['employee'] - $philhealth['employee'] - $pagibig['employee'] - $wht - $other_deductions_total_per_emp;
+            $emp_deductions = $gross - $net;
+
+            $employees[] = [
+                'employee_no'  => $ext_no,
+                'name'         => $name,
+                'department'   => $emp['department'],
+                'position'     => $emp['position'],
+                'gross'        => round($gross, 2),
+                'sss'          => round($sss['employee'], 2),
+                'philhealth'   => round($philhealth['employee'], 2),
+                'pagibig'      => round($pagibig['employee'], 2),
+                'wht'          => round($wht, 2),
+                'other'        => round($other_deductions_total_per_emp, 2),
+                'deductions'   => round($emp_deductions, 2),
+                'net'          => round($net, 2)
+            ];
+
+            $total_gross += $gross;
+            $total_deductions += $emp_deductions;
+            $total_net += $net;
+        }
+    }
+
+    echo json_encode([
+        'success' => true,
+        'employees' => $employees,
+        'summary' => [
+            'total_employees' => count($employees),
+            'total_gross' => round($total_gross, 2),
+            'total_deductions' => round($total_deductions, 2),
+            'total_net' => round($total_net, 2)
+        ]
+    ]);
 }

@@ -672,6 +672,7 @@ function showPayrollNotification(type, title, message, callback = null) {
 
 /**
  * Finalize payroll for the selected period and post to GL
+ * Now opens the employee selection modal first
  */
 function finalizePayroll() {
     const payrollMonth = document.getElementById('payroll-month-select')?.value;
@@ -682,50 +683,264 @@ function finalizePayroll() {
         return;
     }
 
-    const periodLabel = document.getElementById('payroll-period-select')?.selectedOptions[0]?.text || payrollPeriod;
-    const monthLabel = document.getElementById('payroll-month-select')?.selectedOptions[0]?.text || payrollMonth;
+    openEmployeeSelectionModal(payrollMonth, payrollPeriod);
+}
 
-    showPayrollNotification('confirm', 'Confirm Payroll Processing', `Are you sure you want to process and finalize payroll for ${monthLabel} — ${periodLabel}?\n\nThis will create a journal entry in the General Ledger.`, function () {
-        // Show loading state on the button
-        const btn = document.querySelector('.btn-post-gl');
-        let originalHtml = '';
-        if (btn) {
-            originalHtml = btn.innerHTML;
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Posting…';
+/**
+ * Open the employee selection modal and load payroll preview data
+ */
+function openEmployeeSelectionModal(month, period) {
+    const periodLabel = document.getElementById('payroll-period-select')?.selectedOptions[0]?.text || period;
+    const monthLabel = document.getElementById('payroll-month-select')?.selectedOptions[0]?.text || month;
+
+    // Set period label in modal
+    document.getElementById('empModalPeriodLabel').textContent = monthLabel + ' — ' + periodLabel;
+
+    // Reset modal state
+    document.getElementById('empModalLoading').style.display = '';
+    document.getElementById('empModalTableWrapper').style.display = 'none';
+    document.getElementById('empModalEmpty').style.display = 'none';
+    document.getElementById('empModalTableBody').innerHTML = '';
+    document.getElementById('empModalSearch').value = '';
+    document.getElementById('empConfirmBtn').disabled = false;
+
+    // Store month/period on the modal for later use
+    const modal = document.getElementById('employeeSelectionModal');
+    modal.dataset.month = month;
+    modal.dataset.period = period;
+
+    // Open modal
+    const bsModal = new bootstrap.Modal(modal);
+    bsModal.show();
+
+    // Fetch payroll preview
+    $.ajax({
+        url: 'api/payroll-actions.php',
+        method: 'POST',
+        data: {
+            action: 'preview_payroll',
+            month: month,
+            period: period
+        },
+        success: function (response) {
+            document.getElementById('empModalLoading').style.display = 'none';
+
+            if (response.success && response.employees && response.employees.length > 0) {
+                renderEmployeeSelectionTable(response.employees);
+                document.getElementById('empModalTableWrapper').style.display = '';
+            } else if (response.success && (!response.employees || response.employees.length === 0)) {
+                document.getElementById('empModalEmpty').style.display = '';
+                document.getElementById('empConfirmBtn').disabled = true;
+            } else {
+                document.getElementById('empModalEmpty').style.display = '';
+                document.getElementById('empConfirmBtn').disabled = true;
+                showPayrollNotification('error', 'Preview Failed', response.error || 'Could not load payroll preview.');
+            }
+        },
+        error: function () {
+            document.getElementById('empModalLoading').style.display = 'none';
+            document.getElementById('empModalEmpty').style.display = '';
+            document.getElementById('empConfirmBtn').disabled = true;
+            showPayrollNotification('error', 'Server Error', 'Failed to fetch payroll preview. Please try again.');
         }
+    });
+}
 
-        $.ajax({
-            url: 'api/payroll-actions.php',
-            method: 'POST',
-            data: {
-                action: 'finalize_payroll',
-                month: payrollMonth,
-                period: payrollPeriod
-            },
-            success: function (response) {
-                if (response.success) {
-                    const summary = response.summary
-                        ? `\n\nEmployees: ${response.summary.employees}\nGross: ₱${Number(response.summary.total_gross).toLocaleString()}\nNet: ₱${Number(response.summary.total_net).toLocaleString()}`
-                        : '';
+/**
+ * Render the employee table rows inside the selection modal
+ */
+function renderEmployeeSelectionTable(employees) {
+    const tbody = document.getElementById('empModalTableBody');
+    tbody.innerHTML = '';
 
-                    showPayrollNotification('success', 'Success', 'Payroll posted to GL successfully!\nJournal Entry: ' + (response.journal_no || 'N/A') + summary);
+    employees.forEach(function (emp, idx) {
+        const row = document.createElement('tr');
+        row.className = 'emp-row';
+        row.dataset.name = (emp.name || '').toLowerCase();
+        row.dataset.department = (emp.department || '').toLowerCase();
+        row.dataset.position = (emp.position || '').toLowerCase();
+        row.dataset.employeeNo = emp.employee_no;
+        row.dataset.gross = emp.gross;
+        row.dataset.deductions = emp.deductions;
+        row.dataset.net = emp.net;
 
-                    // Reload after a delay to allow user to see success message
-                    setTimeout(() => {
-                        window.location.reload();
-                    }, 3000);
-                } else {
-                    showPayrollNotification('error', 'Processing Error', response.error || 'Unknown error');
-                    if (btn) { btn.disabled = false; btn.innerHTML = originalHtml; }
-                }
-            },
-            error: function (xhr, status, error) {
-                console.error('AJAX Error:', error);
-                showPayrollNotification('error', 'Server Error', 'An error occurred during payroll processing. Please check the logs.');
+        row.innerHTML = `
+            <td class="text-center">
+                <input type="checkbox" class="form-check-input emp-checkbox" value="${emp.employee_no}" checked onchange="updateSelectionSummary()">
+            </td>
+            <td>
+                <div class="emp-name-cell">
+                    <span class="emp-name">${escapeHtml(emp.name)}</span>
+                    <small class="text-muted">${escapeHtml(emp.employee_no)}</small>
+                </div>
+            </td>
+            <td><span class="emp-dept-badge">${escapeHtml(emp.department || '—')}</span></td>
+            <td>${escapeHtml(emp.position || '—')}</td>
+            <td class="text-end fw-semibold">₱${Number(emp.gross).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+            <td class="text-end text-danger">₱${Number(emp.deductions).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+            <td class="text-end fw-bold text-success">₱${Number(emp.net).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+        `;
+        tbody.appendChild(row);
+    });
+
+    // Set total count
+    document.getElementById('empTotalCount').textContent = employees.length;
+    document.getElementById('empCheckAll').checked = true;
+    document.getElementById('selectAllLabel').textContent = 'Deselect All';
+
+    updateSelectionSummary();
+
+    // Attach search listener
+    document.getElementById('empModalSearch').oninput = filterEmployeeRows;
+}
+
+/**
+ * Escape HTML to prevent XSS
+ */
+function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.appendChild(document.createTextNode(str || ''));
+    return div.innerHTML;
+}
+
+/**
+ * Update the selection summary (count + totals) based on checked checkboxes
+ */
+function updateSelectionSummary() {
+    const checkboxes = document.querySelectorAll('#empModalTableBody .emp-checkbox');
+    let selectedCount = 0;
+    let totalGross = 0;
+    let totalNet = 0;
+
+    checkboxes.forEach(function (cb) {
+        if (cb.checked) {
+            const row = cb.closest('tr');
+            selectedCount++;
+            totalGross += parseFloat(row.dataset.gross) || 0;
+            totalNet += parseFloat(row.dataset.net) || 0;
+        }
+    });
+
+    document.getElementById('empSelectedCount').textContent = selectedCount;
+    document.getElementById('empTotalGross').textContent = '₱' + totalGross.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    document.getElementById('empTotalNet').textContent = '₱' + totalNet.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+
+    // Update header checkbox state
+    const allCheckboxes = document.querySelectorAll('#empModalTableBody .emp-checkbox');
+    const allChecked = Array.from(allCheckboxes).every(cb => cb.checked);
+    const noneChecked = Array.from(allCheckboxes).every(cb => !cb.checked);
+    const headerCb = document.getElementById('empCheckAll');
+    headerCb.checked = allChecked;
+    headerCb.indeterminate = !allChecked && !noneChecked;
+    document.getElementById('selectAllLabel').textContent = allChecked ? 'Deselect All' : 'Select All';
+
+    // Disable confirm if none selected
+    document.getElementById('empConfirmBtn').disabled = selectedCount === 0;
+}
+
+/**
+ * Toggle select/deselect all employees
+ */
+function toggleSelectAllEmployees(checked) {
+    // If called from button (no argument), toggle based on current state
+    if (typeof checked === 'undefined') {
+        const headerCb = document.getElementById('empCheckAll');
+        checked = !headerCb.checked;
+        headerCb.checked = checked;
+    }
+
+    const checkboxes = document.querySelectorAll('#empModalTableBody .emp-checkbox');
+    checkboxes.forEach(function (cb) {
+        // Only toggle visible rows
+        const row = cb.closest('tr');
+        if (row.style.display !== 'none') {
+            cb.checked = checked;
+        }
+    });
+
+    updateSelectionSummary();
+}
+
+/**
+ * Filter employee rows in the modal by search text
+ */
+function filterEmployeeRows() {
+    const query = document.getElementById('empModalSearch').value.toLowerCase().trim();
+    const rows = document.querySelectorAll('#empModalTableBody .emp-row');
+
+    rows.forEach(function (row) {
+        const name = row.dataset.name || '';
+        const dept = row.dataset.department || '';
+        const pos = row.dataset.position || '';
+        const empNo = (row.dataset.employeeNo || '').toLowerCase();
+
+        if (!query || name.includes(query) || dept.includes(query) || pos.includes(query) || empNo.includes(query)) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+}
+
+/**
+ * Confirm and post selected employees' payroll to GL
+ */
+function confirmPostToGL() {
+    const checkboxes = document.querySelectorAll('#empModalTableBody .emp-checkbox:checked');
+
+    if (checkboxes.length === 0) {
+        showPayrollNotification('error', 'No Employees Selected', 'Please select at least one employee to process payroll.');
+        return;
+    }
+
+    const selectedEmployees = Array.from(checkboxes).map(cb => cb.value);
+    const modal = document.getElementById('employeeSelectionModal');
+    const month = modal.dataset.month;
+    const period = modal.dataset.period;
+
+    // Close the selection modal
+    const bsModal = bootstrap.Modal.getInstance(modal);
+    if (bsModal) bsModal.hide();
+
+    // Show loading on the Post to GL button
+    const btn = document.querySelector('.btn-post-gl');
+    let originalHtml = '';
+    if (btn) {
+        originalHtml = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Posting…';
+    }
+
+    $.ajax({
+        url: 'api/payroll-actions.php',
+        method: 'POST',
+        data: {
+            action: 'finalize_payroll',
+            month: month,
+            period: period,
+            selected_employees: JSON.stringify(selectedEmployees)
+        },
+        success: function (response) {
+            if (response.success) {
+                const summary = response.summary
+                    ? `\n\nEmployees: ${response.summary.employees}\nGross: ₱${Number(response.summary.total_gross).toLocaleString()}\nNet: ₱${Number(response.summary.total_net).toLocaleString()}`
+                    : '';
+
+                showPayrollNotification('success', 'Success', 'Payroll posted to GL successfully!\nJournal Entry: ' + (response.journal_no || 'N/A') + summary);
+
+                setTimeout(() => {
+                    window.location.reload();
+                }, 3000);
+            } else {
+                showPayrollNotification('error', 'Processing Error', response.error || 'Unknown error');
                 if (btn) { btn.disabled = false; btn.innerHTML = originalHtml; }
             }
-        });
+        },
+        error: function (xhr, status, error) {
+            console.error('AJAX Error:', error);
+            showPayrollNotification('error', 'Server Error', 'An error occurred during payroll processing. Please check the logs.');
+            if (btn) { btn.disabled = false; btn.innerHTML = originalHtml; }
+        }
     });
 }
 
@@ -746,4 +961,7 @@ window.viewExpense = viewExpense;
 window.editExpense = editExpense;
 window.viewTransaction = viewTransaction;
 window.viewLoan = viewLoan;
+window.toggleSelectAllEmployees = toggleSelectAllEmployees;
+window.updateSelectionSummary = updateSelectionSummary;
+window.confirmPostToGL = confirmPostToGL;
 

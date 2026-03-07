@@ -424,7 +424,7 @@ CREATE TABLE salary_components (
 -- BANKING AND PAYMENTS
 -- ========================================
 
-CREATE TABLE bank_accounts (
+CREATE TABLE IF NOT EXISTS bank_accounts (
     id INT AUTO_INCREMENT PRIMARY KEY,
     code VARCHAR(50) UNIQUE NOT NULL,
     name VARCHAR(150) NOT NULL,
@@ -437,7 +437,7 @@ CREATE TABLE bank_accounts (
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
-CREATE TABLE payments (
+CREATE TABLE IF NOT EXISTS payments (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     payment_no VARCHAR(50) UNIQUE NOT NULL,
     payment_date DATE NOT NULL,

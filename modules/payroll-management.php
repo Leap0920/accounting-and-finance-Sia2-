@@ -18,7 +18,7 @@ $payroll_period = isset($_GET['payroll_period']) ? $_GET['payroll_period'] : '';
 // payroll_month drives BOTH the Payroll Month selector AND the attendance records filter.
 // attendance_month is kept as an alias for backward compat but always overridden by payroll_month.
 $payroll_month = isset($_GET['payroll_month']) ? $_GET['payroll_month']
-               : (isset($_GET['attendance_month']) ? $_GET['attendance_month'] : date('Y-m'));
+    : (isset($_GET['attendance_month']) ? $_GET['attendance_month'] : date('Y-m'));
 
 // Calculate period start and end dates based on selection
 $period_start = '';
@@ -2667,9 +2667,6 @@ if ($attendance_payroll_adjustments && isset($attendance_payroll_adjustments['at
                 </div>
             </div>
         </div>
-        <div class="container-fluid px-5 pb-4">
-            <?php include '../includes/footer.php'; ?>
-        </div>
 
         <!-- Bootstrap JS -->
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
@@ -2678,6 +2675,10 @@ if ($attendance_payroll_adjustments && isset($attendance_payroll_adjustments['at
         <!-- Custom JS -->
         <script src="../assets/js/payroll-management.js"></script>
         <script src="../assets/js/notifications.js"></script>
+
+        <div class="container-fluid px-5 pb-5">
+            <?php include '../includes/footer.php'; ?>
+        </div>
 </body>
 
 </html>

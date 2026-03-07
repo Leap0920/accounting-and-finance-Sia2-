@@ -368,17 +368,17 @@ if (!empty($status)) {
 }
 
 if (!empty($accountNumber)) {
-    $filteredExpenses = array_filter($filteredExpenses, function($exp) use ($accountNumber) {
-        return stripos($exp['transaction_number'] ?? '', $accountNumber) !== false || 
-               stripos($exp['category_code'] ?? '', $accountNumber) !== false ||
-               stripos($exp['category_name'] ?? '', $accountNumber) !== false ||
-               stripos($exp['employee_name'] ?? '', $accountNumber) !== false ||
-               stripos($exp['description'] ?? '', $accountNumber) !== false;
+    $filteredExpenses = array_filter($filteredExpenses, function ($exp) use ($accountNumber) {
+        return stripos($exp['transaction_number'] ?? '', $accountNumber) !== false ||
+            stripos($exp['category_code'] ?? '', $accountNumber) !== false ||
+            stripos($exp['category_name'] ?? '', $accountNumber) !== false ||
+            stripos($exp['employee_name'] ?? '', $accountNumber) !== false ||
+            stripos($exp['description'] ?? '', $accountNumber) !== false;
     });
 }
 
 if (!empty($minAmount)) {
-    $filteredExpenses = array_filter($filteredExpenses, function($exp) use ($minAmount) {
+    $filteredExpenses = array_filter($filteredExpenses, function ($exp) use ($minAmount) {
         return floatval($exp['amount'] ?? 0) >= floatval($minAmount);
     });
 }
@@ -523,7 +523,8 @@ function buildPageUrl($page)
     <?php include '../includes/navbar.php'; ?>
 
     <!-- Beautiful Page Header -->
-    <div class="beautiful-page-header mb-4" style="max-width: 1400px; margin-left: auto; margin-right: auto; padding: 0 2rem;">
+    <div class="beautiful-page-header mb-4"
+        style="max-width: 1400px; margin-left: auto; margin-right: auto; padding: 0 2rem;">
         <div class="container-fluid">
             <div class="row align-items-center">
                 <div class="col-lg-8">
@@ -673,18 +674,24 @@ function buildPageUrl($page)
             </div>
 
             <!-- Amount filter pill -->
-            <div class="et-filter-pill <?php echo !empty($minAmount) ? 'active' : ''; ?>" id="pillAmount" onclick="toggleFilterDropdown('amountDropdown')">
+            <div class="et-filter-pill <?php echo !empty($minAmount) ? 'active' : ''; ?>" id="pillAmount"
+                onclick="toggleFilterDropdown('amountDropdown')">
                 <i class="fas fa-coins"></i>
                 <span id="pillAmountLabel">
                     <?php echo empty($minAmount) ? 'Amount: All' : 'Amount > ₱' . number_format($minAmount, 0); ?>
                 </span>
                 <i class="fas fa-chevron-down"></i>
                 <div class="et-filter-dropdown" id="amountDropdown">
-                    <div class="et-filter-dropdown-item <?php echo empty($minAmount) ? 'selected' : ''; ?>" onclick="applyAmountFilter('')">All Amounts</div>
-                    <div class="et-filter-dropdown-item <?php echo $minAmount == '1000' ? 'selected' : ''; ?>" onclick="applyAmountFilter('1000')">> ₱1,000</div>
-                    <div class="et-filter-dropdown-item <?php echo $minAmount == '5000' ? 'selected' : ''; ?>" onclick="applyAmountFilter('5000')">> ₱5,000</div>
-                    <div class="et-filter-dropdown-item <?php echo $minAmount == '10000' ? 'selected' : ''; ?>" onclick="applyAmountFilter('10000')">> ₱10,000</div>
-                    <div class="et-filter-dropdown-item <?php echo $minAmount == '50000' ? 'selected' : ''; ?>" onclick="applyAmountFilter('50000')">> ₱50,000</div>
+                    <div class="et-filter-dropdown-item <?php echo empty($minAmount) ? 'selected' : ''; ?>"
+                        onclick="applyAmountFilter('')">All Amounts</div>
+                    <div class="et-filter-dropdown-item <?php echo $minAmount == '1000' ? 'selected' : ''; ?>"
+                        onclick="applyAmountFilter('1000')">> ₱1,000</div>
+                    <div class="et-filter-dropdown-item <?php echo $minAmount == '5000' ? 'selected' : ''; ?>"
+                        onclick="applyAmountFilter('5000')">> ₱5,000</div>
+                    <div class="et-filter-dropdown-item <?php echo $minAmount == '10000' ? 'selected' : ''; ?>"
+                        onclick="applyAmountFilter('10000')">> ₱10,000</div>
+                    <div class="et-filter-dropdown-item <?php echo $minAmount == '50000' ? 'selected' : ''; ?>"
+                        onclick="applyAmountFilter('50000')">> ₱50,000</div>
                 </div>
             </div>
 
@@ -708,7 +715,8 @@ function buildPageUrl($page)
                 <input type="hidden" name="date_from" id="date_from" value="<?php echo htmlspecialchars($dateFrom); ?>">
                 <input type="hidden" name="date_to" id="date_to" value="<?php echo htmlspecialchars($dateTo); ?>">
                 <input type="hidden" name="status" id="hiddenStatus" value="<?php echo htmlspecialchars($status); ?>">
-                <input type="hidden" name="min_amount" id="min_amount" value="<?php echo htmlspecialchars($minAmount); ?>">
+                <input type="hidden" name="min_amount" id="min_amount"
+                    value="<?php echo htmlspecialchars($minAmount); ?>">
                 <input type="hidden" name="account_number" id="account_number"
                     value="<?php echo htmlspecialchars($accountNumber); ?>">
                 <input type="hidden" name="apply_filters" value="1">
@@ -870,12 +878,9 @@ function buildPageUrl($page)
         </div>
     </div>
 
-    <!-- Footer -->
-    <footer>
-        <div class="container">
-            <p class="mb-0">&copy; <?php echo date('Y'); ?> Evergreen Accounting & Finance. All rights reserved.</p>
-        </div>
-    </footer>
+    <div class="container pb-4">
+        <?php include '../includes/footer.php'; ?>
+    </div>
 
     <!-- jQuery -->
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>

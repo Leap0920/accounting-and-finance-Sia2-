@@ -55,7 +55,7 @@ $active_users_count = 1; // At least current user
 $active_query = "SELECT COUNT(DISTINCT user_id) as count FROM activity_logs WHERE created_at >= NOW() - INTERVAL 15 MINUTE";
 $active_result = $conn->query($active_query);
 if ($active_result && $row = $active_result->fetch_assoc()) {
-    $active_users_count = max((int)$row['count'], 1);
+    $active_users_count = max((int) $row['count'], 1);
 }
 ?>
 <!DOCTYPE html>
@@ -87,15 +87,18 @@ if ($active_result && $row = $active_result->fetch_assoc()) {
         <div class="command-header">
             <div class="command-header-left">
                 <h1 class="command-title">Accounting and Finance</h1>
-                <p class="command-subtitle">Enterprise Financial     &amp; Module Ecosystem</p>
+                <p class="command-subtitle">Enterprise Financial &amp; Module Ecosystem</p>
             </div>
             <div class="command-header-right">
                 <div class="active-users">
                     <div class="user-avatars">
-                        <span class="avatar-circle" style="background: #0A3D3D; z-index: 3;"><i class="fas fa-user" style="font-size: 12px; color: #fff;"></i></span>
-                        <span class="avatar-circle" style="background: #2bb2b2; z-index: 2;"><i class="fas fa-user" style="font-size: 12px; color: #fff;"></i></span>
+                        <span class="avatar-circle" style="background: #0A3D3D; z-index: 3;"><i class="fas fa-user"
+                                style="font-size: 12px; color: #fff;"></i></span>
+                        <span class="avatar-circle" style="background: #2bb2b2; z-index: 2;"><i class="fas fa-user"
+                                style="font-size: 12px; color: #fff;"></i></span>
                     </div>
-                    <span class="users-status"><strong><?php echo $active_users_count; ?> Active User<?php echo $active_users_count !== 1 ? 's' : ''; ?></strong> &bull; System Live</span>
+                    <span class="users-status"><strong><?php echo $active_users_count; ?> Active
+                            User<?php echo $active_users_count !== 1 ? 's' : ''; ?></strong> &bull; System Live</span>
                 </div>
             </div>
         </div>
@@ -181,8 +184,10 @@ if ($active_result && $row = $active_result->fetch_assoc()) {
                         <i class="fas fa-book"></i>
                     </div>
                     <h3>General Ledger</h3>
-                    <p>Manage the core of your accounting. Double-entry bookkeeping, chart of accounts, and real-time journal entries.</p>
-                    <a href="../modules/general-ledger.php" class="module-link">Access Module <i class="fas fa-arrow-right"></i></a>
+                    <p>Manage the core of your accounting. Double-entry bookkeeping, chart of accounts, and real-time
+                        journal entries.</p>
+                    <a href="../modules/general-ledger.php" class="module-link">Access Module <i
+                            class="fas fa-arrow-right"></i></a>
                 </div>
             </div>
 
@@ -193,8 +198,10 @@ if ($active_result && $row = $active_result->fetch_assoc()) {
                         <i class="fas fa-chart-bar"></i>
                     </div>
                     <h3>Financial Reporting</h3>
-                    <p>Automate Balance Sheets, P&amp;L statements, and Cash Flow analysis with dynamic visualization tools.</p>
-                    <a href="../modules/financial-reporting.php" class="module-link">Access Module <i class="fas fa-arrow-right"></i></a>
+                    <p>Automate Balance Sheets, P&amp;L statements, and Cash Flow analysis with dynamic visualization
+                        tools.</p>
+                    <a href="../modules/financial-reporting.php" class="module-link">Access Module <i
+                            class="fas fa-arrow-right"></i></a>
                 </div>
             </div>
 
@@ -206,7 +213,8 @@ if ($active_result && $row = $active_result->fetch_assoc()) {
                     </div>
                     <h3>Loan Accounting</h3>
                     <p>Track amortizations, interest schedules, and loan portfolios with integrated risk management.</p>
-                    <a href="../modules/loan-accounting.php" class="module-link">Access Module <i class="fas fa-arrow-right"></i></a>
+                    <a href="../modules/loan-accounting.php" class="module-link">Access Module <i
+                            class="fas fa-arrow-right"></i></a>
                 </div>
             </div>
 
@@ -217,8 +225,10 @@ if ($active_result && $row = $active_result->fetch_assoc()) {
                         <i class="fas fa-exchange-alt"></i>
                     </div>
                     <h3>Transaction Recording</h3>
-                    <p>High-volume transaction processing and reconciliation. Import bank statements and merchant records instantly.</p>
-                    <a href="../modules/transaction-reading.php" class="module-link">Access Module <i class="fas fa-arrow-right"></i></a>
+                    <p>High-volume transaction processing and reconciliation. Import bank statements and merchant
+                        records instantly.</p>
+                    <a href="../modules/transaction-reading.php" class="module-link">Access Module <i
+                            class="fas fa-arrow-right"></i></a>
                 </div>
             </div>
 
@@ -229,8 +239,10 @@ if ($active_result && $row = $active_result->fetch_assoc()) {
                         <i class="fas fa-receipt"></i>
                     </div>
                     <h3>Expense Tracking</h3>
-                    <p>Monitor corporate spending, process reimbursements, and enforce budget policies across the enterprise.</p>
-                    <a href="../modules/expense-tracking.php" class="module-link">Access Module <i class="fas fa-arrow-right"></i></a>
+                    <p>Monitor corporate spending, process reimbursements, and enforce budget policies across the
+                        enterprise.</p>
+                    <a href="../modules/expense-tracking.php" class="module-link">Access Module <i
+                            class="fas fa-arrow-right"></i></a>
                 </div>
             </div>
 
@@ -241,19 +253,18 @@ if ($active_result && $row = $active_result->fetch_assoc()) {
                         <i class="fas fa-users-cog"></i>
                     </div>
                     <h3>Payroll Management</h3>
-                    <p>Automate salary distribution, tax withholding, and benefits administration with full compliance tools.</p>
-                    <a href="../modules/payroll-management.php" class="module-link">Access Module <i class="fas fa-arrow-right"></i></a>
+                    <p>Automate salary distribution, tax withholding, and benefits administration with full compliance
+                        tools.</p>
+                    <a href="../modules/payroll-management.php" class="module-link">Access Module <i
+                            class="fas fa-arrow-right"></i></a>
                 </div>
             </div>
         </div>
     </main>
 
-    <!-- Footer -->
-    <footer>
-        <div class="container">
-            <p class="mb-0">&copy; <?php echo date('Y'); ?> Evergreen Accounting & Finance. All rights reserved.</p>
-        </div>
-    </footer>
+    <div class="container pb-4">
+        <?php include '../includes/footer.php'; ?>
+    </div>
 
 
     <!-- Bootstrap JS -->

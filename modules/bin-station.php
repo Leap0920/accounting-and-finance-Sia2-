@@ -158,6 +158,10 @@ $current_user = getCurrentUser();
         </div>
     </div>
 
+    <div class="container pb-4">
+        <?php include '../includes/footer.php'; ?>
+    </div>
+
     <!-- Confirmation Modal -->
     <div class="modal fade" id="binConfirmModal" tabindex="-1" aria-labelledby="binConfirmModalLabel"
         aria-hidden="true">

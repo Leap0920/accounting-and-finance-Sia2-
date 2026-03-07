@@ -799,15 +799,9 @@ $current_user = getCurrentUser();
         </div>
     </div>
 
-    <!-- Footer -->
-    <footer class="gl-footer">
-        <p>&copy; 2025 Evergreen Accounting & Finance. All rights reserved.</p>
-        <div class="gl-footer-links">
-            <a href="#">Support</a>
-            <a href="#">Privacy Policy</a>
-            <a href="#">Terms of Service</a>
-        </div>
-    </footer>
+    <div class="container pb-4">
+        <?php include '../includes/footer.php'; ?>
+    </div>
 
     <!-- jQuery -->
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>

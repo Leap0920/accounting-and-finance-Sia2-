@@ -341,6 +341,10 @@ if ($conn) {
         </div>
     </main>
 
+    <div class="container-fluid px-5 pb-4">
+        <?php include '../includes/footer.php'; ?>
+    </div>
+
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <!-- jQuery -->

@@ -717,43 +717,6 @@ try {
             color: #9ca3af;
         }
 
-        .tr-footer {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-top: 40px;
-            padding: 20px 0;
-            border-top: 1px solid #e5e7eb;
-        }
-
-        .tr-footer__left {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 13px;
-            color: #9ca3af;
-        }
-
-        .tr-footer__left i {
-            color: #22c55e;
-        }
-
-        .tr-footer__links {
-            display: flex;
-            gap: 24px;
-        }
-
-        .tr-footer__links a {
-            font-size: 13px;
-            color: #6b7280;
-            text-decoration: none;
-            transition: color 0.15s;
-        }
-
-        .tr-footer__links a:hover {
-            color: #111827;
-        }
-
         @media (max-width: 768px) {
             .tr-container {
                 padding: 16px;
@@ -771,12 +734,6 @@ try {
             .tr-pagination {
                 flex-direction: column;
                 gap: 12px;
-            }
-
-            .tr-footer {
-                flex-direction: column;
-                gap: 12px;
-                text-align: center;
             }
         }
     </style>
@@ -1015,17 +972,7 @@ try {
             <?php endif; ?>
         </div>
 
-        <!-- Footer -->
-        <div class="tr-footer">
-            <div class="tr-footer__left">
-                <i class="fas fa-shield-alt"></i>
-                Accounting and Finance <?php echo date('Y') - 1; ?>-<?php echo date('Y'); ?>
-            </div>
-            <div class="tr-footer__links">
-                <a href="#">Privacy Policy</a>
-                <a href="#">Support Center</a>
-            </div>
-        </div>
+        <?php include '../includes/footer.php'; ?>
     </div>
 
     <!-- Audit Trail Modal -->

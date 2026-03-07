@@ -1056,43 +1056,6 @@ if (!empty($status) && $applyFilters) {
             color: #9ca3af;
         }
 
-        /* Footer */
-        .ln-footer {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-top: 40px;
-            padding: 20px 0;
-            border-top: 1px solid #e5e7eb;
-        }
-
-        .ln-footer__left {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 13px;
-            color: #9ca3af;
-        }
-
-        .ln-footer__left i {
-            color: #22c55e;
-        }
-
-        .ln-footer__links {
-            display: flex;
-            gap: 24px;
-        }
-
-        .ln-footer__links a {
-            font-size: 13px;
-            color: #6b7280;
-            text-decoration: none;
-            transition: color 0.15s;
-        }
-
-        .ln-footer__links a:hover {
-            color: #111827;
-        }
 
         @media print {
             @page {
@@ -1229,11 +1192,6 @@ if (!empty($status) && $applyFilters) {
                 gap: 12px;
             }
 
-            .ln-footer {
-                flex-direction: column;
-                gap: 12px;
-                text-align: center;
-            }
         }
     </style>
 
@@ -1510,18 +1468,8 @@ if (!empty($status) && $applyFilters) {
                     <?php endif; ?>
                 </div>
 
-                <!-- Footer -->
-                <div class="ln-footer">
-                    <div class="ln-footer__left">
-                        <i class="fas fa-shield-alt"></i>
-                        Evergreen Accounting & Finance <?php echo date('Y'); ?>
-                    </div>
-                    <div class="ln-footer__links">
-                        <a href="#">Privacy Policy</a>
-                        <a href="#">Support</a>
-                        <a href="#">Terms</a>
-                    </div>
-                </div> <!-- Close loanReportArea -->
+                <?php include '../includes/footer.php'; ?>
+                <!-- Close loanReportArea -->
             </div> <!-- Close ln-container -->
         </div> <!-- Close ln-page -->
 

@@ -717,6 +717,7 @@ function openEmployeeSelectionModal(month, period) {
     $.ajax({
         url: 'api/payroll-actions.php',
         method: 'POST',
+        dataType: 'json',
         data: {
             action: 'preview_payroll',
             month: month,
@@ -914,6 +915,7 @@ function confirmPostToGL() {
     $.ajax({
         url: 'api/payroll-actions.php',
         method: 'POST',
+        dataType: 'json',
         data: {
             action: 'finalize_payroll',
             month: month,

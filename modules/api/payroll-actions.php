@@ -4,6 +4,10 @@
  * Handles processing and finalizing payroll, including GL posting
  */
 
+// Suppress error display to prevent JSON corruption; errors still logged
+ini_set('display_errors', 0);
+error_reporting(E_ALL);
+
 require_once '../../config/database.php';
 require_once '../../includes/session.php';
 require_once 'payroll-calculation.php';
@@ -255,7 +259,8 @@ function finalizePayroll($conn)
 
         // 4. Create GL Journal Entry
         $journal_no = 'PR-' . date('Ymd') . '-' . strtoupper(substr(uniqid(), -4));
-        $description = "Payroll — $month ($period half)";
+        $period_desc = ($period === 'full') ? 'Full Month' : ($period === 'first' ? '1st Half' : '2nd Half');
+        $description = "Payroll — $month ($period_desc)";
 
         // Get active fiscal period covering the payroll end date
         $fp_stmt = $conn->prepare("SELECT id FROM fiscal_periods WHERE status = 'open' AND start_date <= ? AND end_date >= ? ORDER BY start_date DESC LIMIT 1");
@@ -269,9 +274,21 @@ function finalizePayroll($conn)
             $fp_row = $fp_res2 ? $fp_res2->fetch_assoc() : null;
         }
         if (!$fp_row) {
-            throw new Exception('No open fiscal period found. Please create or open a fiscal period first.');
+            // Auto-create a quarterly fiscal period for the payroll date
+            $q = ceil(intval(date('m', strtotime($date_to))) / 3);
+            $qStart = date('Y', strtotime($date_to)) . '-' . str_pad(($q - 1) * 3 + 1, 2, '0', STR_PAD_LEFT) . '-01';
+            $qEnd = date('Y-m-t', strtotime(date('Y', strtotime($date_to)) . '-' . str_pad($q * 3, 2, '0', STR_PAD_LEFT) . '-01'));
+            $qName = 'FY' . date('Y', strtotime($date_to)) . '-Q' . $q;
+            $fp_create = $conn->prepare("INSERT INTO fiscal_periods (period_name, start_date, end_date, status) VALUES (?, ?, ?, 'open') ON DUPLICATE KEY UPDATE id=LAST_INSERT_ID(id)");
+            $fp_create->bind_param("sss", $qName, $qStart, $qEnd);
+            $fp_create->execute();
+            $fiscal_period_id = $conn->insert_id;
+            if (!$fiscal_period_id) {
+                throw new Exception('No open fiscal period found and failed to create one. Please create a fiscal period first.');
+            }
+        } else {
+            $fiscal_period_id = (int)$fp_row['id'];
         }
-        $fiscal_period_id = (int)$fp_row['id'];
 
         $je_stmt = $conn->prepare("INSERT INTO journal_entries (journal_no, entry_date, journal_type_id, description, total_debit, total_credit, status, fiscal_period_id, created_by, created_at) 
                      VALUES (?, ?, ?, ?, ?, ?, 'posted', ?, ?, NOW())");

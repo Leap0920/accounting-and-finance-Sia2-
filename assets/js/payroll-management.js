@@ -568,6 +568,13 @@ function filterAttendanceByMonth(val) {
     if (selectedMonth) {
         const currentUrl = new URL(window.location);
         currentUrl.searchParams.set('attendance_month', selectedMonth);
+        // Preserve current employee + payroll period so context is not lost on reload
+        const empSelect = document.getElementById('employee-select');
+        if (empSelect && empSelect.value) currentUrl.searchParams.set('employee', empSelect.value);
+        const periodSelect = document.getElementById('payroll-period-select');
+        if (periodSelect && periodSelect.value) currentUrl.searchParams.set('payroll_period', periodSelect.value);
+        const monthSelect = document.getElementById('payroll-month-select');
+        if (monthSelect && monthSelect.value) currentUrl.searchParams.set('payroll_month', monthSelect.value);
         window.location.href = currentUrl.toString();
     }
 }

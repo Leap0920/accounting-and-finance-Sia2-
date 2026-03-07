@@ -2755,6 +2755,12 @@ body {
    ATTENDANCE SECTION (Integrated in Employee Details)
    ======================================== */
 
+.att-section-divider {
+    border: none;
+    border-top: 1.5px solid #e8e8e8;
+    margin: 28px 0 24px;
+}
+
 /* ========================================
    ATTENDANCE SUMMARY CARDS (Figma)
    ======================================== */

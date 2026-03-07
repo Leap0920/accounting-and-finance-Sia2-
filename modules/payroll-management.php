@@ -1478,6 +1478,8 @@ if ($attendance_payroll_adjustments && isset($attendance_payroll_adjustments['at
                             </div>
                         </div>
 
+                        <hr class="att-section-divider">
+
                         <!-- Attendance Summary Cards (Figma) -->
                         <div class="att-summary-section">
                             <div class="att-cards-row">
@@ -1558,13 +1560,11 @@ if ($attendance_payroll_adjustments && isset($attendance_payroll_adjustments['at
                                 </div>
                                 <div class="att-records-actions">
                                     <select class="form-select form-select-sm att-filter-select" id="attendance-month-filter" onchange="filterAttendanceByMonth(this.value)">
-                                        <option value="<?php echo date('Y-m'); ?>" <?php echo ($display_month == date('Y-m')) ? 'selected' : ''; ?>><?php echo date('F Y'); ?></option>
-                                        <option value="<?php echo date('Y-m', strtotime('-1 month')); ?>" <?php echo ($display_month == date('Y-m', strtotime('-1 month'))) ? 'selected' : ''; ?>>
-                                            <?php echo date('F Y', strtotime('-1 month')); ?>
-                                        </option>
-                                        <option value="<?php echo date('Y-m', strtotime('-2 months')); ?>" <?php echo ($display_month == date('Y-m', strtotime('-2 months'))) ? 'selected' : ''; ?>>
-                                            <?php echo date('F Y', strtotime('-2 months')); ?>
-                                        </option>
+                                        <?php foreach ($available_months as $att_m): ?>
+                                            <option value="<?php echo htmlspecialchars($att_m); ?>" <?php echo ($display_month == $att_m) ? 'selected' : ''; ?>>
+                                                <?php echo date('F Y', strtotime($att_m . '-01')); ?>
+                                            </option>
+                                        <?php endforeach; ?>
                                     </select>
                                 </div>
                             </div>

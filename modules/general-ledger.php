@@ -80,7 +80,7 @@ $current_user = getCurrentUser();
 
         <!-- Statistics Cards -->
         <div class="row g-3 mb-4 stats-cards-row">
-            <div class="col-md-4 col-lg-4">
+            <div class="col-md-3 col-lg-3">
                 <div class="stat-card">
                     <div class="stat-icon">
                         <i class="fas fa-list-alt"></i>
@@ -92,7 +92,7 @@ $current_user = getCurrentUser();
                     </div>
                 </div>
             </div>
-            <div class="col-md-4 col-lg-4">
+            <div class="col-md-3 col-lg-3">
                 <div class="stat-card">
                     <div class="stat-icon">
                         <i class="fas fa-exchange-alt"></i>
@@ -104,7 +104,19 @@ $current_user = getCurrentUser();
                     </div>
                 </div>
             </div>
-            <div class="col-md-4 col-lg-4">
+            <div class="col-md-3 col-lg-3">
+                <div class="stat-card stat-card--payroll">
+                    <div class="stat-icon">
+                        <i class="fas fa-file-invoice-dollar"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3 id="total-payroll-je">Loading...</h3>
+                        <p>Payroll Entries</p>
+                        <a href="#payroll-journals" class="stat-link">View Details</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 col-lg-3">
                 <div class="stat-card">
                     <div class="stat-icon">
                         <i class="fas fa-history"></i>
@@ -414,6 +426,73 @@ $current_user = getCurrentUser();
                     <button class="btn-action btn-action-outline" type="button"
                         onclick="printTransactions()">Print</button>
                     <button class="btn-action" type="button" onclick="refreshTransactions()">Refresh</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Payroll Journal Entries -->
+        <div class="gl-section" id="payroll-journals">
+            <div class="section-header">
+                <h2><i class="fas fa-users-cog me-2"></i>Payroll Journal Entries</h2>
+                <p>All payroll runs posted to the General Ledger</p>
+            </div>
+            <div class="gl-toolbar gl-toolbar--split" role="search" aria-label="Payroll journal filters">
+                <div class="gl-toolbar__group">
+                    <div class="gl-toolbar__field gl-toolbar__field--compact">
+                        <label for="payroll-je-from">FROM</label>
+                        <input type="date" id="payroll-je-from" class="gl-input">
+                    </div>
+                    <div class="gl-toolbar__field gl-toolbar__field--compact">
+                        <label for="payroll-je-to">TO</label>
+                        <input type="date" id="payroll-je-to" class="gl-input">
+                    </div>
+                    <div class="gl-toolbar__field gl-toolbar__field--compact">
+                        <label for="payroll-je-status">STATUS</label>
+                        <select id="payroll-je-status" class="gl-input">
+                            <option value="">All</option>
+                            <option value="posted" selected>Posted</option>
+                            <option value="draft">Draft</option>
+                            <option value="voided">Voided</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="gl-toolbar__actions">
+                    <button class="btn-filter" type="button" onclick="applyPayrollJEFilter()">
+                        <span>Apply Filter</span>
+                    </button>
+                    <button class="btn-reset" type="button" onclick="resetPayrollJEFilter()">
+                        <i class="fas fa-rotate-left"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="table-container">
+                <table class="gl-table" id="payroll-je-table">
+                    <thead>
+                        <tr>
+                            <th>Journal No</th>
+                            <th>Date</th>
+                            <th>Period</th>
+                            <th>Description</th>
+                            <th>Debit (Expense)</th>
+                            <th>Credit (Payable)</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td colspan="8" class="text-center">
+                                <div class="loading-spinner"></div>
+                                <p>Loading payroll journal entries...</p>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="table-actions-row">
+                <span class="table-actions-hint" id="payroll-je-hint">Payroll entries posted to the ledger</span>
+                <div class="table-actions">
+                    <button class="btn-action" type="button" onclick="loadPayrollJournalEntries()">Refresh</button>
                 </div>
             </div>
         </div>

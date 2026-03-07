@@ -100,6 +100,9 @@ try {
         case 'decline_application':
             echo json_encode(declineApplication());
             break;
+
+        case 'get_payroll_journal_entries':
+            echo json_encode(getPayrollJournalEntries());
             break;
 
         default:
@@ -144,12 +147,22 @@ function getStatistics()
         $audit_row = $audit_result->fetch_assoc();
         $total_audit = $audit_row['total'] ?? 0;
 
+        // Get total payroll journal entries
+        $pr_result = $conn->query(
+            "SELECT COUNT(*) as total FROM journal_entries je 
+             INNER JOIN journal_types jt ON je.journal_type_id = jt.id 
+             WHERE jt.code = 'PR' AND je.status = 'posted'"
+        );
+        $pr_row = $pr_result ? $pr_result->fetch_assoc() : ['total' => 0];
+        $total_payroll_je = $pr_row['total'] ?? 0;
+
         return [
             'success' => true,
             'data' => [
                 'total_accounts' => $total_accounts,
                 'total_transactions' => $total_transactions,
-                'total_audit' => $total_audit
+                'total_audit' => $total_audit,
+                'total_payroll_je' => $total_payroll_je
             ]
         ];
 
@@ -159,7 +172,8 @@ function getStatistics()
             'data' => [
                 'total_accounts' => 0,
                 'total_transactions' => 0,
-                'total_audit' => 0
+                'total_audit' => 0,
+                'total_payroll_je' => 0
             ]
         ];
     }
@@ -2093,6 +2107,132 @@ function declineApplication()
         return ['success' => false, 'message' => 'Failed to decline application'];
     } catch (Exception $e) {
         return ['success' => false, 'message' => $e->getMessage()];
+    }
+}
+
+// ========================================
+// PAYROLL JOURNAL ENTRIES
+// ========================================
+
+function getPayrollJournalEntries()
+{
+    global $conn;
+
+    try {
+        $dateFrom = $_GET['date_from'] ?? '';
+        $dateTo   = $_GET['date_to'] ?? '';
+        $status   = $_GET['status'] ?? '';
+
+        $sql = "SELECT 
+                    je.id,
+                    je.journal_no,
+                    je.entry_date,
+                    je.description,
+                    je.total_debit,
+                    je.total_credit,
+                    je.status,
+                    je.created_at,
+                    je.posted_at,
+                    jt.name  AS type_name,
+                    jt.code  AS type_code,
+                    fp.period_name,
+                    pr.id            AS payroll_run_id,
+                    pr.total_gross,
+                    pr.total_deductions,
+                    pr.total_net,
+                    pr.status        AS payroll_status,
+                    pp.period_start,
+                    pp.period_end,
+                    u.username       AS created_by_name,
+                    (SELECT COUNT(*) FROM payslips ps WHERE ps.payroll_run_id = pr.id) AS employee_count
+                FROM journal_entries je
+                INNER JOIN journal_types jt ON je.journal_type_id = jt.id
+                LEFT  JOIN fiscal_periods fp ON je.fiscal_period_id = fp.id
+                LEFT  JOIN payroll_runs pr   ON pr.journal_entry_id = je.id
+                LEFT  JOIN payroll_periods pp ON pr.payroll_period_id = pp.id
+                LEFT  JOIN users u           ON je.created_by = u.id
+                WHERE jt.code = 'PR'";
+
+        $params = [];
+        $types  = '';
+
+        if ($dateFrom) {
+            $sql .= " AND je.entry_date >= ?";
+            $params[] = $dateFrom;
+            $types .= 's';
+        }
+        if ($dateTo) {
+            $sql .= " AND je.entry_date <= ?";
+            $params[] = $dateTo;
+            $types .= 's';
+        }
+        if ($status) {
+            $sql .= " AND je.status = ?";
+            $params[] = $status;
+            $types .= 's';
+        }
+
+        $sql .= " ORDER BY je.entry_date DESC, je.id DESC";
+
+        $stmt = $conn->prepare($sql);
+        if (!empty($params)) {
+            $stmt->bind_param($types, ...$params);
+        }
+        $stmt->execute();
+        $result = $stmt->get_result();
+
+        $entries = [];
+        while ($row = $result->fetch_assoc()) {
+            // Build period label
+            $period_label = '';
+            if ($row['period_start'] && $row['period_end']) {
+                $period_label = date('M d', strtotime($row['period_start'])) . ' – ' . date('M d, Y', strtotime($row['period_end']));
+            }
+
+            $entries[] = [
+                'id'               => $row['id'],
+                'journal_no'       => $row['journal_no'],
+                'entry_date'       => date('M d, Y', strtotime($row['entry_date'])),
+                'entry_date_raw'   => $row['entry_date'],
+                'description'      => $row['description'] ?? '-',
+                'total_debit'      => (float) $row['total_debit'],
+                'total_credit'     => (float) $row['total_credit'],
+                'status'           => $row['status'],
+                'type_name'        => $row['type_name'],
+                'period_label'     => $period_label,
+                'period_name'      => $row['period_name'] ?? '-',
+                'payroll_run_id'   => $row['payroll_run_id'],
+                'total_gross'      => (float) ($row['total_gross'] ?? 0),
+                'total_deductions' => (float) ($row['total_deductions'] ?? 0),
+                'total_net'        => (float) ($row['total_net'] ?? 0),
+                'employee_count'   => (int) ($row['employee_count'] ?? 0),
+                'created_by'       => $row['created_by_name'] ?? 'System',
+                'posted_at'        => $row['posted_at'] ? date('M d, Y H:i', strtotime($row['posted_at'])) : null,
+            ];
+        }
+
+        // Summary totals
+        $summary_gross = array_sum(array_column($entries, 'total_gross'));
+        $summary_deductions = array_sum(array_column($entries, 'total_deductions'));
+        $summary_net = array_sum(array_column($entries, 'total_net'));
+
+        return [
+            'success' => true,
+            'data'    => $entries,
+            'count'   => count($entries),
+            'summary' => [
+                'total_gross'      => $summary_gross,
+                'total_deductions' => $summary_deductions,
+                'total_net'        => $summary_net
+            ]
+        ];
+
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => 'Database error: ' . $e->getMessage(),
+            'data'    => []
+        ];
     }
 }
 ?>

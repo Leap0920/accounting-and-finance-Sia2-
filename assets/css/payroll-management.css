@@ -176,6 +176,45 @@ body {
     font-size: 16px;
 }
 
+/* Post to GL Button */
+.btn-post-gl {
+    background: linear-gradient(135deg, var(--primary-teal) 0%, #0d4f4f 100%);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    padding: 12px 20px;
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(10, 61, 61, 0.25);
+    cursor: pointer;
+    height: 100%;
+    min-height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-post-gl:hover {
+    background: linear-gradient(135deg, #0d4f4f 0%, var(--primary-teal) 100%);
+    box-shadow: 0 4px 16px rgba(10, 61, 61, 0.35);
+    transform: translateY(-1px);
+    color: #fff;
+}
+
+.btn-post-gl:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 6px rgba(10, 61, 61, 0.2);
+}
+
+.btn-post-gl:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
 /* ========================================
    EMPLOYEE SELECTOR HEADER (Legacy - kept for compatibility)
    ======================================== */

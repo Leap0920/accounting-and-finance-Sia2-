@@ -20,11 +20,12 @@
  * @param array $base_salary_components Base salary components array
  * @return array Calculated payroll data
  */
-function calculatePayrollFromAttendance($conn, $employee_external_no, $period_start, $period_end, $base_salary_components = []) {
-    
+function calculatePayrollFromAttendance($conn, $employee_external_no, $period_start, $period_end, $base_salary_components = [])
+{
+
     // Get employee_id from external_employee_no (format: EMP001 -> 1, EMP002 -> 2, etc.)
     $employee_id_from_external = null;
-    
+
     // First, try to extract from external_employee_no format (EMP001, EMP002, etc.)
     if (preg_match('/EMP(\d+)/i', $employee_external_no, $matches)) {
         $employee_id_from_external = intval($matches[1]);
@@ -51,7 +52,7 @@ function calculatePayrollFromAttendance($conn, $employee_external_no, $period_st
             }
         }
     }
-    
+
     // Get attendance data for the period from BOTH HRIS attendance AND employee_attendance tables
     // This combines data from both sources using UNION ALL
     $attendance_query = "SELECT * FROM (
@@ -134,15 +135,20 @@ function calculatePayrollFromAttendance($conn, $employee_external_no, $period_st
                             AND ea.attendance_date BETWEEN ? AND ?
                         ) combined_attendance
                         ORDER BY attendance_date ASC";
-    
+
     // Prepare and execute query
     if ($employee_id_from_external) {
         $stmt = $conn->prepare($attendance_query);
         if ($stmt) {
             // Bind parameters: employee_id (for HRIS), period dates, employee_external_no (for accounting), period dates
-            $stmt->bind_param("isssss", 
-                $employee_id_from_external, $period_start, $period_end,  // For HRIS attendance table (i, s, s)
-                $employee_external_no, $period_start, $period_end        // For employee_attendance table (s, s, s)
+            $stmt->bind_param(
+                "isssss",
+                $employee_id_from_external,
+                $period_start,
+                $period_end,  // For HRIS attendance table (i, s, s)
+                $employee_external_no,
+                $period_start,
+                $period_end        // For employee_attendance table (s, s, s)
             );
             $stmt->execute();
             $attendance_result = $stmt->get_result();
@@ -178,11 +184,11 @@ function calculatePayrollFromAttendance($conn, $employee_external_no, $period_st
                         AND attendance_date BETWEEN ? AND ?
                         ORDER BY attendance_date ASC";
         $stmt = $conn->prepare($fallback_query);
-    $stmt->bind_param("sss", $employee_external_no, $period_start, $period_end);
-    $stmt->execute();
-    $attendance_result = $stmt->get_result();
+        $stmt->bind_param("sss", $employee_external_no, $period_start, $period_end);
+        $stmt->execute();
+        $attendance_result = $stmt->get_result();
     }
-    
+
     // Initialize calculation results
     $calculation = [
         'attendance_summary' => [
@@ -207,16 +213,16 @@ function calculatePayrollFromAttendance($conn, $employee_external_no, $period_st
         ],
         'attendance_records' => []
     ];
-    
+
     // Process attendance records
     $daily_rate = 0;
     $hourly_rate = 0;
     $base_salary = 0;
-    
+
     // Get employee base salary - MATCH ACCOUNTING SYSTEM: prioritize contract salary first, then employee_refs
     // We need employee_id to join with contract table, so we'll query using the extracted employee_id
     $base_salary = 0;
-    
+
     if ($employee_id_from_external) {
         // Query with priority: contract salary first, then employee_refs base_monthly_salary
         $employee_query = "SELECT 
@@ -228,14 +234,14 @@ function calculatePayrollFromAttendance($conn, $employee_external_no, $period_st
                           WHERE e.employee_id = ?
                           LIMIT 1";
         $emp_stmt = $conn->prepare($employee_query);
-        
+
         if ($emp_stmt) {
             $emp_stmt->bind_param("i", $employee_id_from_external);
             $emp_stmt->execute();
             $emp_result = $emp_stmt->get_result();
             $employee_data = $emp_result->fetch_assoc();
             $emp_stmt->close();
-            
+
             // MATCH ACCOUNTING SYSTEM PRIORITY: contract salary first, then employee_refs base_monthly_salary
             if ($employee_data) {
                 // First try HRIS contract salary (priority 1)
@@ -248,25 +254,25 @@ function calculatePayrollFromAttendance($conn, $employee_external_no, $period_st
             }
         }
     }
-    
+
     // Fallback: Try employee_refs directly if we couldn't get employee_id
     if ($base_salary == 0) {
         $emp_query_fallback = "SELECT base_monthly_salary FROM employee_refs WHERE external_employee_no = ? LIMIT 1";
         $emp_stmt_fallback = $conn->prepare($emp_query_fallback);
-        
+
         if ($emp_stmt_fallback) {
             $emp_stmt_fallback->bind_param("s", $employee_external_no);
             $emp_stmt_fallback->execute();
             $emp_result_fallback = $emp_stmt_fallback->get_result();
             $employee_data_fallback = $emp_result_fallback->fetch_assoc();
             $emp_stmt_fallback->close();
-            
+
             if ($employee_data_fallback && isset($employee_data_fallback['base_monthly_salary'])) {
                 $base_salary = floatval($employee_data_fallback['base_monthly_salary']);
             }
         }
     }
-    
+
     // Final fallback: base salary components if employee salary not found
     if ($base_salary == 0 && !empty($base_salary_components)) {
         foreach ($base_salary_components as $component) {
@@ -276,22 +282,22 @@ function calculatePayrollFromAttendance($conn, $employee_external_no, $period_st
             }
         }
     }
-    
+
     // Calculate daily and hourly rates (assuming 20-22 working days per month, 8 hours per day)
     $working_days_per_month = 22; // Standard Philippine working days
     $hours_per_day = 8;
-    
+
     // Calculate period duration to determine if it's a bi-monthly period
     $start_date = new DateTime($period_start);
     $end_date = new DateTime($period_end);
     $period_days = $start_date->diff($end_date)->days + 1; // +1 to include both start and end dates
-    
+
     // For bi-monthly periods (approximately 15 days), prorate the base salary
     $prorated_base_salary = $base_salary;
     if ($period_days <= 16) {
         // This is likely a bi-monthly period (first or second half)
         // Prorate based on actual period days vs full month
-        $days_in_month = (int)$end_date->format('t'); // Last day of the month
+        $days_in_month = (int) $end_date->format('t'); // Last day of the month
         $prorated_base_salary = ($base_salary / $days_in_month) * $period_days;
         // For bi-monthly: calculate daily rate based on prorated salary and period days
         $daily_rate = $prorated_base_salary / $period_days;
@@ -303,19 +309,19 @@ function calculatePayrollFromAttendance($conn, $employee_external_no, $period_st
         $daily_rate = $base_salary / $working_days_per_month;
         $hourly_rate = $daily_rate / $hours_per_day;
     }
-    
+
     // Fallback if base_salary is 0
     if ($base_salary == 0) {
         $daily_rate = 0;
         $hourly_rate = 0;
     }
-    
+
     // Overtime rate is 125% of hourly rate (Philippine standard)
     $overtime_rate = $hourly_rate * 1.25;
-    
+
     // Late penalty: deduct 1% of daily rate for every 15 minutes late (or customize as needed)
     $late_penalty_per_15min = $daily_rate * 0.01;
-    
+
     // Fetch leave requests from HRIS and merge with attendance data
     $leave_attendance_records = [];
     if ($employee_id_from_external) {
@@ -332,10 +338,10 @@ function calculatePayrollFromAttendance($conn, $employee_external_no, $period_st
                         LEFT JOIN leave_type lt ON lr.leave_type_id = lt.leave_type_id
                         WHERE lr.employee_id = ?
                         AND UPPER(TRIM(lr.status)) = 'APPROVED'";
-        
+
         $leave_params = [];
         $leave_types = "";
-        
+
         // For period-based: check if leave overlaps with period
         // Improved overlap logic: leave overlaps if it starts before period ends AND ends after period starts
         $leave_query .= " AND (
@@ -343,13 +349,13 @@ function calculatePayrollFromAttendance($conn, $employee_external_no, $period_st
                         )";
         $leave_params = [$employee_id_from_external, $period_end, $period_start];
         $leave_types = "iss"; // 1 integer + 2 strings = 3 parameters
-        
+
         $leave_stmt = $conn->prepare($leave_query);
         if ($leave_stmt) {
             $leave_stmt->bind_param($leave_types, ...$leave_params);
             $leave_stmt->execute();
             $leave_result = $leave_stmt->get_result();
-            
+
             // Create a map of existing attendance dates to avoid duplicates
             $attendance_dates_map = [];
             $temp_attendance_data = [];
@@ -360,7 +366,7 @@ function calculatePayrollFromAttendance($conn, $employee_external_no, $period_st
             }
             // Reset result pointer by recreating the query result (we'll merge below)
             $attendance_result->data_seek(0);
-            
+
             // Add leave days to attendance data
             while ($leave = $leave_result->fetch_assoc()) {
                 $start_date = new DateTime($leave['start_date']);
@@ -368,13 +374,13 @@ function calculatePayrollFromAttendance($conn, $employee_external_no, $period_st
                 $leave_name = $leave['leave_name'] ?? 'Approved Leave';
                 $leave_reason = $leave['reason'] ?? '';
                 $is_paid = strtolower($leave['paid_unpaid'] ?? 'unpaid') === 'paid';
-                
+
                 // Generate all dates in the leave range
                 $current_date = clone $start_date;
                 while ($current_date <= $end_date) {
                     $date_str = $current_date->format('Y-m-d');
                     $date_check = $current_date->format('Y-m-d');
-                    
+
                     // Check if this date is within the selected period
                     if ($date_check >= $period_start && $date_check <= $period_end) {
                         // Only add if date is in period and not already in attendance data
@@ -394,28 +400,28 @@ function calculatePayrollFromAttendance($conn, $employee_external_no, $period_st
                             $attendance_dates_map[$date_str] = true;
                         }
                     }
-                    
+
                     $current_date->modify('+1 day');
                 }
             }
             $leave_stmt->close();
         }
     }
-    
+
     // Merge attendance data and leave records
     $all_attendance_records = [];
-    
+
     // Only process attendance result if it exists and is valid
     if (isset($attendance_result) && $attendance_result) {
         $attendance_result->data_seek(0); // Reset pointer
         while ($row = $attendance_result->fetch_assoc()) {
-        // Normalize date format
-        $row['attendance_date'] = date('Y-m-d', strtotime($row['attendance_date']));
-        // For HRIS records, ensure overtime is calculated correctly
-        if ($row['source'] === 'hris' && $row['hours_worked'] > 8.0) {
-            $row['overtime_hours'] = $row['hours_worked'] - 8.0;
-            $row['hours_worked'] = 8.0; // Regular hours capped at 8
-        }
+            // Normalize date format
+            $row['attendance_date'] = date('Y-m-d', strtotime($row['attendance_date']));
+            // For HRIS records, ensure overtime is calculated correctly
+            if ($row['source'] === 'hris' && $row['hours_worked'] > 8.0) {
+                $row['overtime_hours'] = $row['hours_worked'] - 8.0;
+                $row['hours_worked'] = 8.0; // Regular hours capped at 8
+            }
             $all_attendance_records[] = $row;
         }
     }
@@ -423,38 +429,38 @@ function calculatePayrollFromAttendance($conn, $employee_external_no, $period_st
     if (!empty($leave_attendance_records)) {
         $all_attendance_records = array_merge($all_attendance_records, $leave_attendance_records);
     }
-    
+
     // Sort by date
-    usort($all_attendance_records, function($a, $b) {
+    usort($all_attendance_records, function ($a, $b) {
         return strtotime($a['attendance_date']) - strtotime($b['attendance_date']);
     });
-    
+
     // Process each attendance record
     foreach ($all_attendance_records as $row) {
         $calculation['attendance_records'][] = $row;
         $calculation['attendance_summary']['total_days']++;
-        
+
         $status = $row['status'];
         $hours_worked = floatval($row['hours_worked'] ?? 0);
         $overtime_hours = floatval($row['overtime_hours'] ?? 0);
         $late_minutes = intval($row['late_minutes'] ?? 0);
-        
+
         // Calculate based on attendance status
         switch ($status) {
             case 'present':
                 $calculation['attendance_summary']['present_days']++;
                 $calculation['attendance_summary']['regular_hours'] += $hours_worked;
                 $calculation['attendance_summary']['total_hours'] += $hours_worked;
-                
+
                 // Full day pay
                 $calculation['salary_adjustments']['basic_salary'] += $daily_rate;
-                
+
                 // Add overtime pay
                 if ($overtime_hours > 0) {
                     $calculation['attendance_summary']['overtime_hours'] += $overtime_hours;
                     $calculation['salary_adjustments']['overtime_pay'] += $overtime_hours * $overtime_rate;
                 }
-                
+
                 // Late penalty
                 if ($late_minutes > 0) {
                     $calculation['attendance_summary']['late_days']++;
@@ -464,54 +470,54 @@ function calculatePayrollFromAttendance($conn, $employee_external_no, $period_st
                     $calculation['salary_adjustments']['late_penalty'] += $late_penalty;
                 }
                 break;
-                
+
             case 'late':
                 $calculation['attendance_summary']['present_days']++;
                 $calculation['attendance_summary']['late_days']++;
                 $calculation['attendance_summary']['regular_hours'] += $hours_worked;
                 $calculation['attendance_summary']['total_hours'] += $hours_worked;
                 $calculation['attendance_summary']['total_late_minutes'] += $late_minutes;
-                
+
                 // Full day pay (but with late penalty)
                 $calculation['salary_adjustments']['basic_salary'] += $daily_rate;
-                
+
                 // Late penalty
                 if ($late_minutes > 0) {
                     $penalty_units = ceil($late_minutes / 15);
                     $late_penalty = $penalty_units * $late_penalty_per_15min;
                     $calculation['salary_adjustments']['late_penalty'] += $late_penalty;
                 }
-                
+
                 // Add overtime pay
                 if ($overtime_hours > 0) {
                     $calculation['attendance_summary']['overtime_hours'] += $overtime_hours;
                     $calculation['salary_adjustments']['overtime_pay'] += $overtime_hours * $overtime_rate;
                 }
                 break;
-                
+
             case 'half_day':
                 $calculation['attendance_summary']['present_days']++;
                 $calculation['attendance_summary']['half_day_days']++;
                 $calculation['attendance_summary']['regular_hours'] += $hours_worked;
                 $calculation['attendance_summary']['total_hours'] += $hours_worked;
-                
+
                 // Half day pay (50% of daily rate)
                 $half_day_pay = $daily_rate * 0.5;
                 $calculation['salary_adjustments']['basic_salary'] += $half_day_pay;
                 $calculation['salary_adjustments']['half_day_deduction'] += $daily_rate * 0.5;
                 break;
-                
+
             case 'absent':
                 $calculation['attendance_summary']['absent_days']++;
-                
+
                 // No pay for absent days (unless it's paid leave, which should be handled separately)
                 $calculation['salary_adjustments']['absent_deduction'] += $daily_rate;
                 break;
-                
+
             case 'leave':
                 $calculation['attendance_summary']['leave_days']++;
                 $is_paid_leave = isset($row['is_paid_leave']) ? $row['is_paid_leave'] : false;
-                
+
                 // Check if it's paid leave from HRIS leave_type table
                 if ($is_paid_leave) {
                     // Paid leave: Full day pay (no deduction)
@@ -521,44 +527,44 @@ function calculatePayrollFromAttendance($conn, $employee_external_no, $period_st
                     $calculation['attendance_summary']['total_hours'] += 8.00;
                 } else {
                     // Unpaid leave: Deduct full day pay
-                $calculation['salary_adjustments']['absent_deduction'] += $daily_rate;
+                    $calculation['salary_adjustments']['absent_deduction'] += $daily_rate;
                 }
                 break;
         }
     }
-    
+
     $stmt->close();
-    
+
     // Round all adjustments
     $calculation['salary_adjustments']['basic_salary'] = round($calculation['salary_adjustments']['basic_salary'], 2);
     $calculation['salary_adjustments']['absent_deduction'] = round($calculation['salary_adjustments']['absent_deduction'], 2);
     $calculation['salary_adjustments']['half_day_deduction'] = round($calculation['salary_adjustments']['half_day_deduction'], 2);
     $calculation['salary_adjustments']['late_penalty'] = round($calculation['salary_adjustments']['late_penalty'], 2);
     $calculation['salary_adjustments']['overtime_pay'] = round($calculation['salary_adjustments']['overtime_pay'], 2);
-    
+
     // Calculate Gross Salary = basic_salary (earned from present days) + overtime_pay
     $gross_salary = $calculation['salary_adjustments']['basic_salary'] + $calculation['salary_adjustments']['overtime_pay'];
     $calculation['salary_adjustments']['gross_salary'] = round($gross_salary, 2);
-    
+
     // Calculate Net Salary = Gross Salary - absent deductions - half day deductions - late penalties
     // Note: Mandatory contributions and withholding tax are calculated separately in the payroll management page
-    $net_salary_before_tax = $gross_salary 
+    $net_salary_before_tax = $gross_salary
         - $calculation['salary_adjustments']['absent_deduction']
         - $calculation['salary_adjustments']['half_day_deduction']
         - $calculation['salary_adjustments']['late_penalty'];
     $calculation['salary_adjustments']['net_salary_before_tax'] = round($net_salary_before_tax, 2);
-    
+
     // Keep adjusted_salary for backward compatibility (same as net_salary_before_tax)
     $calculation['salary_adjustments']['adjusted_salary'] = round($net_salary_before_tax, 2);
-    
+
     // Store the prorated base salary for reference
     $base_salary_for_calculation = isset($prorated_base_salary) ? $prorated_base_salary : $base_salary;
     $calculation['salary_adjustments']['prorated_base_salary'] = round($base_salary_for_calculation, 2);
-    
+
     // Store daily rate and hourly rate for reference
     $calculation['salary_adjustments']['daily_rate'] = round($daily_rate, 2);
     $calculation['salary_adjustments']['hourly_rate'] = round($hourly_rate, 2);
-    
+
     return $calculation;
 }
 
@@ -570,7 +576,8 @@ function calculatePayrollFromAttendance($conn, $employee_external_no, $period_st
  * @param float $monthly_salary Monthly basic salary
  * @return array ['employee' => float, 'employer' => float]
  */
-function calculateSSSContribution($monthly_salary) {
+function calculateSSSContribution($monthly_salary)
+{
     // If salary is 0 or negative, return 0 contributions
     if ($monthly_salary <= 0) {
         return [
@@ -579,18 +586,18 @@ function calculateSSSContribution($monthly_salary) {
             'msc' => 0
         ];
     }
-    
+
     // Apply MSC limits
     $msc_min = 5000;
     $msc_max = 35000;
-    
+
     // Clamp salary to MSC range
     $msc = max($msc_min, min($msc_max, $monthly_salary));
-    
+
     // 2025 rates: Employee 5.5%, Employer 9.5%
     $employee_contribution = $msc * 0.055;
     $employer_contribution = $msc * 0.095;
-    
+
     return [
         'employee' => round($employee_contribution, 2),
         'employer' => round($employer_contribution, 2),
@@ -606,7 +613,8 @@ function calculateSSSContribution($monthly_salary) {
  * @param float $monthly_salary Monthly basic salary
  * @return array ['employee' => float, 'employer' => float]
  */
-function calculatePhilHealthContribution($monthly_salary) {
+function calculatePhilHealthContribution($monthly_salary)
+{
     // If salary is 0 or negative, return 0 contributions
     if ($monthly_salary <= 0) {
         return [
@@ -614,15 +622,15 @@ function calculatePhilHealthContribution($monthly_salary) {
             'employer' => 0
         ];
     }
-    
+
     // Apply income ceiling
     $income_ceiling = 100000;
     $base_salary = min($monthly_salary, $income_ceiling);
-    
+
     // 2025 rates: 2.5% each (5% total)
     $employee_contribution = $base_salary * 0.025;
     $employer_contribution = $base_salary * 0.025;
-    
+
     return [
         'employee' => round($employee_contribution, 2),
         'employer' => round($employer_contribution, 2)
@@ -637,7 +645,8 @@ function calculatePhilHealthContribution($monthly_salary) {
  * @param float $monthly_salary Monthly basic salary
  * @return array ['employee' => float, 'employer' => float]
  */
-function calculatePagIBIGContribution($monthly_salary) {
+function calculatePagIBIGContribution($monthly_salary)
+{
     // If salary is 0 or negative, return 0 contributions
     if ($monthly_salary <= 0) {
         return [
@@ -645,14 +654,14 @@ function calculatePagIBIGContribution($monthly_salary) {
             'employer' => 0
         ];
     }
-    
+
     // Maximum contribution base is ₱5,000
     $contribution_base = min($monthly_salary, 5000);
-    
+
     // 2% each
     $employee_contribution = $contribution_base * 0.02;
     $employer_contribution = $contribution_base * 0.02;
-    
+
     return [
         'employee' => round($employee_contribution, 2),
         'employer' => round($employer_contribution, 2)
@@ -666,14 +675,15 @@ function calculatePagIBIGContribution($monthly_salary) {
  * @param float $taxable_income Taxable income after mandatory deductions
  * @return float Withholding tax amount
  */
-function calculateBIRWithholdingTax($taxable_income) {
+function calculateBIRWithholdingTax($taxable_income)
+{
     // If taxable income is 0 or negative, return 0 tax
     if ($taxable_income <= 0) {
         return 0;
     }
-    
+
     $tax = 0;
-    
+
     // BIR 2025 Progressive Tax Brackets (Revised Withholding Tax Table effective January 1, 2023)
     // Reference: https://taxcalculatorphilippines.com/
     if ($taxable_income <= 20833) {
@@ -695,29 +705,30 @@ function calculateBIRWithholdingTax($taxable_income) {
         // Above ₱666,666: ₱200,833.33 + 35% of excess over ₱666,667
         $tax = 200833.33 + (($taxable_income - 666667) * 0.35);
     }
-    
+
     return round(max(0, $tax), 2);
 }
 
 /**
  * Get payroll calculation summary for display
  */
-function getPayrollCalculationSummary($conn, $employee_external_no, $period_start, $period_end) {
-    
+function getPayrollCalculationSummary($conn, $employee_external_no, $period_start, $period_end)
+{
+
     // Get base salary components for the employee
     $salary_query = "SELECT * FROM salary_components WHERE type = 'earning' AND is_active = 1 ORDER BY name";
     $salary_result = $conn->query($salary_query);
     $base_components = [];
-    
+
     if ($salary_result) {
         while ($component = $salary_result->fetch_assoc()) {
             $base_components[] = $component;
         }
     }
-    
+
     // Calculate payroll
     $calculation = calculatePayrollFromAttendance($conn, $employee_external_no, $period_start, $period_end, $base_components);
-    
+
     return $calculation;
 }
 
@@ -732,7 +743,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && !isset($
         dirname(__DIR__) . '/../config/database.php',
         '../../config/database.php'
     ];
-    
+
     foreach ($db_paths as $path) {
         if (file_exists($path)) {
             require_once $path;
@@ -741,9 +752,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && !isset($
     }
 }
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'calculate_payroll') {
     header('Content-Type: application/json');
-    
+
     if (!isset($conn)) {
         echo json_encode([
             'success' => false,
@@ -751,18 +762,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         ]);
         exit;
     }
-    
+
     $action = $_POST['action'];
-    
+
     switch ($action) {
         case 'calculate_payroll':
             if (isset($_POST['employee_no']) && isset($_POST['period_start']) && isset($_POST['period_end'])) {
                 $employee_no = $_POST['employee_no'];
                 $period_start = $_POST['period_start'];
                 $period_end = $_POST['period_end'];
-                
+
                 $calculation = getPayrollCalculationSummary($conn, $employee_no, $period_start, $period_end);
-                
+
                 echo json_encode([
                     'success' => true,
                     'data' => $calculation
@@ -774,14 +785,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 ]);
             }
             break;
-            
+
         default:
             echo json_encode([
                 'success' => false,
                 'error' => 'Invalid action'
             ]);
     }
-    
+
     exit;
 }
 

@@ -197,16 +197,24 @@ main.container-fluid {
 }
 
 /* Differentiate card icons */
+.stats-cards-row .col-md-3:nth-child(1) .stat-card .stat-icon,
 .stats-cards-row .col-md-4:nth-child(1) .stat-card .stat-icon {
     background: #E8F5EE !important;
     color: #1B6B4A !important;
 }
 
+.stats-cards-row .col-md-3:nth-child(2) .stat-card .stat-icon,
 .stats-cards-row .col-md-4:nth-child(2) .stat-card .stat-icon {
     background: #EEF2FF !important;
     color: #4F46E5 !important;
 }
 
+.stat-card--payroll .stat-icon {
+    background: #FDF2F8 !important;
+    color: #BE185D !important;
+}
+
+.stats-cards-row .col-md-3:nth-child(4) .stat-card .stat-icon,
 .stats-cards-row .col-md-4:nth-child(3) .stat-card .stat-icon {
     background: #FEF3C7 !important;
     color: #D97706 !important;

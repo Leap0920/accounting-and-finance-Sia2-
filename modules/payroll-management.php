@@ -975,8 +975,8 @@ if ($attendance_payroll_adjustments && isset($attendance_payroll_adjustments['at
                 <div class="header-actions mt-3">
                     <!-- Primary Selection Card -->
                     <div class="selection-card mb-3">
-                        <div class="row g-3">
-                            <div class="col-lg-5">
+                        <div class="row g-3 align-items-end">
+                            <div class="col-lg-4">
                                 <div class="selection-group">
                                     <label for="employee-select" class="selection-label">
                                         <i class="fas fa-user me-2"></i>Select Employee
@@ -987,18 +987,12 @@ if ($attendance_payroll_adjustments && isset($attendance_payroll_adjustments['at
                                         <?php
                                         $employees_result->data_seek(0);
                                         while ($emp = $employees_result->fetch_assoc()):
-                                            // Use HRIS full name if available, otherwise use employee_refs name
                                             $display_name = !empty($emp['hris_full_name']) ? trim($emp['hris_full_name']) : ($emp['name'] ?? 'Unknown');
-
-                                            // Ensure external_employee_no is in correct format (EMP001, EMP002, etc.)
-                                            // Use employee_id to generate consistent format
                                             $employee_id = intval($emp['hris_employee_id'] ?? 0);
                                             if ($employee_id > 0) {
                                                 $employee_number = 'EMP' . str_pad($employee_id, 3, '0', STR_PAD_LEFT);
                                             } else {
-                                                // Fallback to existing external_employee_no if employee_id not available
                                                 $employee_number = $emp['external_employee_no'] ?? '';
-                                                // Normalize format if needed
                                                 if (preg_match('/EMP(\d+)/i', $employee_number, $matches)) {
                                                     $employee_number = 'EMP' . str_pad(intval($matches[1]), 3, '0', STR_PAD_LEFT);
                                                 }
@@ -1011,89 +1005,82 @@ if ($attendance_payroll_adjustments && isset($attendance_payroll_adjustments['at
                                     </select>
                                 </div>
                             </div>
-                            <div class="col-lg-7">
+                            <div class="col-lg-3">
                                 <div class="selection-group">
-                                    <label for="payroll-period-select" class="selection-label">
-                                        <i class="fas fa-calendar-alt me-2"></i>Payroll Period
+                                    <label for="payroll-month-select" class="selection-label">
+                                        <i class="fas fa-calendar-alt me-2"></i>Payroll Month
                                     </label>
-                                    <div class="period-selectors">
-                                        <select class="form-select form-select-lg" id="payroll-month-select"
-                                            onchange="changePayrollPeriod()">
-                                            <?php
-                                            // Query database for months with attendance or leave data from HRIS
-                                            // This dynamically shows months that have actual data
-                                            $months_query = "SELECT DISTINCT DATE_FORMAT(a.date, '%Y-%m') as month
-                                                            FROM attendance a
-                                                            UNION
-                                                            SELECT DISTINCT DATE_FORMAT(lr.start_date, '%Y-%m') as month
-                                                            FROM leave_request lr
-                                                            WHERE UPPER(TRIM(lr.status)) = 'APPROVED'
-                                                            UNION
-                                                            SELECT DISTINCT DATE_FORMAT(lr.end_date, '%Y-%m') as month
-                                                            FROM leave_request lr
-                                                            WHERE UPPER(TRIM(lr.status)) = 'APPROVED'
-                                                            UNION
-                                                            SELECT DISTINCT DATE_FORMAT(ea.attendance_date, '%Y-%m') as month
-                                                            FROM employee_attendance ea
-                                                            ORDER BY month DESC";
+                                    <select class="form-select form-select-lg" id="payroll-month-select"
+                                        onchange="changePayrollPeriod()">
+                                        <?php
+                                        $months_query = "SELECT DISTINCT DATE_FORMAT(a.date, '%Y-%m') as month
+                                                        FROM attendance a
+                                                        UNION
+                                                        SELECT DISTINCT DATE_FORMAT(lr.start_date, '%Y-%m') as month
+                                                        FROM leave_request lr
+                                                        WHERE UPPER(TRIM(lr.status)) = 'APPROVED'
+                                                        UNION
+                                                        SELECT DISTINCT DATE_FORMAT(lr.end_date, '%Y-%m') as month
+                                                        FROM leave_request lr
+                                                        WHERE UPPER(TRIM(lr.status)) = 'APPROVED'
+                                                        UNION
+                                                        SELECT DISTINCT DATE_FORMAT(ea.attendance_date, '%Y-%m') as month
+                                                        FROM employee_attendance ea
+                                                        ORDER BY month DESC";
 
-                                            $months_result = $conn->query($months_query);
-                                            $available_months = [];
-
-                                            if ($months_result && $months_result->num_rows > 0) {
-                                                while ($month_row = $months_result->fetch_assoc()) {
-                                                    $available_months[] = $month_row['month'];
-                                                }
+                                        $months_result = $conn->query($months_query);
+                                        $available_months = [];
+                                        if ($months_result && $months_result->num_rows > 0) {
+                                            while ($month_row = $months_result->fetch_assoc()) {
+                                                $available_months[] = $month_row['month'];
                                             }
-
-                                            // Always include current month even if no data yet
-                                            $current_month = date('Y-m');
-                                            if (!in_array($current_month, $available_months)) {
-                                                array_unshift($available_months, $current_month);
-                                            }
-
-                                            // Remove duplicates and sort descending
-                                            $available_months = array_unique($available_months);
-                                            rsort($available_months);
-
-                                            // If no months found, at least show current month
-                                            if (empty($available_months)) {
-                                                $available_months = [$current_month];
-                                            }
-
-                                            // Build dropdown options
-                                            foreach ($available_months as $month_date) {
-                                                $month_label = date('F Y', strtotime($month_date . '-01'));
-                                                $selected = ($payroll_month == $month_date || (empty($payroll_month) && $month_date == $current_month)) ? 'selected' : '';
-                                                echo "<option value=\"$month_date\" $selected>$month_label</option>";
-                                            }
-                                            ?>
-                                        </select>
-                                        <select class="form-select form-select-lg" id="payroll-period-select"
-                                            onchange="changePayrollPeriod()">
-                                            <?php
-                                            // Use current month if no month is selected
-                                            $display_month = !empty($payroll_month) ? $payroll_month : date('Y-m');
-                                            $last_day = date('t', strtotime($display_month . '-01'));
-                                            ?>
-                                            <option value="">Full Month</option>
-                                            <option value="first" <?php echo ($payroll_period === 'first') ? 'selected' : ''; ?>>1-15</option>
-                                            <option value="second" <?php echo ($payroll_period === 'second') ? 'selected' : ''; ?>>16-<?php echo $last_day; ?></option>
-                                        </select>
-                                    </div>
+                                        }
+                                        $current_month = date('Y-m');
+                                        if (!in_array($current_month, $available_months)) {
+                                            array_unshift($available_months, $current_month);
+                                        }
+                                        $available_months = array_unique($available_months);
+                                        rsort($available_months);
+                                        if (empty($available_months)) {
+                                            $available_months = [$current_month];
+                                        }
+                                        foreach ($available_months as $month_date) {
+                                            $month_label = date('F Y', strtotime($month_date . '-01'));
+                                            $selected = ($payroll_month == $month_date || (empty($payroll_month) && $month_date == $current_month)) ? 'selected' : '';
+                                            echo "<option value=\"" . htmlspecialchars($month_date) . "\" $selected>" . htmlspecialchars($month_label) . "</option>";
+                                        }
+                                        ?>
+                                    </select>
                                 </div>
                             </div>
-                        </div>
-                        <?php if ($payroll_period && $period_label): ?>
-                            <div class="selected-period-badge mt-2">
-                                <i class="fas fa-calendar-check me-2"></i>
-                                <span><strong>Selected Period:</strong>
-                                    <?php echo htmlspecialchars($period_label); ?></span>
+                            <div class="col-lg-3">
+                                <div class="selection-group">
+                                    <label for="payroll-period-select" class="selection-label">
+                                        <i class="fas fa-clock me-2"></i>Pay Period
+                                    </label>
+                                    <?php
+                                    $display_month = !empty($payroll_month) ? $payroll_month : date('Y-m');
+                                    $last_day = date('t', strtotime($display_month . '-01'));
+                                    ?>
+                                    <select class="form-select form-select-lg" id="payroll-period-select"
+                                        onchange="changePayrollPeriod()">
+                                        <option value="full" <?php echo $payroll_period === 'full' ? 'selected' : ''; ?>>
+                                            Full Month (1st-<?php echo $last_day; ?>)</option>
+                                        <option value="first" <?php echo $payroll_period === 'first' ? 'selected' : ''; ?>>1st Half (1st-15th)</option>
+                                        <option value="second" <?php echo $payroll_period === 'second' ? 'selected' : ''; ?>>2nd Half (16th-<?php echo $last_day; ?>)</option>
+                                    </select>
+                                </div>
                             </div>
-                        <?php endif; ?>
+                            <div class="col-lg-2">
+                                <button class="btn btn-post-gl w-100" onclick="finalizePayroll()">
+                                    <i class="fas fa-check-double me-2"></i>Post to GL
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
+        </div>
         </div>
 
         <!-- Employee Search and Filters -->
@@ -1586,7 +1573,8 @@ if ($attendance_payroll_adjustments && isset($attendance_payroll_adjustments['at
                                         </div>
                                         <div class="hours-content">
                                             <div class="hours-number">
-                                                <?php echo number_format($attendance_summary['total_hours'], 1); ?></div>
+                                                <?php echo number_format($attendance_summary['total_hours'], 1); ?>
+                                            </div>
                                             <div class="hours-label">Total Hours</div>
                                         </div>
                                     </div>
@@ -1598,7 +1586,8 @@ if ($attendance_payroll_adjustments && isset($attendance_payroll_adjustments['at
                                         </div>
                                         <div class="hours-content">
                                             <div class="hours-number">
-                                                <?php echo number_format($attendance_summary['regular_hours'], 1); ?></div>
+                                                <?php echo number_format($attendance_summary['regular_hours'], 1); ?>
+                                            </div>
                                             <div class="hours-label">Regular Hours</div>
                                         </div>
                                     </div>
@@ -1610,7 +1599,8 @@ if ($attendance_payroll_adjustments && isset($attendance_payroll_adjustments['at
                                         </div>
                                         <div class="hours-content">
                                             <div class="hours-number">
-                                                <?php echo number_format($attendance_summary['overtime_hours'], 1); ?></div>
+                                                <?php echo number_format($attendance_summary['overtime_hours'], 1); ?>
+                                            </div>
                                             <div class="hours-label">Overtime Hours</div>
                                         </div>
                                     </div>
@@ -1626,9 +1616,11 @@ if ($attendance_payroll_adjustments && isset($attendance_payroll_adjustments['at
                                     <select class="form-select form-select-sm" id="attendance-month-filter">
                                         <option value="<?php echo date('Y-m'); ?>" <?php echo ($display_month == date('Y-m')) ? 'selected' : ''; ?>><?php echo date('F Y'); ?></option>
                                         <option value="<?php echo date('Y-m', strtotime('-1 month')); ?>" <?php echo ($display_month == date('Y-m', strtotime('-1 month'))) ? 'selected' : ''; ?>>
-                                            <?php echo date('F Y', strtotime('-1 month')); ?></option>
+                                            <?php echo date('F Y', strtotime('-1 month')); ?>
+                                        </option>
                                         <option value="<?php echo date('Y-m', strtotime('-2 months')); ?>" <?php echo ($display_month == date('Y-m', strtotime('-2 months'))) ? 'selected' : ''; ?>>
-                                            <?php echo date('F Y', strtotime('-2 months')); ?></option>
+                                            <?php echo date('F Y', strtotime('-2 months')); ?>
+                                        </option>
                                     </select>
                                 </div>
                             </div>
@@ -1863,7 +1855,8 @@ if ($attendance_payroll_adjustments && isset($attendance_payroll_adjustments['at
                                         <tr>
                                             <td>Basic Salary (from
                                                 <?php echo $attendance_payroll_adjustments['attendance_summary']['present_days']; ?>
-                                                present days)</td>
+                                                present days)
+                                            </td>
                                             <td class="text-end">
                                                 ₱<?php echo number_format($attendance_payroll_adjustments['salary_adjustments']['basic_salary'] ?? 0, 2); ?>
                                             </td>
@@ -1949,7 +1942,8 @@ if ($attendance_payroll_adjustments && isset($attendance_payroll_adjustments['at
                                         <tr class="table-light">
                                             <td><strong>Taxable Income</strong></td>
                                             <td class="text-end">
-                                                <strong>₱<?php echo number_format($tax_taxable_income, 2); ?></strong></td>
+                                                <strong>₱<?php echo number_format($tax_taxable_income, 2); ?></strong>
+                                            </td>
                                         </tr>
                                         <tr>
                                             <td colspan="2" class="pt-3">
@@ -2184,7 +2178,7 @@ if ($attendance_payroll_adjustments && isset($attendance_payroll_adjustments['at
                                                     <td class="amount-cell text-success">
                                                         ₱<?php echo number_format($adj['basic_salary'], 2); ?></td>
                                                 </tr>
-                                            <?php
+                                                <?php
                                             }
 
                                             // Overtime Pay (from attendance)
@@ -2196,7 +2190,7 @@ if ($attendance_payroll_adjustments && isset($attendance_payroll_adjustments['at
                                                     <td class="amount-cell">
                                                         ₱<?php echo number_format($adj['overtime_pay'], 2); ?></td>
                                                 </tr>
-                                            <?php
+                                                <?php
                                             }
                                         }
 
@@ -2356,7 +2350,7 @@ if ($attendance_payroll_adjustments && isset($attendance_payroll_adjustments['at
                                                     <td class="amount-cell">
                                                         ₱<?php echo number_format($actual_absent_deduction, 2); ?></td>
                                                 </tr>
-                                            <?php
+                                                <?php
                                             endif;
 
                                             // Unpaid Leave Days Deduction
@@ -2366,7 +2360,7 @@ if ($attendance_payroll_adjustments && isset($attendance_payroll_adjustments['at
                                                     <td class="amount-cell">
                                                         ₱<?php echo number_format($unpaid_leave_deduction, 2); ?></td>
                                                 </tr>
-                                            <?php
+                                                <?php
                                             endif;
 
                                             // Half day deduction
@@ -2376,7 +2370,7 @@ if ($attendance_payroll_adjustments && isset($attendance_payroll_adjustments['at
                                                     <td class="amount-cell">
                                                         ₱<?php echo number_format($half_day_deduction_amount, 2); ?></td>
                                                 </tr>
-                                            <?php
+                                                <?php
                                             endif;
 
                                             // Late penalty
@@ -2386,7 +2380,7 @@ if ($attendance_payroll_adjustments && isset($attendance_payroll_adjustments['at
                                                     <td class="amount-cell">
                                                         ₱<?php echo number_format($late_penalty_amount, 2); ?></td>
                                                 </tr>
-                                            <?php
+                                                <?php
                                             endif;
                                         }
 
@@ -2536,7 +2530,7 @@ if ($attendance_payroll_adjustments && isset($attendance_payroll_adjustments['at
                                                             <td><?php echo htmlspecialchars($deduction['name']); ?></td>
                                                             <td class="amount-cell">₱<?php echo number_format($amount, 2); ?></td>
                                                         </tr>
-                                                    <?php
+                                                        <?php
                                                     }
                                                 endwhile;
                                             endif;
@@ -2648,6 +2642,30 @@ if ($attendance_payroll_adjustments && isset($attendance_payroll_adjustments['at
     <footer class="main-footer">
         <p>&copy; <?php echo date('Y'); ?> Evergreen Accounting & Finance. All rights reserved.</p>
     </footer>
+
+    <!-- Payroll Notification Modal -->
+    <div class="modal fade" id="payrollNotificationModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header border-0" id="notificationModalHeader">
+                    <h5 class="modal-title text-white" id="notificationModalTitle">Notification</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                        aria-label="Close"></button>
+                </div>
+                <div class="modal-body text-center py-4">
+                    <div id="notificationModalIcon" class="mb-3 fs-1"></div>
+                    <h5 id="notificationModalHeading" class="mb-2"></h5>
+                    <p id="notificationModalMessage" class="text-muted mb-0"></p>
+                </div>
+                <div class="modal-footer border-0 justify-content-center pb-4">
+                    <button type="button" class="btn px-4" id="notificationModalCloseBtn"
+                        data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary px-4 d-none"
+                        id="notificationModalConfirmBtn">Confirm</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>

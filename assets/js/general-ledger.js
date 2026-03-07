@@ -49,6 +49,9 @@ function initializeGeneralLedger() {
     loadAccountsTable();
     loadTransactionsTable();
 
+    // Load payroll journal entries
+    loadPayrollJournalEntries();
+
     // Load audit trail after a delay to ensure DOM is ready
     setTimeout(() => {
         if (document.getElementById('audit-trail-table')) {
@@ -134,6 +137,7 @@ function animateStatistics(data) {
     const elements = {
         'total-accounts': data.total_accounts || data.total_account || 0,
         'total-transactions': data.total_transactions || 0,
+        'total-payroll-je': data.total_payroll_je || 0,
         'total-audit': data.total_audit || 0
     };
 
@@ -3355,3 +3359,117 @@ function updateChartInsight(type, data) {
 }
 
 window.switchChartTab = switchChartTab;
+window.loadPayrollJournalEntries = loadPayrollJournalEntries;
+window.applyPayrollJEFilter = applyPayrollJEFilter;
+window.resetPayrollJEFilter = resetPayrollJEFilter;
+
+// ========================================
+// PAYROLL JOURNAL ENTRIES
+// ========================================
+
+function loadPayrollJournalEntries() {
+    const tbody = document.querySelector('#payroll-je-table tbody');
+    if (!tbody) return;
+
+    tbody.innerHTML = '<tr><td colspan="8" class="text-center"><div class="loading-spinner"></div><p>Loading payroll entries...</p></td></tr>';
+
+    const dateFrom = document.getElementById('payroll-je-from')?.value || '';
+    const dateTo   = document.getElementById('payroll-je-to')?.value || '';
+    const status   = document.getElementById('payroll-je-status')?.value || '';
+
+    const params = new URLSearchParams();
+    params.append('action', 'get_payroll_journal_entries');
+    if (dateFrom) params.append('date_from', dateFrom);
+    if (dateTo)   params.append('date_to', dateTo);
+    if (status)   params.append('status', status);
+
+    fetch(`../modules/api/general-ledger-data.php?${params.toString()}`)
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                renderPayrollJETable(data.data, data.summary);
+            } else {
+                tbody.innerHTML = `<tr><td colspan="8" class="text-center py-4">Error: ${escapeHtml(data.message || 'Unknown error')}</td></tr>`;
+            }
+        })
+        .catch(err => {
+            console.error('Error loading payroll JEs:', err);
+            tbody.innerHTML = '<tr><td colspan="8" class="text-center py-4">Failed to load payroll entries</td></tr>';
+        });
+}
+
+function renderPayrollJETable(entries, summary) {
+    const tbody = document.querySelector('#payroll-je-table tbody');
+    const hint  = document.getElementById('payroll-je-hint');
+
+    if (!entries || entries.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" class="text-center py-4"><i class="fas fa-inbox me-2"></i>No payroll journal entries found</td></tr>';
+        if (hint) hint.textContent = 'No payroll entries found';
+        return;
+    }
+
+    let html = '';
+    entries.forEach((e, idx) => {
+        const statusBadge = `<span class="badge bg-${getStatusColor(e.status)}">${escapeHtml((e.status || '').toUpperCase())}</span>`;
+        const empBadge = e.employee_count ? `<span class="badge bg-secondary ms-1" title="${e.employee_count} employees">${e.employee_count} emp</span>` : '';
+
+        html += `
+            <tr style="animation-delay: ${idx * 0.05}s">
+                <td><strong class="transaction-id">${escapeHtml(e.journal_no || '-')}</strong></td>
+                <td>${escapeHtml(e.entry_date || '-')}</td>
+                <td><span class="text-muted small">${escapeHtml(e.period_label || '-')}</span></td>
+                <td>${escapeHtml(e.description || '-')} ${empBadge}</td>
+                <td class="text-end amount-debit">₱${formatCurrency(e.total_debit || 0)}</td>
+                <td class="text-end amount-credit">₱${formatCurrency(e.total_credit || 0)}</td>
+                <td>${statusBadge}</td>
+                <td>
+                    <button class="btn btn-sm btn-outline-primary" onclick="viewTransactionDetailsById('${e.id}', '${escapeHtml(e.journal_no || '')}', 'journal')" title="View details">
+                        <i class="fas fa-eye me-1"></i>View
+                    </button>
+                </td>
+            </tr>
+        `;
+    });
+
+    // Summary footer row
+    if (summary) {
+        html += `
+            <tr class="table-light fw-bold">
+                <td colspan="4" class="text-end">Totals:</td>
+                <td class="text-end amount-debit">₱${formatCurrency(summary.total_gross || 0)}</td>
+                <td class="text-end amount-credit">₱${formatCurrency(summary.total_gross || 0)}</td>
+                <td colspan="2">
+                    <small class="text-muted">Net: ₱${formatCurrency(summary.total_net || 0)}</small>
+                </td>
+            </tr>
+        `;
+    }
+
+    tbody.innerHTML = html;
+    if (hint) hint.textContent = `Showing ${entries.length} payroll journal entr${entries.length !== 1 ? 'ies' : 'y'}`;
+
+    // Fade-in rows
+    tbody.querySelectorAll('tr').forEach((row, i) => {
+        row.style.opacity = '0';
+        row.style.transform = 'translateX(-20px)';
+        setTimeout(() => {
+            row.style.transition = 'all 0.4s ease';
+            row.style.opacity = '1';
+            row.style.transform = 'translateX(0)';
+        }, i * 50);
+    });
+}
+
+function applyPayrollJEFilter() {
+    loadPayrollJournalEntries();
+}
+
+function resetPayrollJEFilter() {
+    const from   = document.getElementById('payroll-je-from');
+    const to     = document.getElementById('payroll-je-to');
+    const status = document.getElementById('payroll-je-status');
+    if (from)   from.value = '';
+    if (to)     to.value = '';
+    if (status) status.value = '';
+    loadPayrollJournalEntries();
+}

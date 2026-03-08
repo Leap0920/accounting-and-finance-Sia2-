@@ -17,6 +17,7 @@ $dateTo = $_GET['date_to'] ?? '';
 $status = $_GET['status'] ?? '';
 $minAmount = $_GET['min_amount'] ?? '';
 $accountNumber = $_GET['account_number'] ?? '';
+$transactionType = $_GET['transaction_type'] ?? '';
 $applyFilters = isset($_GET['apply_filters']);
 
 // Collect expenses from all subsystems
@@ -845,16 +846,41 @@ function buildPageUrl($page)
                         <!-- Pagination -->
                         <div class="et-pagination">
                             <div class="et-pagination-info">
-                                Page <?php echo $currentPage; ?> of <?php echo $totalPages; ?>
+                                Showing <?php echo $totalRecords > 0 ? $offset + 1 : 0; ?> to <?php echo min($offset + $perPage, $totalRecords); ?> of <?php echo $totalRecords; ?> entries
                             </div>
                             <div class="et-pagination-controls">
                                 <a href="<?php echo $currentPage > 1 ? htmlspecialchars(buildPageUrl($currentPage - 1)) : '#'; ?>"
-                                    class="et-pagination-btn" <?php echo $currentPage <= 1 ? 'disabled style="pointer-events:none;"' : ''; ?>>
-                                    Previous
+                                   class="et-pagination-btn <?php echo $currentPage <= 1 ? 'disabled' : ''; ?>"
+                                   <?php echo $currentPage <= 1 ? 'style="pointer-events:none; opacity:0.5;"' : ''; ?>>
+                                    <i class="fas fa-chevron-left me-1"></i> Previous
                                 </a>
+                                
+                                <?php
+                                $startPage = max(1, $currentPage - 2);
+                                $endPage = min($totalPages, $currentPage + 2);
+                                
+                                if ($startPage > 1) {
+                                    echo '<a href="'.htmlspecialchars(buildPageUrl(1)).'" class="et-pagination-btn">1</a>';
+                                    if ($startPage > 2) echo '<span class="et-pagination-info">...</span>';
+                                }
+                                
+                                for ($i = $startPage; $i <= $endPage; $i++): ?>
+                                    <a href="<?php echo htmlspecialchars(buildPageUrl($i)); ?>" 
+                                       class="et-pagination-btn <?php echo $i === $currentPage ? 'active' : ''; ?>">
+                                        <?php echo $i; ?>
+                                    </a>
+                                <?php endfor; 
+                                
+                                if ($endPage < $totalPages) {
+                                    if ($endPage < $totalPages - 1) echo '<span class="et-pagination-info">...</span>';
+                                    echo '<a href="'.htmlspecialchars(buildPageUrl($totalPages)).'" class="et-pagination-btn">'.$totalPages.'</a>';
+                                }
+                                ?>
+                                
                                 <a href="<?php echo $currentPage < $totalPages ? htmlspecialchars(buildPageUrl($currentPage + 1)) : '#'; ?>"
-                                    class="et-pagination-btn active" <?php echo $currentPage >= $totalPages ? 'disabled style="pointer-events:none;"' : ''; ?>>
-                                    Next
+                                   class="et-pagination-btn <?php echo $currentPage >= $totalPages ? 'disabled' : ''; ?>"
+                                   <?php echo $currentPage >= $totalPages ? 'style="pointer-events:none; opacity:0.5;"' : ''; ?>>
+                                    Next <i class="fas fa-chevron-right ms-1"></i>
                                 </a>
                             </div>
                         </div>

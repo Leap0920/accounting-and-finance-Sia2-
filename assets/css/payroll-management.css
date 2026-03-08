@@ -2540,6 +2540,185 @@ body {
     .overall-summary-box {
         page-break-inside: avoid !important;
     }
+
+    /* Payslip Redesign Print Styles */
+    .payslip-redesign {
+        max-width: 100% !important;
+        padding: 0 !important;
+    }
+
+    .payslip-computation-hidden {
+        display: none !important;
+    }
+
+    .payslip-employee-card {
+        background: none !important;
+        border: 2px solid #000 !important;
+        border-radius: 0 !important;
+        padding: 16px 20px !important;
+        margin-bottom: 16px !important;
+        page-break-inside: avoid !important;
+    }
+
+    .payslip-employee-name {
+        font-size: 18px !important;
+        margin-bottom: 6px !important;
+    }
+
+    .payslip-emp-badge {
+        background: #333 !important;
+        color: #fff !important;
+        border-radius: 0 !important;
+        font-size: 10px !important;
+        padding: 2px 8px !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+
+    .payslip-details-grid {
+        gap: 8px 24px !important;
+        margin-top: 12px !important;
+    }
+
+    .payslip-detail-label {
+        font-size: 8px !important;
+        margin-bottom: 2px !important;
+    }
+
+    .payslip-detail-value {
+        font-size: 11px !important;
+    }
+
+    .payslip-net-pay-section {
+        border: 2px solid #000 !important;
+        border-radius: 0 !important;
+        padding: 16px !important;
+        margin-bottom: 16px !important;
+        background: none !important;
+        page-break-inside: avoid !important;
+    }
+
+    .payslip-net-pay-label {
+        font-size: 9px !important;
+        letter-spacing: 1px !important;
+        margin-bottom: 6px !important;
+    }
+
+    .payslip-net-pay-amount {
+        font-size: 28px !important;
+        font-weight: 800 !important;
+        margin-bottom: 14px !important;
+    }
+
+    .payslip-net-pay-details {
+        gap: 20px !important;
+    }
+
+    .payslip-net-detail {
+        border: 1px solid #000 !important;
+        border-radius: 0 !important;
+        background: none !important;
+        padding: 8px 16px !important;
+        min-width: auto !important;
+    }
+
+    .payslip-net-detail-label {
+        font-size: 8px !important;
+    }
+
+    .payslip-net-detail-value {
+        font-size: 14px !important;
+    }
+
+    .payslip-info-card {
+        background: none !important;
+        border: 1px solid #000 !important;
+        border-radius: 0 !important;
+        padding: 12px !important;
+        page-break-inside: avoid !important;
+    }
+
+    .payslip-card-title {
+        font-size: 12px !important;
+        margin-bottom: 10px !important;
+    }
+
+    .payslip-card-title i {
+        display: none !important;
+    }
+
+    .payslip-att-item {
+        border: 1px solid #999 !important;
+        border-radius: 0 !important;
+        background: none !important;
+        padding: 8px !important;
+    }
+
+    .payslip-att-label {
+        font-size: 8px !important;
+        margin-bottom: 4px !important;
+    }
+
+    .payslip-att-value {
+        font-size: 18px !important;
+    }
+
+    .payslip-attendance-grid {
+        gap: 8px !important;
+    }
+
+    .payslip-breakdown-item {
+        padding: 6px 0 !important;
+        font-size: 11px !important;
+        border-bottom: 1px dotted #999 !important;
+    }
+
+    .payslip-breakdown-item:last-child {
+        border-bottom: none !important;
+    }
+
+    .payslip-amount-earning,
+    .payslip-deduction-label,
+    .payslip-amount-deduction,
+    .payslip-text-danger,
+    .payslip-detail-value.text-success {
+        color: #000 !important;
+    }
+
+    .btn-print-payslip {
+        display: none !important;
+    }
+
+    #overall .row.g-4 {
+        display: flex !important;
+        flex-wrap: nowrap !important;
+        gap: 12px !important;
+        margin-top: 12px !important;
+    }
+
+    #overall .row.g-4 > .col-md-5,
+    #overall .row.g-4 > .col-md-7 {
+        flex: 0 0 auto !important;
+        padding: 0 !important;
+    }
+
+    #overall .row.g-4 > .col-md-5 {
+        width: 40% !important;
+    }
+
+    #overall .row.g-4 > .col-md-7 {
+        width: 58% !important;
+    }
+
+    .payslip-redesign::after {
+        content: "Employee Signature: ________________________     Date: ________________________";
+        display: block;
+        text-align: left;
+        margin-top: 30px;
+        padding-top: 20px;
+        font-size: 10px;
+        border-top: 1px solid #999;
+    }
 }
 
 /* ========================================
@@ -3207,5 +3386,282 @@ body {
 
 .mb-20 {
     margin-bottom: 20px;
+}
+
+/* ========================================
+   PAYSLIP REDESIGN - FIGMA CARD DESIGN
+   ======================================== */
+
+/* Hide computation wrapper on screen only */
+.payslip-computation-hidden {
+    display: none;
+}
+
+.payslip-redesign {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 24px 32px;
+}
+
+/* Employee Info Card */
+.payslip-employee-card {
+    background: linear-gradient(135deg, #f0fdf4, #ecfdf5);
+    border: 1.5px solid #bbf7d0;
+    border-radius: 20px;
+    padding: 48px 56px;
+    margin-bottom: 40px;
+}
+
+.payslip-employee-header {
+    margin-bottom: 32px;
+}
+
+.payslip-employee-name {
+    font-size: 34px;
+    font-weight: 700;
+    color: #1e293b;
+    margin-bottom: 14px;
+}
+
+.payslip-emp-badge {
+    display: inline-flex;
+    align-items: center;
+    background: #16a34a;
+    color: white;
+    font-size: 14px;
+    font-weight: 600;
+    padding: 7px 18px;
+    border-radius: 8px;
+    gap: 6px;
+}
+
+.payslip-details-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px 80px;
+    margin-top: 32px;
+}
+
+.payslip-detail-label {
+    display: block;
+    font-size: 11px;
+    font-weight: 600;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: 8px;
+}
+
+.payslip-detail-value {
+    font-size: 17px;
+    font-weight: 600;
+    color: #1e293b;
+}
+
+.payslip-detail-value.text-success {
+    color: #16a34a !important;
+}
+
+/* Net Pay Section */
+.payslip-net-pay-section {
+    text-align: center;
+    padding: 56px 32px;
+    margin-bottom: 40px;
+    background: #fff;
+    border-radius: 20px;
+    border: 1px solid #e2e8f0;
+}
+
+.payslip-net-pay-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    margin-bottom: 16px;
+}
+
+.payslip-net-pay-amount {
+    font-size: 72px;
+    font-weight: 800;
+    color: #1e293b;
+    margin-bottom: 40px;
+    line-height: 1;
+}
+
+.payslip-net-pay-details {
+    display: flex;
+    justify-content: center;
+    gap: 64px;
+}
+
+.payslip-net-detail {
+    text-align: center;
+    padding: 24px 48px;
+    background: #f8fafc;
+    border-radius: 14px;
+    border: 1px solid #e2e8f0;
+    min-width: 220px;
+}
+
+.payslip-net-detail-label {
+    display: block;
+    font-size: 11px;
+    font-weight: 600;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: 10px;
+}
+
+.payslip-net-detail-value {
+    font-size: 26px;
+    font-weight: 700;
+    color: #1e293b;
+}
+
+.payslip-text-danger {
+    color: #dc2626 !important;
+}
+
+/* Attendance Summary & Breakdown Cards */
+.payslip-info-card {
+    background: linear-gradient(135deg, #f0fdf4, #f8fafc);
+    border: 1.5px solid #d4d4d8;
+    border-radius: 20px;
+    padding: 36px 40px;
+    height: 100%;
+}
+
+.payslip-card-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: #1e293b;
+    margin-bottom: 28px;
+}
+
+.payslip-card-title i {
+    color: #16a34a;
+}
+
+.payslip-attendance-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+.payslip-att-item {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    padding: 24px 20px;
+    text-align: left;
+}
+
+.payslip-att-label {
+    display: block;
+    font-size: 11px;
+    font-weight: 600;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    margin-bottom: 12px;
+}
+
+.payslip-att-value {
+    display: block;
+    font-size: 36px;
+    font-weight: 700;
+    color: #1e293b;
+}
+
+/* Breakdown List */
+.payslip-breakdown-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+.payslip-breakdown-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 18px 8px;
+    border-bottom: 1px solid #f1f5f9;
+    font-size: 16px;
+}
+
+.payslip-breakdown-item:last-child {
+    border-bottom: none;
+}
+
+.payslip-amount-earning {
+    color: #16a34a;
+    font-weight: 600;
+}
+
+.payslip-deduction-label {
+    color: #dc2626;
+}
+
+.payslip-amount-deduction {
+    color: #1e293b;
+    font-weight: 500;
+}
+
+/* Print Payslip Button */
+.btn-print-payslip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: #b45309;
+    color: white;
+    border: none;
+    padding: 14px 40px;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+    margin-top: 16px;
+}
+
+.btn-print-payslip:hover {
+    background: #92400e;
+}
+
+/* Responsive adjustments for payslip */
+@media (max-width: 768px) {
+    .payslip-details-grid {
+        grid-template-columns: 1fr;
+        gap: 14px;
+    }
+
+    .payslip-net-pay-amount {
+        font-size: 36px;
+    }
+
+    .payslip-net-pay-details {
+        flex-direction: column;
+        gap: 14px;
+        align-items: center;
+    }
+
+    .payslip-net-detail {
+        min-width: 160px;
+    }
+
+    .payslip-attendance-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+    }
+
+    .payslip-employee-card {
+        padding: 20px;
+    }
+
+    .payslip-info-card {
+        padding: 20px;
+    }
 }
 

@@ -1944,105 +1944,70 @@ if ($attendance_payroll_adjustments && isset($attendance_payroll_adjustments['at
 
             <!-- OVERALL TAB -->
             <div class="tab-pane fade" id="overall" role="tabpanel">
-                <div class="payroll-content-card">
+                <div class="payroll-content-card payslip-redesign">
                     <h3 class="payroll-section-title">Payslip</h3>
 
-                    <!-- Company Header (only if real data exists) -->
-                    <?php if (!empty($company_bank['bank_name']) && $company_bank['bank_name'] !== 'BANK NAME'): ?>
-                        <div class="overall-header">
-                            <div class="bank-name"><?php echo htmlspecialchars($company_bank['bank_name']); ?></div>
-                            <?php if (!empty($company_bank['name']) && $company_bank['name'] !== 'Company Name'): ?>
-                                <div class="company-name">(<?php echo htmlspecialchars($company_bank['name']); ?>)</div>
+                    <!-- Employee Info Card -->
+                    <div class="payslip-employee-card">
+                        <?php if ($current_employee): ?>
+                        <div class="payslip-employee-header">
+                            <h2 class="payslip-employee-name"><?php echo htmlspecialchars($current_employee['name'] ?? ($current_employee['hris_full_name'] ?? 'N/A')); ?></h2>
+                            <span class="payslip-emp-badge"><i class="fas fa-shield-alt me-1"></i><?php echo htmlspecialchars($current_employee['external_employee_no'] ?? $selected_employee); ?></span>
+                        </div>
+                        <div class="payslip-details-grid">
+                            <?php if (!empty($current_employee['position']) || !empty($current_employee['hris_position_title'])): ?>
+                            <div class="payslip-detail-item">
+                                <span class="payslip-detail-label">Position</span>
+                                <span class="payslip-detail-value"><?php echo htmlspecialchars($current_employee['position'] ?? $current_employee['hris_position_title'] ?? 'N/A'); ?></span>
+                            </div>
+                            <?php endif; ?>
+                            <?php if (!empty($current_employee['department']) || !empty($current_employee['hris_department_name'])): ?>
+                            <div class="payslip-detail-item">
+                                <span class="payslip-detail-label">Department</span>
+                                <span class="payslip-detail-value"><?php echo htmlspecialchars($current_employee['department'] ?? $current_employee['hris_department_name'] ?? 'N/A'); ?></span>
+                            </div>
+                            <?php endif; ?>
+                            <?php if (!empty($current_employee['employment_type'])): ?>
+                            <div class="payslip-detail-item">
+                                <span class="payslip-detail-label">Employment Type</span>
+                                <span class="payslip-detail-value"><?php echo ucwords(str_replace(['_', '-'], ' ', htmlspecialchars($current_employee['employment_type']))); ?></span>
+                            </div>
+                            <?php endif; ?>
+                            <div class="payslip-detail-item">
+                                <span class="payslip-detail-label">Pay Period</span>
+                                <span class="payslip-detail-value"><?php
+                                    if ($period_start && $period_end) {
+                                        echo date('M j', strtotime($period_start)) . ' - ' . date('M j, Y', strtotime($period_end));
+                                    } else {
+                                        echo $period_label ? htmlspecialchars($period_label) : date('F Y', strtotime($display_month . '-01'));
+                                    }
+                                ?></span>
+                            </div>
+                            <?php if ($position_salary > 0): ?>
+                            <div class="payslip-detail-item">
+                                <span class="payslip-detail-label">Base Monthly Salary</span>
+                                <span class="payslip-detail-value text-success">₱<?php echo number_format($position_salary, 2); ?></span>
+                            </div>
+                            <?php endif; ?>
+                            <?php if (!empty($company_bank['bank_name']) && $company_bank['bank_name'] !== 'BANK NAME'): ?>
+                            <div class="payslip-detail-item">
+                                <span class="payslip-detail-label">Disbursement</span>
+                                <span class="payslip-detail-value"><i class="fas fa-university me-1"></i><?php echo htmlspecialchars($company_bank['bank_name']); ?></span>
+                            </div>
                             <?php endif; ?>
                         </div>
-                    <?php endif; ?>
-
-                    <!-- Employee Details Section -->
-                    <div class="overall-section">
-                        <div class="overall-section-title">Employee Information</div>
-                        <?php
-                        $employees_result->data_seek(0); // Reset pointer
-                        if ($employees_result && $employees_result->num_rows > 0):
-                            $employee = $employees_result->fetch_assoc();
-                            ?>
-                            <table class="employee-info-table">
-                                <tr>
-                                    <td>Employee Code</td>
-                                    <td><?php echo htmlspecialchars($employee['external_employee_no']); ?></td>
-                                </tr>
-                                <tr>
-                                    <td>Employee Name</td>
-                                    <td><?php echo htmlspecialchars($employee['name'] ?? 'N/A'); ?></td>
-                                </tr>
-                                <?php if (!empty($current_employee['position']) || !empty($current_employee['hris_position_title'])): ?>
-                                    <tr>
-                                        <td>Position</td>
-                                        <td><?php echo htmlspecialchars($current_employee['position'] ?? $current_employee['hris_position_title'] ?? 'N/A'); ?>
-                                        </td>
-                                    </tr>
-                                <?php endif; ?>
-                                <?php if (!empty($current_employee['department']) || !empty($current_employee['hris_department_name'])): ?>
-                                    <tr>
-                                        <td>Department</td>
-                                        <td><?php echo htmlspecialchars($current_employee['department'] ?? $current_employee['hris_department_name'] ?? 'N/A'); ?>
-                                        </td>
-                                    </tr>
-                                <?php endif; ?>
-                                <?php if (!empty($current_employee['employment_type'])): ?>
-                                    <tr>
-                                        <td>Employment Type</td>
-                                        <td><?php echo ucfirst(htmlspecialchars($current_employee['employment_type'])); ?></td>
-                                    </tr>
-                                <?php endif; ?>
-                                <?php if ($position_salary > 0): ?>
-                                    <tr>
-                                        <td>Base Monthly Salary</td>
-                                        <td>₱<?php echo number_format($position_salary, 2); ?></td>
-                                    </tr>
-                                <?php endif; ?>
-                                <tr>
-                                    <td>Pay Period</td>
-                                    <td><?php echo $period_label ? htmlspecialchars($period_label) : date('F Y', strtotime($display_month . '-01')); ?>
-                                    </td>
-                                </tr>
-                            </table>
                         <?php endif; ?>
                     </div>
+
+                    <!-- Hidden computation wrapper (PHP executes, hidden on screen, visible in print) -->
+                    <div class="payslip-computation-hidden">
 
                     <?php if ($has_attendance_data && $attendance_payroll_adjustments):
                         $ps_adj = $attendance_payroll_adjustments['salary_adjustments'];
                         $ps_att = $attendance_payroll_adjustments['attendance_summary'];
                         ?>
-                        <!-- Attendance Summary for Payslip - Hidden in Print -->
                         <div class="overall-section attendance-summary-print-hide no-print">
-                            <div class="overall-section-title"><i class="fas fa-calendar-check me-2"></i>Attendance Summary
-                            </div>
-                            <div class="row text-center mb-3">
-                                <div class="col-3">
-                                    <div class="border rounded p-2 bg-success bg-opacity-10">
-                                        <div class="fs-4 fw-bold text-success"><?php echo $ps_att['present_days']; ?></div>
-                                        <small class="text-muted">Present</small>
-                                    </div>
-                                </div>
-                                <div class="col-3">
-                                    <div class="border rounded p-2 bg-danger bg-opacity-10">
-                                        <div class="fs-4 fw-bold text-danger"><?php echo $ps_att['absent_days']; ?></div>
-                                        <small class="text-muted">Absent</small>
-                                    </div>
-                                </div>
-                                <div class="col-3">
-                                    <div class="border rounded p-2 bg-warning bg-opacity-10">
-                                        <div class="fs-4 fw-bold text-warning"><?php echo $ps_att['late_days']; ?></div>
-                                        <small class="text-muted">Late</small>
-                                    </div>
-                                </div>
-                                <div class="col-3">
-                                    <div class="border rounded p-2 bg-info bg-opacity-10">
-                                        <div class="fs-4 fw-bold text-info"><?php echo $ps_att['leave_days']; ?></div>
-                                        <small class="text-muted">Leave</small>
-                                    </div>
-                                </div>
-                            </div>
+                            <div class="row text-center mb-3"></div>
                         </div>
                     <?php endif; ?>
 
@@ -2443,95 +2408,108 @@ if ($attendance_payroll_adjustments && isset($attendance_payroll_adjustments['at
                             </div>
                         </div>
                     </div>
+                    </div><!-- /payslip-computation-hidden -->
 
-                    <!-- Summary -->
-                    <div class="overall-summary-box">
-                        <?php if ($has_attendance_data): ?>
-                            <div class="overall-section-title mb-3"><i class="fas fa-calculator me-2"></i>Pay Computation
-                                Summary</div>
-                            <table class="table table-sm mb-0">
-                                <tr>
-                                    <td><i class="fas fa-plus text-success me-2"></i>Gross Earnings</td>
-                                    <td class="text-end fw-bold">
-                                        ₱<?php echo number_format($overall_gross_salary > 0 ? $overall_gross_salary : $total_earnings_overall, 2); ?>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td class="ps-4 text-muted small">Basic Salary
-                                        (<?php echo $attendance_payroll_adjustments['attendance_summary']['present_days']; ?>
-                                        present days)</td>
-                                    <td class="text-end text-muted small">
-                                        ₱<?php echo number_format($attendance_payroll_adjustments['salary_adjustments']['basic_salary'] ?? 0, 2); ?>
-                                    </td>
-                                </tr>
-                                <?php if (($attendance_payroll_adjustments['salary_adjustments']['overtime_pay'] ?? 0) > 0): ?>
-                                    <tr>
-                                        <td class="ps-4 text-muted small">Overtime Pay</td>
-                                        <td class="text-end text-muted small">
-                                            ₱<?php echo number_format($attendance_payroll_adjustments['salary_adjustments']['overtime_pay'], 2); ?>
-                                        </td>
-                                    </tr>
-                                <?php endif; ?>
-                                <tr>
-                                    <td><i class="fas fa-minus text-danger me-2"></i>Total Deductions</td>
-                                    <td class="text-end fw-bold text-danger">
-                                        -₱<?php echo number_format($total_deductions_overall, 2); ?></td>
-                                </tr>
-                                <tr>
-                                    <td class="ps-4 text-muted small">Government Contributions (SSS, PhilHealth, Pag-IBIG)
-                                    </td>
-                                    <td class="text-end text-muted small">
-                                        ₱<?php echo number_format($overall_sss_contrib['employee'] + $overall_philhealth_contrib['employee'] + $overall_pagibig_contrib['employee'], 2); ?>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td class="ps-4 text-muted small">Withholding Tax (BIR)</td>
-                                    <td class="text-end text-muted small">
-                                        ₱<?php echo number_format($overall_withholding_tax, 2); ?></td>
-                                </tr>
-                                <?php
-                                $other_deductions = $total_deductions_overall - $overall_sss_contrib['employee'] - $overall_philhealth_contrib['employee'] - $overall_pagibig_contrib['employee'] - $overall_withholding_tax;
-                                if ($other_deductions > 0): ?>
-                                    <tr>
-                                        <td class="ps-4 text-muted small">Other Deductions (Absences, Late, etc.)</td>
-                                        <td class="text-end text-muted small">
-                                            ₱<?php echo number_format($other_deductions, 2); ?></td>
-                                    </tr>
-                                <?php endif; ?>
-                                <tr class="table-success">
-                                    <td><strong class="fs-5"><i class="fas fa-wallet me-2"></i>NET PAY (Take Home)</strong>
-                                    </td>
-                                    <td class="text-end"><strong class="fs-5 text-success">₱<?php
-                                    $net_salary = ($overall_gross_salary > 0 ? $overall_gross_salary : $total_earnings_overall) - $total_deductions_overall;
-                                    // Ensure net salary is never negative - set to 0 if negative
-                                    $net_salary = max(0, $net_salary);
-                                    echo number_format($net_salary, 2);
-                                    ?></strong></td>
-                                </tr>
-                            </table>
-                        <?php else: ?>
-                            <div class="overall-summary-row">
-                                <span class="label">Gross Earnings:</span>
-                                <span class="value">₱0.00</span>
+                    <!-- Net Pay Section -->
+                    <div class="payslip-net-pay-section">
+                        <div class="payslip-net-pay-label">NET PAY FOR THIS PERIOD</div>
+                        <div class="payslip-net-pay-amount">₱<?php
+                            $ps_net = max(0, ($overall_gross_salary > 0 ? $overall_gross_salary : $total_earnings_overall) - $total_deductions_overall);
+                            echo number_format($ps_net, 2);
+                        ?></div>
+                        <div class="payslip-net-pay-details">
+                            <div class="payslip-net-detail">
+                                <span class="payslip-net-detail-label">GROSS EARNINGS</span>
+                                <span class="payslip-net-detail-value">₱<?php echo number_format($overall_gross_salary > 0 ? $overall_gross_salary : $total_earnings_overall, 2); ?></span>
                             </div>
-                            <div class="overall-summary-row">
-                                <span class="label">Total Deductions:</span>
-                                <span class="value">₱0.00</span>
+                            <div class="payslip-net-detail">
+                                <span class="payslip-net-detail-label">TOTAL DEDUCTIONS</span>
+                                <span class="payslip-net-detail-value payslip-text-danger">₱<?php echo number_format($total_deductions_overall, 2); ?></span>
                             </div>
-                            <div class="overall-summary-row">
-                                <span class="label">Net Salary:</span>
-                                <span class="value">₱0.00</span>
+                        </div>
+                    </div>
+
+                    <!-- Attendance Summary & Breakdown -->
+                    <div class="row g-4 mt-4">
+                        <div class="col-md-5">
+                            <div class="payslip-info-card">
+                                <h5 class="payslip-card-title"><i class="fas fa-calendar-check me-2"></i>Attendance Summary</h5>
+                                <div class="payslip-attendance-grid">
+                                    <div class="payslip-att-item">
+                                        <span class="payslip-att-label">REGULAR DAYS</span>
+                                        <span class="payslip-att-value"><?php echo $has_attendance_data ? ($attendance_payroll_adjustments['attendance_summary']['present_days'] ?? 0) : 0; ?></span>
+                                    </div>
+                                    <div class="payslip-att-item">
+                                        <span class="payslip-att-label">OT HOURS</span>
+                                        <span class="payslip-att-value"><?php echo $has_attendance_data ? ($attendance_payroll_adjustments['attendance_summary']['overtime_hours'] ?? 0) : 0; ?></span>
+                                    </div>
+                                    <div class="payslip-att-item">
+                                        <span class="payslip-att-label">LATE (MINS)</span>
+                                        <span class="payslip-att-value"><?php echo $has_attendance_data ? ($attendance_payroll_adjustments['attendance_summary']['late_minutes'] ?? $attendance_payroll_adjustments['attendance_summary']['late_days'] ?? 0) : 0; ?></span>
+                                    </div>
+                                    <div class="payslip-att-item">
+                                        <span class="payslip-att-label">ABSENCES</span>
+                                        <span class="payslip-att-value"><?php echo $has_attendance_data ? ($attendance_payroll_adjustments['attendance_summary']['absent_days'] ?? 0) : 0; ?></span>
+                                    </div>
+                                </div>
                             </div>
-                            <div class="text-center text-muted mt-3">
-                                <i class="fas fa-info-circle me-2"></i>
-                                No payroll data available for this period
+                        </div>
+                        <div class="col-md-7">
+                            <div class="payslip-info-card">
+                                <h5 class="payslip-card-title"><i class="fas fa-receipt me-2"></i>Breakdown</h5>
+                                <div class="payslip-breakdown-list">
+                                    <?php if ($has_attendance_data && $attendance_payroll_adjustments):
+                                        $adj_bd = $attendance_payroll_adjustments['salary_adjustments'];
+                                    ?>
+                                        <?php if (isset($adj_bd['basic_salary']) && $adj_bd['basic_salary'] > 0): ?>
+                                        <div class="payslip-breakdown-item">
+                                            <span>Basic Salary</span>
+                                            <span class="fw-semibold">₱<?php echo number_format($adj_bd['basic_salary'], 2); ?></span>
+                                        </div>
+                                        <?php endif; ?>
+                                        <?php if (isset($adj_bd['overtime_pay']) && $adj_bd['overtime_pay'] > 0): ?>
+                                        <div class="payslip-breakdown-item">
+                                            <span>Overtime Pay</span>
+                                            <span class="payslip-amount-earning">+ ₱<?php echo number_format($adj_bd['overtime_pay'], 2); ?></span>
+                                        </div>
+                                        <?php endif; ?>
+                                        <?php if ($overall_sss_contrib['employee'] > 0): ?>
+                                        <div class="payslip-breakdown-item">
+                                            <span class="payslip-deduction-label">SSS Premium</span>
+                                            <span class="payslip-amount-deduction">- ₱<?php echo number_format($overall_sss_contrib['employee'], 2); ?></span>
+                                        </div>
+                                        <?php endif; ?>
+                                        <?php if ($overall_philhealth_contrib['employee'] > 0): ?>
+                                        <div class="payslip-breakdown-item">
+                                            <span class="payslip-deduction-label">PhilHealth</span>
+                                            <span class="payslip-amount-deduction">- ₱<?php echo number_format($overall_philhealth_contrib['employee'], 2); ?></span>
+                                        </div>
+                                        <?php endif; ?>
+                                        <?php if ($overall_pagibig_contrib['employee'] > 0): ?>
+                                        <div class="payslip-breakdown-item">
+                                            <span class="payslip-deduction-label">Pag-IBIG</span>
+                                            <span class="payslip-amount-deduction">- ₱<?php echo number_format($overall_pagibig_contrib['employee'], 2); ?></span>
+                                        </div>
+                                        <?php endif; ?>
+                                        <?php if ($overall_withholding_tax > 0): ?>
+                                        <div class="payslip-breakdown-item">
+                                            <span class="payslip-deduction-label">Withholding Tax</span>
+                                            <span class="payslip-amount-deduction">- ₱<?php echo number_format($overall_withholding_tax, 2); ?></span>
+                                        </div>
+                                        <?php endif; ?>
+                                    <?php else: ?>
+                                        <div class="text-center text-muted py-4">
+                                            <i class="fas fa-info-circle me-2"></i>No payroll data for this period
+                                        </div>
+                                    <?php endif; ?>
+                                </div>
                             </div>
-                        <?php endif; ?>
+                        </div>
                     </div>
 
                     <!-- Print Button -->
                     <div class="text-center mt-4 no-print">
-                        <button class="btn-print" onclick="printPayslip()">
+                        <button class="btn-print-payslip" onclick="printPayslip()">
                             <i class="fas fa-print me-2"></i>Print Payslip
                         </button>
                     </div>

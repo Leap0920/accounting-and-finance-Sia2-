@@ -115,7 +115,7 @@ function getExpenseDetails() {
         $sql = "SELECT 
                     bt.transaction_id as id,
                     COALESCE(bt.transaction_ref, CONCAT('TXN-', bt.transaction_id)) as claim_no,
-                    CONCAT(bc.first_name, ' ', IFNULL(bc.middle_name, ''), ' ', bc.last_name) as employee_name,
+                    CONCAT(bc.first_name, ' ', bc.last_name) as employee_name,
                     ca.account_number as employee_external_no,
                     DATE(bt.created_at) as expense_date,
                     bt.amount,
@@ -135,8 +135,7 @@ function getExpenseDetails() {
                 INNER JOIN customer_accounts ca ON bt.account_id = ca.account_id
                 INNER JOIN bank_customers bc ON ca.customer_id = bc.customer_id
                 WHERE bt.transaction_id = ?
-                    AND (tt.type_name LIKE '%fee%' OR tt.type_name LIKE '%charge%' OR tt.type_name LIKE '%withdrawal%')
-                    AND ca.is_locked = 0";
+                    AND (tt.type_name LIKE '%fee%' OR tt.type_name LIKE '%charge%' OR tt.type_name LIKE '%withdrawal%')";
         
         $stmt = $conn->prepare($sql);
         if ($stmt) {

@@ -11,25 +11,6 @@ function isLoggedIn()
         return true;
     }
 
-    // Check for remember me cookie
-    if (isset($_COOKIE['remember_me'])) {
-        $token = $_COOKIE['remember_me'];
-        $conn = getDBConnection();
-        if ($conn) {
-            $hashed_token = hash('sha256', $token);
-            $stmt = $conn->prepare("SELECT id, username, email, full_name FROM users WHERE remember_token = ? AND is_active = 1");
-            $stmt->bind_param("s", $hashed_token);
-            $stmt->execute();
-            $result = $stmt->get_result();
-
-            if ($result->num_rows == 1) {
-                $user = $result->fetch_assoc();
-                setUserSession($user);
-                return true;
-            }
-        }
-    }
-
     return false;
 }
 
@@ -83,25 +64,6 @@ function setUserSession($user_data)
 // Function to destroy session
 function destroyUserSession()
 {
-    // Clear remember me token from DB
-    if (isset($_SESSION['user_id'])) {
-        $user_id = $_SESSION['user_id'];
-        $conn = getDBConnection();
-        if ($conn) {
-            $stmt = $conn->prepare("UPDATE users SET remember_token = NULL WHERE id = ?");
-            if ($stmt) {
-                $stmt->bind_param("i", $user_id);
-                $stmt->execute();
-                $stmt->close();
-            }
-        }
-    }
-
-    // Clear cookie
-    if (isset($_COOKIE['remember_me'])) {
-        setcookie("remember_me", "", time() - 3600, "/");
-    }
-
     session_unset();
     session_destroy();
 }

@@ -44,19 +44,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                         // Set session
                         setUserSession($user);
 
-                        // Handle Remember Me
-                        if (isset($_POST['remember'])) {
-                            $token = bin2hex(random_bytes(32));
-                            $hashed_token = hash('sha256', $token);
-                            $update_stmt = $conn->prepare("UPDATE users SET remember_token = ? WHERE id = ?");
-                            $update_stmt->bind_param("si", $hashed_token, $user['id']);
-                            $update_stmt->execute();
-                            $update_stmt->close();
-
-                            // Set cookie for 30 days
-                            setcookie("remember_me", $token, time() + (30 * 24 * 60 * 60), "/");
-                        }
-
                         // Update last login
                         $update_stmt = $conn->prepare("UPDATE users SET last_login = NOW() WHERE id = ?");
                         $update_stmt->bind_param("i", $user['id']);

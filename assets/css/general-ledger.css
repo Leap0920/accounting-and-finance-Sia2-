@@ -1117,21 +1117,6 @@ main.container-fluid {
 }
 
 /* ============================================
-   TRIAL BALANCE — Totals Row
-   ============================================ */
-#trial-balance-table tfoot tr {
-    background: #F0FFF6 !important;
-    font-weight: 700 !important;
-}
-
-#trial-balance-table tfoot td {
-    padding: 14px 28px !important;
-    border-top: 2px solid var(--gl-primary) !important;
-    font-weight: 700 !important;
-    color: var(--gl-dark) !important;
-}
-
-/* ============================================
    EMPTY STATE
    ============================================ */
 .gl-empty-state {

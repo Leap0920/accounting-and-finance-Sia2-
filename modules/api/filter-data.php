@@ -62,7 +62,7 @@ function filterFinancialData($conn, $date_from, $date_to, $subsystem, $account_t
                 SELECT 
                     DATE(bt.created_at) as date,
                     ca.account_number as account_code,
-                    CONCAT(bc.first_name, ' ', IFNULL(bc.middle_name, ''), ' ', bc.last_name) as account_name,
+                    CONCAT(bc.first_name, ' ', bc.last_name) as account_name,
                     bt.description,
                     CASE 
                         WHEN tt.type_name LIKE '%deposit%' OR tt.type_name LIKE '%interest%' THEN bt.amount
@@ -79,8 +79,7 @@ function filterFinancialData($conn, $date_from, $date_to, $subsystem, $account_t
                 INNER JOIN customer_accounts ca ON bt.account_id = ca.account_id
                 INNER JOIN bank_customers bc ON ca.customer_id = bc.customer_id
                 INNER JOIN transaction_types tt ON bt.transaction_type_id = tt.transaction_type_id
-                WHERE ca.is_locked = 0
-                    AND DATE(bt.created_at) BETWEEN ? AND ?";
+                WHERE DATE(bt.created_at) BETWEEN ? AND ?";
             
             $bank_params = [$date_from, $date_to];
             $bank_types = 'ss';

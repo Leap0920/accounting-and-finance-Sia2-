@@ -124,7 +124,7 @@ if (
                     bt.transaction_id as id,
                     bt.transaction_id as transaction_id,
                     COALESCE(bt.transaction_ref, CONCAT('TXN-', bt.transaction_id)) as transaction_number,
-                    CONCAT(bc.first_name, ' ', IFNULL(bc.middle_name, ''), ' ', bc.last_name) as employee_name,
+                    CONCAT(bc.first_name, ' ', bc.last_name) as employee_name,
                     ca.account_number as employee_external_no,
                     DATE(bt.created_at) as transaction_date,
                     bt.amount,
@@ -143,8 +143,7 @@ if (
                 INNER JOIN transaction_types tt ON bt.transaction_type_id = tt.transaction_type_id
                 INNER JOIN customer_accounts ca ON bt.account_id = ca.account_id
                 INNER JOIN bank_customers bc ON ca.customer_id = bc.customer_id
-                WHERE (tt.type_name LIKE '%fee%' OR tt.type_name LIKE '%charge%' OR tt.type_name LIKE '%withdrawal%')
-                    AND ca.is_locked = 0";
+                WHERE (tt.type_name LIKE '%fee%' OR tt.type_name LIKE '%charge%' OR tt.type_name LIKE '%withdrawal%')";
 
     $params = [];
     $types = '';
@@ -202,7 +201,7 @@ if (
     $sql = "SELECT 
                 ph.id,
                 CONCAT('REWARD-', ph.id) as transaction_number,
-                CONCAT(bc.first_name, ' ', IFNULL(bc.middle_name, ''), ' ', bc.last_name) as employee_name,
+                CONCAT(bc.first_name, ' ', bc.last_name) as employee_name,
                 bc.customer_id as employee_external_no,
                 DATE(ph.created_at) as transaction_date,
                 ABS(ph.points) as amount,
@@ -280,7 +279,7 @@ if (
     $sql = "SELECT 
                 ph.id,
                 CONCAT('MISSION-', ph.id) as transaction_number,
-                CONCAT(bc.first_name, ' ', IFNULL(bc.middle_name, ''), ' ', bc.last_name) as employee_name,
+                CONCAT(bc.first_name, ' ', bc.last_name) as employee_name,
                 bc.customer_id as employee_external_no,
                 DATE(ph.created_at) as transaction_date,
                 ph.points as amount,

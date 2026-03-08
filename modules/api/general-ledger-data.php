@@ -129,26 +129,24 @@ function getStatistics()
     global $conn;
 
     try {
-        // Get total GL accounts
-        $accounts_result = $conn->query("SELECT COUNT(*) as total FROM accounts WHERE is_active = 1");
+        // Get total active customer accounts
+        $accounts_result = $conn->query("SELECT COUNT(*) as total FROM customer_accounts WHERE status = 'active'");
         $accounts_row = $accounts_result->fetch_assoc();
         $total_accounts = $accounts_row['total'] ?? 0;
 
-        // Get total posted Transactions
-        $je_result = $conn->query("SELECT COUNT(*) as total FROM journal_entries WHERE status = 'posted'");
-        $je_row = $je_result->fetch_assoc();
-        $total_transactions = $je_row['total'] ?? 0;
+        // Get total bank transactions
+        $txn_result = $conn->query("SELECT COUNT(*) as total FROM bank_transactions");
+        $txn_row = $txn_result->fetch_assoc();
+        $total_transactions = $txn_row['total'] ?? 0;
 
         // Get total audit entries
         $audit_result = $conn->query("SELECT COUNT(*) as total FROM audit_logs");
         $audit_row = $audit_result->fetch_assoc();
         $total_audit = $audit_row['total'] ?? 0;
 
-        // Get total payroll journal entries
+        // Get total completed payroll runs
         $pr_result = $conn->query(
-            "SELECT COUNT(*) as total FROM journal_entries je 
-             INNER JOIN journal_types jt ON je.journal_type_id = jt.id 
-             WHERE jt.code = 'PR' AND je.status = 'posted'"
+            "SELECT COUNT(*) as total FROM payroll_runs WHERE status = 'completed'"
         );
         $pr_row = $pr_result ? $pr_result->fetch_assoc() : ['total' => 0];
         $total_payroll_je = $pr_row['total'] ?? 0;
@@ -181,15 +179,14 @@ function getChartData()
     global $conn;
 
     try {
-        // 1. Account types distribution
+        // 1. Account types distribution (by customer account type)
         $result = $conn->query("
             SELECT 
-                at.category as type,
+                account_type as type,
                 COUNT(*) as count
-            FROM accounts a
-            INNER JOIN account_types at ON a.type_id = at.id
-            WHERE a.is_active = 1 
-            GROUP BY at.category
+            FROM customer_accounts
+            WHERE status = 'active'
+            GROUP BY account_type
         ");
 
         $account_types = ['labels' => [], 'values' => []];
@@ -198,15 +195,14 @@ function getChartData()
             $account_types['values'][] = (int) $row['count'];
         }
 
-        // 2. Transaction distribution (by Journal Type)
+        // 2. Transaction distribution (by Transaction Type)
         $result = $conn->query("
             SELECT 
-                jt.name as category,
+                tt.type_name as category,
                 COUNT(*) as count
-            FROM journal_entries je
-            INNER JOIN journal_types jt ON je.journal_type_id = jt.id
-            WHERE je.status = 'posted'
-            GROUP BY jt.id, jt.name
+            FROM bank_transactions bt
+            INNER JOIN transaction_types tt ON bt.transaction_type_id = tt.transaction_type_id
+            GROUP BY tt.transaction_type_id, tt.type_name
         ");
 
         $distribution = ['labels' => [], 'values' => []];
@@ -215,12 +211,12 @@ function getChartData()
             $distribution['values'][] = (int) $row['count'];
         }
 
-        // 3. Category Summary (by Status)
+        // 3. Category Summary (by Account Status)
         $result = $conn->query("
             SELECT 
                 status,
                 COUNT(*) as count
-            FROM journal_entries
+            FROM customer_accounts
             GROUP BY status
         ");
         $category_summary = ['labels' => [], 'values' => []];
@@ -229,14 +225,14 @@ function getChartData()
             $category_summary['values'][] = (int) $row['count'];
         }
 
-        // 4. Growth (Monthly Volume)
+        // 4. Growth (Monthly Transaction Volume)
         $result = $conn->query("
             SELECT 
-                DATE_FORMAT(entry_date, '%b') as month,
+                DATE_FORMAT(created_at, '%b') as month,
                 COUNT(*) as count
-            FROM journal_entries
-            GROUP BY month, DATE_FORMAT(entry_date, '%Y-%m')
-            ORDER BY DATE_FORMAT(entry_date, '%Y-%m')
+            FROM bank_transactions
+            GROUP BY month, DATE_FORMAT(created_at, '%Y-%m')
+            ORDER BY DATE_FORMAT(created_at, '%Y-%m')
             LIMIT 12
         ");
         $growth = ['labels' => [], 'values' => []];
@@ -412,36 +408,36 @@ function getRecentTransactions()
         $type = $_GET['type'] ?? '';
 
         $sql = "SELECT 
-                je.id,
-                je.journal_no,
-                je.entry_date,
-                je.description,
-                je.total_debit,
-                je.total_credit,
-                je.status,
-                jt.name as type_name,
-                'journal' as source
-            FROM journal_entries je
-            INNER JOIN journal_types jt ON je.journal_type_id = jt.id
+                bt.transaction_id as id,
+                bt.transaction_ref as journal_no,
+                DATE(bt.created_at) as entry_date,
+                COALESCE(bt.description, tt.type_name) as description,
+                CASE WHEN bt.amount > 0 THEN bt.amount ELSE 0 END as total_debit,
+                CASE WHEN bt.amount < 0 THEN ABS(bt.amount) ELSE 0 END as total_credit,
+                'posted' as status,
+                tt.type_name as type_name,
+                'bank' as source
+            FROM bank_transactions bt
+            INNER JOIN transaction_types tt ON bt.transaction_type_id = tt.transaction_type_id
             WHERE 1=1";
 
         $params = [];
         $types = '';
 
         if ($dateFrom) {
-            $sql .= " AND je.entry_date >= ?";
+            $sql .= " AND DATE(bt.created_at) >= ?";
             $params[] = $dateFrom;
             $types .= 's';
         }
 
         if ($dateTo) {
-            $sql .= " AND je.entry_date <= ?";
+            $sql .= " AND DATE(bt.created_at) <= ?";
             $params[] = $dateTo;
             $types .= 's';
         }
 
         if ($type) {
-            $sql .= " AND jt.name LIKE ?";
+            $sql .= " AND tt.type_name LIKE ?";
             $searchType = "%$type%";
             $params[] = $searchType;
             $types .= 's';
@@ -459,7 +455,7 @@ function getRecentTransactions()
         // Add pagination
         $limit = (int) ($_GET['limit'] ?? 25);
         $offset = (int) ($_GET['offset'] ?? 0);
-        $sql .= " ORDER BY je.entry_date DESC, je.id DESC LIMIT ? OFFSET ?";
+        $sql .= " ORDER BY bt.created_at DESC, bt.transaction_id DESC LIMIT ? OFFSET ?";
 
         $stmt = $conn->prepare($sql);
         if (!empty($params)) {
@@ -2029,55 +2025,52 @@ function getPayrollJournalEntries()
         $status   = $_GET['status'] ?? '';
 
         $sql = "SELECT 
-                    je.id,
-                    je.journal_no,
-                    je.entry_date,
-                    je.description,
-                    je.total_debit,
-                    je.total_credit,
-                    je.status,
-                    je.created_at,
-                    je.posted_at,
-                    jt.name  AS type_name,
-                    jt.code  AS type_code,
-                    fp.period_name,
-                    pr.id            AS payroll_run_id,
+                    pr.id,
+                    CONCAT('PR-', LPAD(pr.id, 4, '0')) AS journal_no,
+                    DATE(pr.run_at) AS entry_date,
+                    CONCAT('Payroll Run - ', DATE_FORMAT(pp.period_start, '%M %Y')) AS description,
+                    pr.total_gross AS total_debit,
+                    pr.total_net AS total_credit,
+                    pr.status,
+                    pr.run_at AS created_at,
+                    pr.run_at AS posted_at,
+                    'Payroll' AS type_name,
+                    'PR' AS type_code,
+                    CONCAT(DATE_FORMAT(pp.period_start, '%Y-%m'), ' to ', DATE_FORMAT(pp.period_end, '%Y-%m')) AS period_name,
+                    pr.id AS payroll_run_id,
                     pr.total_gross,
                     pr.total_deductions,
                     pr.total_net,
-                    pr.status        AS payroll_status,
+                    pr.status AS payroll_status,
                     pp.period_start,
                     pp.period_end,
-                    u.username       AS created_by_name,
+                    u.username AS created_by_name,
                     (SELECT COUNT(*) FROM payslips ps WHERE ps.payroll_run_id = pr.id) AS employee_count
-                FROM journal_entries je
-                INNER JOIN journal_types jt ON je.journal_type_id = jt.id
-                LEFT  JOIN fiscal_periods fp ON je.fiscal_period_id = fp.id
-                LEFT  JOIN payroll_runs pr   ON pr.journal_entry_id = je.id
-                LEFT  JOIN payroll_periods pp ON pr.payroll_period_id = pp.id
-                LEFT  JOIN users u           ON je.created_by = u.id
-                WHERE jt.code = 'PR'";
+                FROM payroll_runs pr
+                INNER JOIN payroll_periods pp ON pr.payroll_period_id = pp.id
+                LEFT  JOIN users u ON pr.run_by_user_id = u.id
+                WHERE 1=1";
 
         $params = [];
         $types  = '';
 
         if ($dateFrom) {
-            $sql .= " AND je.entry_date >= ?";
+            $sql .= " AND DATE(pr.run_at) >= ?";
             $params[] = $dateFrom;
             $types .= 's';
         }
         if ($dateTo) {
-            $sql .= " AND je.entry_date <= ?";
+            $sql .= " AND DATE(pr.run_at) <= ?";
             $params[] = $dateTo;
             $types .= 's';
         }
         if ($status) {
-            $sql .= " AND je.status = ?";
+            $sql .= " AND pr.status = ?";
             $params[] = $status;
             $types .= 's';
         }
 
-        $sql .= " ORDER BY je.entry_date DESC, je.id DESC";
+        $sql .= " ORDER BY pr.run_at DESC, pr.id DESC";
 
         $stmt = $conn->prepare($sql);
         if (!empty($params)) {

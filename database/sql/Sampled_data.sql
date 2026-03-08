@@ -63,167 +63,6 @@ INSERT INTO user_roles (user_id, role_id) VALUES (2, 2) ON DUPLICATE KEY UPDATE 
 -- ========================================
 
 -- ========================================
--- 2. ACCOUNT TYPES & CHART OF ACCOUNTS
--- ========================================
-
--- Insert comprehensive account types
-INSERT INTO account_types (name, category, description) VALUES
--- Assets
-('Current Assets', 'asset', 'Assets expected to be converted to cash within one year'),
-('Non-Current Assets', 'asset', 'Long-term assets'),
-('Fixed Assets', 'asset', 'Tangible long-term assets'),
-('Intangible Assets', 'asset', 'Non-physical assets like patents, trademarks'),
-('Accumulated Depreciation', 'asset', 'Contra-asset for depreciation'),
-
--- Liabilities
-('Current Liabilities', 'liability', 'Obligations due within one year'),
-('Non-Current Liabilities', 'liability', 'Long-term liabilities'),
-('Accrued Liabilities', 'liability', 'Expenses incurred but not yet paid'),
-('Deferred Revenue', 'liability', 'Revenue received but not yet earned'),
-
--- Equity
-('Equity', 'equity', 'Owner equity and retained earnings'),
-('Capital Stock', 'equity', 'Share capital'),
-('Retained Earnings', 'equity', 'Accumulated profits'),
-
--- Revenue
-('Operating Revenue', 'revenue', 'Revenue from primary business operations'),
-('Other Revenue', 'revenue', 'Revenue from other sources'),
-('Interest Income', 'revenue', 'Interest earned on investments'),
-
--- Expenses
-('Operating Expenses', 'expense', 'Expenses from primary business operations'),
-('Administrative Expenses', 'expense', 'General and administrative costs'),
-('Cost of Sales', 'expense', 'Direct costs of goods sold'),
-('Interest Expense', 'expense', 'Interest paid on loans'),
-('Other Expenses', 'expense', 'Non-operating expenses')
-ON DUPLICATE KEY UPDATE name = VALUES(name);
-
--- Get account type IDs
-SET @current_assets = (SELECT id FROM account_types WHERE name = 'Current Assets' LIMIT 1);
-SET @noncurrent_assets = (SELECT id FROM account_types WHERE name = 'Non-Current Assets' LIMIT 1);
-SET @fixed_assets = (SELECT id FROM account_types WHERE name = 'Fixed Assets' LIMIT 1);
-SET @intangible_assets = (SELECT id FROM account_types WHERE name = 'Intangible Assets' LIMIT 1);
-SET @accum_dep = (SELECT id FROM account_types WHERE name = 'Accumulated Depreciation' LIMIT 1);
-SET @current_liabilities = (SELECT id FROM account_types WHERE name = 'Current Liabilities' LIMIT 1);
-SET @noncurrent_liabilities = (SELECT id FROM account_types WHERE name = 'Non-Current Liabilities' LIMIT 1);
-SET @accrued_liabilities = (SELECT id FROM account_types WHERE name = 'Accrued Liabilities' LIMIT 1);
-SET @deferred_revenue = (SELECT id FROM account_types WHERE name = 'Deferred Revenue' LIMIT 1);
-SET @equity_type = (SELECT id FROM account_types WHERE name = 'Equity' LIMIT 1);
-SET @capital_stock = (SELECT id FROM account_types WHERE name = 'Capital Stock' LIMIT 1);
-SET @retained_earnings = (SELECT id FROM account_types WHERE name = 'Retained Earnings' LIMIT 1);
-SET @operating_revenue = (SELECT id FROM account_types WHERE name = 'Operating Revenue' LIMIT 1);
-SET @other_revenue = (SELECT id FROM account_types WHERE name = 'Other Revenue' LIMIT 1);
-SET @interest_income = (SELECT id FROM account_types WHERE name = 'Interest Income' LIMIT 1);
-SET @operating_expenses = (SELECT id FROM account_types WHERE name = 'Operating Expenses' LIMIT 1);
-SET @admin_expenses = (SELECT id FROM account_types WHERE name = 'Administrative Expenses' LIMIT 1);
-SET @cogs = (SELECT id FROM account_types WHERE name = 'Cost of Sales' LIMIT 1);
-SET @interest_expense = (SELECT id FROM account_types WHERE name = 'Interest Expense' LIMIT 1);
-SET @other_expenses = (SELECT id FROM account_types WHERE name = 'Other Expenses' LIMIT 1);
-
--- Insert comprehensive chart of accounts
-INSERT INTO accounts (code, name, type_id, description, is_active, created_by) VALUES
--- CURRENT ASSETS
-('1001', 'Cash on Hand', @current_assets, 'Petty cash fund', TRUE, 1),
-('1002', 'Cash in Bank - BDO', @current_assets, 'BDO Unibank current account', TRUE, 1),
-('1003', 'Cash in Bank - BPI', @current_assets, 'BPI savings account', TRUE, 1),
-('1004', 'Cash in Bank - Metrobank', @current_assets, 'Metrobank payroll account', TRUE, 1),
-('1005', 'Cash in Bank - Security Bank', @current_assets, 'Security Bank investment account', TRUE, 1),
-('1101', 'Accounts Receivable - Trade', @current_assets, 'Customer receivables', TRUE, 1),
-('1102', 'Accounts Receivable - Other', @current_assets, 'Other receivables', TRUE, 1),
-('1201', 'Inventory - Raw Materials', @current_assets, 'Raw materials inventory', TRUE, 1),
-('1202', 'Inventory - Finished Goods', @current_assets, 'Finished goods inventory', TRUE, 1),
-('1203', 'Inventory - Work in Process', @current_assets, 'Work in process inventory', TRUE, 1),
-('1301', 'Prepaid Expenses', @current_assets, 'Prepaid rent, insurance, etc.', TRUE, 1),
-('1302', 'Prepaid Insurance', @current_assets, 'Insurance premiums paid in advance', TRUE, 1),
-('1303', 'Prepaid Rent', @current_assets, 'Rent paid in advance', TRUE, 1),
-('1401', 'Other Current Assets', @current_assets, 'Other current assets', TRUE, 1),
-
--- NON-CURRENT ASSETS
-('1501', 'Office Equipment', @fixed_assets, 'Computers, furniture, fixtures', TRUE, 1),
-('1502', 'Machinery and Equipment', @fixed_assets, 'Production machinery', TRUE, 1),
-('1503', 'Vehicles', @fixed_assets, 'Company vehicles', TRUE, 1),
-('1504', 'Building', @fixed_assets, 'Office building', TRUE, 1),
-('1505', 'Land', @fixed_assets, 'Land property', TRUE, 1),
-('1510', 'Accumulated Depreciation - Equipment', @accum_dep, 'Equipment depreciation', TRUE, 1),
-('1511', 'Accumulated Depreciation - Machinery', @accum_dep, 'Machinery depreciation', TRUE, 1),
-('1512', 'Accumulated Depreciation - Vehicles', @accum_dep, 'Vehicle depreciation', TRUE, 1),
-('1513', 'Accumulated Depreciation - Building', @accum_dep, 'Building depreciation', TRUE, 1),
-('1601', 'Intangible Assets', @intangible_assets, 'Patents, trademarks, goodwill', TRUE, 1),
-('1602', 'Software Licenses', @intangible_assets, 'Software and licenses', TRUE, 1),
-('1701', 'Long-term Investments', @noncurrent_assets, 'Long-term investment securities', TRUE, 1),
-
--- CURRENT LIABILITIES
-('2001', 'Accounts Payable - Trade', @current_liabilities, 'Supplier payables', TRUE, 1),
-('2002', 'Accounts Payable - Other', @current_liabilities, 'Other payables', TRUE, 1),
-('2101', 'Salaries Payable', @current_liabilities, 'Accrued salaries', TRUE, 1),
-('2102', 'Wages Payable', @current_liabilities, 'Accrued wages', TRUE, 1),
-('2201', 'Taxes Payable', @current_liabilities, 'Income tax payable', TRUE, 1),
-('2202', 'VAT Payable', @current_liabilities, 'Value Added Tax payable', TRUE, 1),
-('2203', 'Withholding Tax Payable', @current_liabilities, 'Tax withheld from employees', TRUE, 1),
-('2301', 'SSS Payable', @current_liabilities, 'SSS contributions payable', TRUE, 1),
-('2302', 'PhilHealth Payable', @current_liabilities, 'PhilHealth contributions payable', TRUE, 1),
-('2303', 'Pag-IBIG Payable', @current_liabilities, 'Pag-IBIG contributions payable', TRUE, 1),
-('2401', 'Loans Payable - Current', @current_liabilities, 'Short-term loans', TRUE, 1),
-('2501', 'Accrued Expenses', @accrued_liabilities, 'Accrued expenses', TRUE, 1),
-('2502', 'Accrued Interest', @accrued_liabilities, 'Accrued interest payable', TRUE, 1),
-('2601', 'Deferred Revenue', @deferred_revenue, 'Revenue received in advance', TRUE, 1),
-
--- NON-CURRENT LIABILITIES
-('3001', 'Loans Payable - Long Term', @noncurrent_liabilities, 'Long-term bank loans', TRUE, 1),
-('3002', 'Bonds Payable', @noncurrent_liabilities, 'Corporate bonds', TRUE, 1),
-('3003', 'Mortgage Payable', @noncurrent_liabilities, 'Mortgage loans', TRUE, 1),
-
--- EQUITY
-('4001', 'Capital Stock', @capital_stock, 'Share capital', TRUE, 1),
-('4002', 'Additional Paid-in Capital', @equity_type, 'Additional paid-in capital', TRUE, 1),
-('4101', 'Retained Earnings', @retained_earnings, 'Accumulated profits', TRUE, 1),
-('4102', 'Current Year Profit/Loss', @retained_earnings, 'Current period earnings', TRUE, 1),
-('4201', 'Treasury Stock', @equity_type, 'Treasury stock', TRUE, 1),
-
--- REVENUE
-('5001', 'Sales Revenue', @operating_revenue, 'Product sales', TRUE, 1),
-('5002', 'Service Revenue', @operating_revenue, 'Service income', TRUE, 1),
-('5003', 'Consulting Revenue', @operating_revenue, 'Consulting services', TRUE, 1),
-('5004', 'Rental Revenue', @operating_revenue, 'Rental income', TRUE, 1),
-('5101', 'Interest Income', @interest_income, 'Bank interest', TRUE, 1),
-('5102', 'Dividend Income', @other_revenue, 'Dividend income', TRUE, 1),
-('5103', 'Other Income', @other_revenue, 'Miscellaneous income', TRUE, 1),
-('5104', 'Gain on Sale of Assets', @other_revenue, 'Gains from asset sales', TRUE, 1),
-
--- OPERATING EXPENSES
-('6001', 'Cost of Goods Sold', @cogs, 'Direct product costs', TRUE, 1),
-('6002', 'Cost of Services', @cogs, 'Direct service costs', TRUE, 1),
-('6101', 'Salaries and Wages', @operating_expenses, 'Employee compensation', TRUE, 1),
-('6102', 'Employee Benefits', @operating_expenses, 'Health insurance, bonuses', TRUE, 1),
-('6103', 'Payroll Taxes', @operating_expenses, 'SSS, PhilHealth, Pag-IBIG employer share', TRUE, 1),
-('6201', 'Rent Expense', @operating_expenses, 'Office rent', TRUE, 1),
-('6202', 'Utilities Expense', @operating_expenses, 'Electricity, water, internet', TRUE, 1),
-('6203', 'Office Supplies Expense', @operating_expenses, 'Supplies and materials', TRUE, 1),
-('6204', 'Professional Fees', @operating_expenses, 'Legal, accounting, consulting fees', TRUE, 1),
-('6205', 'Marketing and Advertising', @operating_expenses, 'Promotional expenses', TRUE, 1),
-('6206', 'Transportation and Travel', @operating_expenses, 'Travel costs', TRUE, 1),
-('6207', 'Insurance Expense', @operating_expenses, 'Insurance premiums', TRUE, 1),
-('6208', 'Depreciation Expense', @operating_expenses, 'Asset depreciation', TRUE, 1),
-('6209', 'Repairs and Maintenance', @operating_expenses, 'Equipment maintenance', TRUE, 1),
-('6210', 'Communication Expense', @operating_expenses, 'Phone, internet, postage', TRUE, 1),
-
--- ADMINISTRATIVE EXPENSES
-('7001', 'General and Administrative', @admin_expenses, 'General administrative costs', TRUE, 1),
-('7002', 'Management Salaries', @admin_expenses, 'Management compensation', TRUE, 1),
-('7003', 'Office Equipment Expense', @admin_expenses, 'Office equipment costs', TRUE, 1),
-('7004', 'Training and Development', @admin_expenses, 'Employee training', TRUE, 1),
-('7005', 'Research and Development', @admin_expenses, 'R&D expenses', TRUE, 1),
-
--- OTHER EXPENSES
-('8001', 'Interest Expense', @interest_expense, 'Loan interest', TRUE, 1),
-('8002', 'Bank Charges', @other_expenses, 'Bank fees and charges', TRUE, 1),
-('8003', 'Bad Debt Expense', @other_expenses, 'Uncollectible accounts', TRUE, 1),
-('8004', 'Loss on Sale of Assets', @other_expenses, 'Losses from asset sales', TRUE, 1),
-('8005', 'Miscellaneous Expense', @other_expenses, 'Other expenses', TRUE, 1)
-ON DUPLICATE KEY UPDATE name = VALUES(name);
-
--- ========================================
 -- 3. JOURNAL TYPES & FISCAL PERIODS
 -- ========================================
 
@@ -1646,36 +1485,6 @@ INSERT INTO salary_components (code, name, type, calculation_method, value, desc
 ON DUPLICATE KEY UPDATE name = VALUES(name);
 
 -- ========================================
--- 7. EXPENSE CATEGORIES
--- ========================================
-
--- Note: Some categories reference EXP-001 through EXP-005 accounts for backward compatibility
-INSERT INTO expense_categories (code, name, account_id, description, is_active) VALUES
-('OFFICE', 'Office Supplies', (SELECT id FROM accounts WHERE code = '6203'), 'Office supplies and materials', TRUE),
-('TRAVEL', 'Travel & Transportation', (SELECT id FROM accounts WHERE code = '6206'), 'Business travel expenses', TRUE),
-('MEALS', 'Meals & Entertainment', (SELECT id FROM accounts WHERE code = '6205'), 'Business meals and entertainment', TRUE),
-('UTILITIES', 'Utilities', (SELECT id FROM accounts WHERE code = '6202'), 'Electricity, water, internet', TRUE),
-('FACILITIES', 'Facilities', (SELECT id FROM accounts WHERE code = '6201'), 'Office rent and facilities', TRUE),
-('TRAINING', 'Training & Development', (SELECT id FROM accounts WHERE code = '7004'), 'Employee training and development', TRUE),
-('EQUIPMENT', 'Equipment', (SELECT id FROM accounts WHERE code = '1501'), 'Office equipment and tools', TRUE),
-('MARKETING', 'Marketing & Advertising', (SELECT id FROM accounts WHERE code = '6205'), 'Marketing and advertising expenses', TRUE),
-('PROFESSIONAL', 'Professional Services', (SELECT id FROM accounts WHERE code = '6204'), 'Legal, accounting, consulting fees', TRUE),
-('INSURANCE', 'Insurance', (SELECT id FROM accounts WHERE code = '6207'), 'Insurance premiums', TRUE),
-('MAINTENANCE', 'Repairs & Maintenance', (SELECT id FROM accounts WHERE code = '6209'), 'Equipment maintenance and repairs', TRUE),
-('COMM', 'Communication', (SELECT id FROM accounts WHERE code = '6210'), 'Phone, internet, and communication costs', TRUE),
-('COMMUNICATION', 'Communication Services', (SELECT id FROM accounts WHERE code = '6210'), 'Phone, internet, postage', TRUE)
-ON DUPLICATE KEY UPDATE name = VALUES(name);
-
--- Insert backup accounts for expense categories (if they don't exist)
-INSERT IGNORE INTO accounts (code, name, type_id, description, is_active, created_by) VALUES
-('EXP-001', 'Travel Expenses', (SELECT id FROM account_types WHERE category = 'expense' LIMIT 1), 'Business travel and transportation costs', TRUE, 1),
-('EXP-002', 'Meals & Entertainment', (SELECT id FROM account_types WHERE category = 'expense' LIMIT 1), 'Business meals and client entertainment', TRUE, 1),
-('EXP-003', 'Office Supplies', (SELECT id FROM account_types WHERE category = 'expense' LIMIT 1), 'Office supplies and equipment', TRUE, 1),
-('EXP-004', 'Communication Expenses', (SELECT id FROM account_types WHERE category = 'expense' LIMIT 1), 'Phone, internet, and communication costs', TRUE, 1),
-('EXP-005', 'Training & Development', (SELECT id FROM account_types WHERE category = 'expense' LIMIT 1), 'Employee training and development', TRUE, 1)
-ON DUPLICATE KEY UPDATE name = VALUES(name);
-
--- ========================================
 -- 8. LOAN TYPES
 -- ========================================
 
@@ -1696,959 +1505,286 @@ INSERT INTO loan_types (code, name, max_amount, max_term_months, interest_rate, 
 ON DUPLICATE KEY UPDATE name = VALUES(name);
 
 -- ========================================
--- 9. COMPREHENSIVE JOURNAL ENTRIES
+-- 8.5 TRANSACTION TYPES
 -- ========================================
 
--- Get account IDs for journal entries
-SET @cash_hand = (SELECT id FROM accounts WHERE code = '1001');
-SET @cash_bdo = (SELECT id FROM accounts WHERE code = '1002');
-SET @cash_bpi = (SELECT id FROM accounts WHERE code = '1003');
-SET @cash_metro = (SELECT id FROM accounts WHERE code = '1004');
-SET @cash_security = (SELECT id FROM accounts WHERE code = '1005');
-SET @ar_trade = (SELECT id FROM accounts WHERE code = '1101');
-SET @ar_other = (SELECT id FROM accounts WHERE code = '1102');
-SET @inventory_raw = (SELECT id FROM accounts WHERE code = '1201');
-SET @inventory_finished = (SELECT id FROM accounts WHERE code = '1202');
-SET @inventory_wip = (SELECT id FROM accounts WHERE code = '1203');
-SET @prepaid_exp = (SELECT id FROM accounts WHERE code = '1301');
-SET @prepaid_insurance = (SELECT id FROM accounts WHERE code = '1302');
-SET @prepaid_rent = (SELECT id FROM accounts WHERE code = '1303');
-SET @equipment = (SELECT id FROM accounts WHERE code = '1501');
-SET @machinery = (SELECT id FROM accounts WHERE code = '1502');
-SET @vehicles = (SELECT id FROM accounts WHERE code = '1503');
-SET @building = (SELECT id FROM accounts WHERE code = '1504');
-SET @land = (SELECT id FROM accounts WHERE code = '1505');
-SET @accum_dep_equip = (SELECT id FROM accounts WHERE code = '1510');
-SET @accum_dep_mach = (SELECT id FROM accounts WHERE code = '1511');
-SET @accum_dep_veh = (SELECT id FROM accounts WHERE code = '1512');
-SET @accum_dep_build = (SELECT id FROM accounts WHERE code = '1513');
-SET @intangible = (SELECT id FROM accounts WHERE code = '1601');
-SET @software = (SELECT id FROM accounts WHERE code = '1602');
-SET @investments = (SELECT id FROM accounts WHERE code = '1701');
-
-SET @ap_trade = (SELECT id FROM accounts WHERE code = '2001');
-SET @ap_other = (SELECT id FROM accounts WHERE code = '2002');
-SET @salaries_payable = (SELECT id FROM accounts WHERE code = '2101');
-SET @wages_payable = (SELECT id FROM accounts WHERE code = '2102');
-SET @taxes_payable = (SELECT id FROM accounts WHERE code = '2201');
-SET @vat_payable = (SELECT id FROM accounts WHERE code = '2202');
-SET @wht_payable = (SELECT id FROM accounts WHERE code = '2203');
-SET @sss_payable = (SELECT id FROM accounts WHERE code = '2301');
-SET @philhealth_payable = (SELECT id FROM accounts WHERE code = '2302');
-SET @pagibig_payable = (SELECT id FROM accounts WHERE code = '2303');
-SET @loan_current = (SELECT id FROM accounts WHERE code = '2401');
-SET @accrued_exp = (SELECT id FROM accounts WHERE code = '2501');
-SET @accrued_int = (SELECT id FROM accounts WHERE code = '2502');
-SET @deferred_rev = (SELECT id FROM accounts WHERE code = '2601');
-
-SET @loan_longterm = (SELECT id FROM accounts WHERE code = '3001');
-SET @bonds_payable = (SELECT id FROM accounts WHERE code = '3002');
-SET @mortgage_payable = (SELECT id FROM accounts WHERE code = '3003');
-
-SET @capital_stock = (SELECT id FROM accounts WHERE code = '4001');
-SET @paid_in_capital = (SELECT id FROM accounts WHERE code = '4002');
-SET @retained_earnings = (SELECT id FROM accounts WHERE code = '4101');
-SET @current_year_pl = (SELECT id FROM accounts WHERE code = '4102');
-SET @treasury_stock = (SELECT id FROM accounts WHERE code = '4201');
-
-SET @sales_revenue = (SELECT id FROM accounts WHERE code = '5001');
-SET @service_revenue = (SELECT id FROM accounts WHERE code = '5002');
-SET @consulting_revenue = (SELECT id FROM accounts WHERE code = '5003');
-SET @rental_revenue = (SELECT id FROM accounts WHERE code = '5004');
-SET @interest_income = (SELECT id FROM accounts WHERE code = '5101');
-SET @dividend_income = (SELECT id FROM accounts WHERE code = '5102');
-SET @other_income = (SELECT id FROM accounts WHERE code = '5103');
-SET @gain_sale_assets = (SELECT id FROM accounts WHERE code = '5104');
-
-SET @cogs = (SELECT id FROM accounts WHERE code = '6001');
-SET @cost_services = (SELECT id FROM accounts WHERE code = '6002');
-SET @salaries_wages = (SELECT id FROM accounts WHERE code = '6101');
-SET @employee_benefits = (SELECT id FROM accounts WHERE code = '6102');
-SET @payroll_taxes = (SELECT id FROM accounts WHERE code = '6103');
-SET @rent_expense = (SELECT id FROM accounts WHERE code = '6201');
-SET @utilities_expense = (SELECT id FROM accounts WHERE code = '6202');
-SET @office_supplies = (SELECT id FROM accounts WHERE code = '6203');
-SET @professional_fees = (SELECT id FROM accounts WHERE code = '6204');
-SET @marketing_advertising = (SELECT id FROM accounts WHERE code = '6205');
-SET @transportation_travel = (SELECT id FROM accounts WHERE code = '6206');
-SET @insurance_expense = (SELECT id FROM accounts WHERE code = '6207');
-SET @depreciation_expense = (SELECT id FROM accounts WHERE code = '6208');
-SET @repairs_maintenance = (SELECT id FROM accounts WHERE code = '6209');
-SET @communication_expense = (SELECT id FROM accounts WHERE code = '6210');
-
-SET @general_admin = (SELECT id FROM accounts WHERE code = '7001');
-SET @management_salaries = (SELECT id FROM accounts WHERE code = '7002');
-SET @office_equipment_exp = (SELECT id FROM accounts WHERE code = '7003');
-SET @training_development = (SELECT id FROM accounts WHERE code = '7004');
-SET @research_development = (SELECT id FROM accounts WHERE code = '7005');
-
-SET @interest_expense = (SELECT id FROM accounts WHERE code = '8001');
-SET @bank_charges = (SELECT id FROM accounts WHERE code = '8002');
-SET @bad_debt_expense = (SELECT id FROM accounts WHERE code = '8003');
-SET @loss_sale_assets = (SELECT id FROM accounts WHERE code = '8004');
-SET @miscellaneous_expense = (SELECT id FROM accounts WHERE code = '8005');
-
--- Get journal type IDs
-SET @gj_type = (SELECT id FROM journal_types WHERE code = 'GJ');
-SET @cr_type = (SELECT id FROM journal_types WHERE code = 'CR');
-SET @cd_type = (SELECT id FROM journal_types WHERE code = 'CD');
-SET @pr_type = (SELECT id FROM journal_types WHERE code = 'PR');
-SET @ap_type = (SELECT id FROM journal_types WHERE code = 'AP');
-SET @ar_type = (SELECT id FROM journal_types WHERE code = 'AR');
-SET @aj_type = (SELECT id FROM journal_types WHERE code = 'AJ');
-
--- Get fiscal period IDs
-SET @fiscal_q1_2025 = (SELECT id FROM fiscal_periods WHERE period_name = 'FY2025-Q1');
-SET @fiscal_q2_2025 = (SELECT id FROM fiscal_periods WHERE period_name = 'FY2025-Q2');
-SET @fiscal_q3_2025 = (SELECT id FROM fiscal_periods WHERE period_name = 'FY2025-Q3');
-SET @fiscal_q4_2025 = (SELECT id FROM fiscal_periods WHERE period_name = 'FY2025-Q4');
-SET @jan_2025 = (SELECT id FROM fiscal_periods WHERE period_name = 'January 2025');
-SET @feb_2025 = (SELECT id FROM fiscal_periods WHERE period_name = 'February 2025');
-SET @mar_2025 = (SELECT id FROM fiscal_periods WHERE period_name = 'March 2025');
-SET @apr_2025 = (SELECT id FROM fiscal_periods WHERE period_name = 'April 2025');
-SET @may_2025 = (SELECT id FROM fiscal_periods WHERE period_name = 'May 2025');
-SET @jun_2025 = (SELECT id FROM fiscal_periods WHERE period_name = 'June 2025');
-SET @jul_2025 = (SELECT id FROM fiscal_periods WHERE period_name = 'July 2025');
-SET @aug_2025 = (SELECT id FROM fiscal_periods WHERE period_name = 'August 2025');
-SET @sep_2025 = (SELECT id FROM fiscal_periods WHERE period_name = 'September 2025');
-SET @oct_2025 = (SELECT id FROM fiscal_periods WHERE period_name = 'October 2025');
-SET @nov_2025 = (SELECT id FROM fiscal_periods WHERE period_name = 'November 2025');
-SET @dec_2025 = (SELECT id FROM fiscal_periods WHERE period_name = 'December 2025');
-
--- 2026 Fiscal Period Variables
-SET @fiscal_q1_2026 = (SELECT id FROM fiscal_periods WHERE period_name = 'FY2026-Q1');
-SET @jan_2026 = (SELECT id FROM fiscal_periods WHERE period_name = 'January 2026');
-SET @feb_2026 = (SELECT id FROM fiscal_periods WHERE period_name = 'February 2026');
-SET @mar_2026 = (SELECT id FROM fiscal_periods WHERE period_name = 'March 2026');
-
--- Additional journal type variables
-SET @sal_type = (SELECT id FROM journal_types WHERE code = 'SAL');
-SET @pur_type = (SELECT id FROM journal_types WHERE code = 'PUR');
-SET @bank_type = (SELECT id FROM journal_types WHERE code = 'BANK');
-
--- ========================================
--- 8.5 BANKING & REPORTING DATA
--- ========================================
-
--- Populate transaction_types
 INSERT INTO transaction_types (type_name, description) VALUES
 ('Deposit', 'Cash or check deposit into account'),
 ('Withdrawal', 'Cash withdrawal from account'),
-('Transfer In', 'Incoming transfer from another account'),
-('Transfer Out', 'Outgoing transfer to another account'),
-('Fee', 'Service charge or bank fee'),
-('Interest Payment', 'Interest earned on deposits'),
-('Loan Payment', 'Payment towards an active loan')
-ON DUPLICATE KEY UPDATE description = VALUES(description);
+('Transfer', 'Fund transfer between accounts'),
+('Payment', 'Bill or loan payment'),
+('Fee', 'Service or maintenance fee')
+ON DUPLICATE KEY UPDATE type_name = VALUES(type_name);
 
--- Populate bank_customers (50 realistic Filipino customers)
-INSERT INTO bank_customers (customer_id, first_name, last_name, email, phone, address) VALUES
-(1, 'Juan Carlos', 'Santos', 'juancarlos.santos@gmail.com', '09171234567', 'Makati City, Metro Manila'),
-(2, 'Maria Elena', 'Rodriguez', 'mariaelena.rodriguez@yahoo.com', '09181234568', 'BGC, Taguig City'),
-(3, 'Jose Miguel', 'Cruz', 'josemiguel.cruz@gmail.com', '09191234569', 'Ortigas, Pasig City'),
-(4, 'Ana Patricia', 'Lopez', 'anapatricia.lopez@outlook.com', '09201234570', 'Mandaluyong City'),
-(5, 'Roberto Antonio', 'Garcia', 'roberto.garcia@gmail.com', '09211234571', 'Quezon City'),
-(6, 'Carmen Sofia', 'Martinez', 'carmen.martinez@yahoo.com', '09221234572', 'San Juan City'),
-(7, 'Fernando Luis', 'Torres', 'fernando.torres@gmail.com', '09231234573', 'Pasay City'),
-(8, 'Isabella Rose', 'Flores', 'isabella.flores@outlook.com', '09241234574', 'Makati City'),
-(9, 'Miguel Angel', 'Reyes', 'miguel.reyes@gmail.com', '09251234575', 'Taguig City'),
-(10, 'Sofia Grace', 'Villanueva', 'sofia.villanueva@yahoo.com', '09261234576', 'Mandaluyong City'),
-(11, 'Carlos Eduardo', 'Mendoza', 'carlos.mendoza@gmail.com', '09271234577', 'Pasig City'),
-(12, 'Patricia Isabel', 'Gutierrez', 'patricia.gutierrez@outlook.com', '09281234578', 'Quezon City'),
-(13, 'Ricardo Manuel', 'Herrera', 'ricardo.herrera@gmail.com', '09291234579', 'Manila City'),
-(14, 'Gabriela Alejandra', 'Morales', 'gabriela.morales@yahoo.com', '09301234580', 'Makati City'),
-(15, 'Diego Fernando', 'Ramos', 'diego.ramos@gmail.com', '09311234581', 'Taguig City'),
-(16, 'Renato Jose', 'Bautista', 'renato.bautista@gmail.com', '09171345678', 'Cebu City, Cebu'),
-(17, 'Lourdes Marie', 'Dela Cruz', 'lourdes.delacruz@yahoo.com', '09181456789', 'Davao City, Davao del Sur'),
-(18, 'Emmanuel Pedro', 'Aquino', 'emmanuel.aquino@gmail.com', '09191567890', 'Iloilo City, Iloilo'),
-(19, 'Christine Joy', 'Navarro', 'christine.navarro@outlook.com', '09201678901', 'Cagayan de Oro City'),
-(20, 'Antonio Rafael', 'Pascual', 'antonio.pascual@gmail.com', '09211789012', 'Zamboanga City'),
-(21, 'Mary Ann', 'Tolentino', 'maryann.tolentino@yahoo.com', '09221890123', 'Bacolod City, Negros Occidental'),
-(22, 'Francis Xavier', 'Dimaculangan', 'francis.dimaculangan@gmail.com', '09231901234', 'General Santos City'),
-(23, 'Rosario Carmen', 'Evangelista', 'rosario.evangelista@outlook.com', '09242012345', 'Baguio City, Benguet'),
-(24, 'Mark Anthony', 'Salazar', 'mark.salazar@gmail.com', '09252123456', 'Angeles City, Pampanga'),
-(25, 'Angelica Mae', 'De Leon', 'angelica.deleon@yahoo.com', '09262234567', 'Antipolo City, Rizal'),
-(26, 'Raymond Paul', 'Villarosa', 'raymond.villarosa@gmail.com', '09272345678', 'Calamba City, Laguna'),
-(27, 'Theresa Marie', 'Santiago', 'theresa.santiago@outlook.com', '09282456789', 'Lipa City, Batangas'),
-(28, 'Benedict John', 'Concepcion', 'benedict.concepcion@gmail.com', '09292567890', 'San Fernando, Pampanga'),
-(29, 'Jasmine Nicole', 'Del Rosario', 'jasmine.delrosario@yahoo.com', '09302678901', 'Naga City, Camarines Sur'),
-(30, 'Vincent James', 'Aguilar', 'vincent.aguilar@gmail.com', '09312789012', 'Legazpi City, Albay'),
-(31, 'Catherine Rose', 'Manalo', 'catherine.manalo@outlook.com', '09172890123', 'Lucena City, Quezon'),
-(32, 'Daniel Joseph', 'Soriano', 'daniel.soriano@gmail.com', '09182901234', 'Tagaytay City, Cavite'),
-(33, 'Eleanor Faith', 'Panganiban', 'eleanor.panganiban@yahoo.com', '09193012345', 'Olongapo City, Zambales'),
-(34, 'Gerald Patrick', 'Laurel', 'gerald.laurel@gmail.com', '09203123456', 'Dagupan City, Pangasinan'),
-(35, 'Hannah Marie', 'Bondoc', 'hannah.bondoc@outlook.com', '09213234567', 'Urdaneta City, Pangasinan'),
-(36, 'Ian Christopher', 'Magbanua', 'ian.magbanua@gmail.com', '09223345678', 'Roxas City, Capiz'),
-(37, 'Joanne Patricia', 'Lagman', 'joanne.lagman@yahoo.com', '09233456789', 'Tacloban City, Leyte'),
-(38, 'Kenneth Ray', 'Dizon', 'kenneth.dizon@gmail.com', '09243567890', 'Butuan City, Agusan del Norte'),
-(39, 'Lovely Grace', 'Magsaysay', 'lovely.magsaysay@outlook.com', '09253678901', 'Tuguegarao City, Cagayan'),
-(40, 'Marco Paulo', 'Abad', 'marco.abad@gmail.com', '09263789012', 'Santiago City, Isabela'),
-(41, 'Nina Beatriz', 'Ocampo', 'nina.ocampo@yahoo.com', '09273890123', 'Cabanatuan City, Nueva Ecija'),
-(42, 'Oliver Martin', 'Enriquez', 'oliver.enriquez@gmail.com', '09283901234', 'Tarlac City, Tarlac'),
-(43, 'Princess Dianne', 'Resurreccion', 'princess.resurreccion@outlook.com', '09294012345', 'Meycauayan City, Bulacan'),
-(44, 'Raphael Luis', 'Tan', 'raphael.tan@gmail.com', '09304123456', 'Malolos City, Bulacan'),
-(45, 'Samantha Claire', 'Lim', 'samantha.lim@yahoo.com', '09314234567', 'Binan City, Laguna'),
-(46, 'Timothy John', 'Chua', 'timothy.chua@gmail.com', '09174345678', 'Santa Rosa City, Laguna'),
-(47, 'Ursula Anne', 'Go', 'ursula.go@outlook.com', '09184456789', 'Dasmarinas City, Cavite'),
-(48, 'Wilhelm Franz', 'Sy', 'wilhelm.sy@gmail.com', '09194567890', 'Imus City, Cavite'),
-(49, 'Ximena Rosa', 'Ong', 'ximena.ong@yahoo.com', '09204678901', 'Bacoor City, Cavite'),
-(50, 'Zachary Miguel', 'Yu', 'zachary.yu@gmail.com', '09214789012', 'General Trias City, Cavite')
+-- ========================================
+-- 9. BANK CUSTOMERS & ACCOUNTS
+-- ========================================
+
+-- 50 Bank Customers
+INSERT INTO bank_customers (first_name, last_name, email, phone, address) VALUES
+('Juan', 'Dela Cruz', 'juan.delacruz@email.com', '09171234501', '123 Rizal St, Manila'),
+('Maria', 'Santos', 'maria.santos@email.com', '09171234502', '456 Mabini Ave, Quezon City'),
+('Jose', 'Reyes', 'jose.reyes@email.com', '09171234503', '789 Bonifacio Blvd, Makati'),
+('Ana', 'Garcia', 'ana.garcia@email.com', '09171234504', '321 Luna St, Pasig'),
+('Pedro', 'Ramos', 'pedro.ramos@email.com', '09171234505', '654 Del Pilar St, Taguig'),
+('Rosa', 'Cruz', 'rosa.cruz@email.com', '09171234506', '987 Aguinaldo Ave, Cavite'),
+('Carlos', 'Torres', 'carlos.torres@email.com', '09171234507', '147 Quezon Blvd, Caloocan'),
+('Elena', 'Flores', 'elena.flores@email.com', '09171234508', '258 Roxas St, Mandaluyong'),
+('Miguel', 'Rivera', 'miguel.rivera@email.com', '09171234509', '369 Osmena Ave, Paranaque'),
+('Sofia', 'Mendoza', 'sofia.mendoza@email.com', '09171234510', '741 Magsaysay Blvd, San Juan'),
+('Antonio', 'Hernandez', 'antonio.hernandez@email.com', '09171234511', '852 Laurel St, Las Pinas'),
+('Carmen', 'Lopez', 'carmen.lopez@email.com', '09171234512', '963 Aquino Ave, Muntinlupa'),
+('Roberto', 'Martinez', 'roberto.martinez@email.com', '09171234513', '159 Marcos Highway, Marikina'),
+('Teresa', 'Gonzales', 'teresa.gonzales@email.com', '09171234514', '267 Katipunan Ave, Quezon City'),
+('Fernando', 'Bautista', 'fernando.bautista@email.com', '09171234515', '378 Shaw Blvd, Pasig'),
+('Isabel', 'Villanueva', 'isabel.villanueva@email.com', '09171234516', '489 EDSA, Mandaluyong'),
+('Ricardo', 'Aquino', 'ricardo.aquino@email.com', '09171234517', '591 Aurora Blvd, Quezon City'),
+('Lucia', 'Castillo', 'lucia.castillo@email.com', '09171234518', '612 Taft Ave, Manila'),
+('Manuel', 'Pascual', 'manuel.pascual@email.com', '09171234519', '723 España Blvd, Manila'),
+('Gloria', 'Fernandez', 'gloria.fernandez@email.com', '09171234520', '834 Ortigas Ave, Pasig'),
+('Andres', 'De Leon', 'andres.deleon@email.com', '09171234521', '945 C5 Road, Taguig'),
+('Patricia', 'Morales', 'patricia.morales@email.com', '09171234522', '156 Alabang-Zapote Rd, Las Pinas'),
+('Enrique', 'Castro', 'enrique.castro@email.com', '09171234523', '267 Sucat Rd, Paranaque'),
+('Beatriz', 'Soriano', 'beatriz.soriano@email.com', '09171234524', '378 Molino Blvd, Bacoor'),
+('Ramon', 'Tan', 'ramon.tan@email.com', '09171234525', '489 Daang Hari, Cavite'),
+('Cristina', 'Lim', 'cristina.lim@email.com', '09171234526', '591 Congressional Ave, Quezon City'),
+('Eduardo', 'Go', 'eduardo.go@email.com', '09171234527', '612 Visayas Ave, Quezon City'),
+('Margarita', 'Sy', 'margarita.sy@email.com', '09171234528', '723 Mindanao Ave, Quezon City'),
+('Alejandro', 'Chua', 'alejandro.chua@email.com', '09171234529', '834 Commonwealth Ave, Quezon City'),
+('Victoria', 'Ong', 'victoria.ong@email.com', '09171234530', '945 Regalado Ave, Quezon City'),
+('Francisco', 'Yap', 'francisco.yap@email.com', '09171234531', '156 Quirino Highway, Novaliches'),
+('Dolores', 'Co', 'dolores.co@email.com', '09171234532', '267 Sumulong Highway, Antipolo'),
+('Gregorio', 'Yu', 'gregorio.yu@email.com', '09171234533', '378 Marcos Highway, Cainta'),
+('Esperanza', 'Lee', 'esperanza.lee@email.com', '09171234534', '489 Ortigas Extension, Taytay'),
+('Joaquin', 'Uy', 'joaquin.uy@email.com', '09171234535', '591 Manila East Rd, Rizal'),
+('Rosario', 'Ang', 'rosario.ang@email.com', '09171234536', '612 JP Rizal Ave, Makati'),
+('Alfredo', 'Wu', 'alfredo.wu@email.com', '09171234537', '723 Gil Puyat Ave, Makati'),
+('Pilar', 'Cheng', 'pilar.cheng@email.com', '09171234538', '834 Ayala Ave, Makati'),
+('Emilio', 'Huang', 'emilio.huang@email.com', '09171234539', '945 Buendia Ave, Makati'),
+('Consuelo', 'Lin', 'consuelo.lin@email.com', '09171234540', '156 Pasay Rd, Makati'),
+('Sergio', 'Chen', 'sergio.chen@email.com', '09171234541', '267 Chino Roces Ave, Makati'),
+('Remedios', 'Wang', 'remedios.wang@email.com', '09171234542', '378 Kalayaan Ave, Makati'),
+('Tomas', 'Li', 'tomas.li@email.com', '09171234543', '489 Jupiter St, Makati'),
+('Natividad', 'Zhang', 'natividad.zhang@email.com', '09171234544', '591 Rockwell Dr, Makati'),
+('Felipe', 'Domingo', 'felipe.domingo@email.com', '09171234545', '612 Estrella St, Makati'),
+('Consolacion', 'Santiago', 'consolacion.santiago@email.com', '09171234546', '723 Pasong Tamo, Makati'),
+('Gerardo', 'Navarro', 'gerardo.navarro@email.com', '09171234547', '834 Reposo St, Makati'),
+('Milagros', 'Ignacio', 'milagros.ignacio@email.com', '09171234548', '945 Amorsolo St, Makati'),
+('Augusto', 'Mercado', 'augusto.mercado@email.com', '09171234549', '156 Leviste St, Makati'),
+('Felicidad', 'Salvador', 'felicidad.salvador@email.com', '09171234550', '267 Valero St, Makati')
 ON DUPLICATE KEY UPDATE first_name = VALUES(first_name);
 
--- Populate customer_accounts (75 accounts with realistic AC-xxx codes)
-INSERT INTO customer_accounts (account_id, customer_id, account_number, account_type, balance, status) VALUES
-(1, 1, 'AC-101', 'savings', 185000.00, 'active'),
-(2, 1, 'AC-102', 'checking', 92000.00, 'active'),
-(3, 2, 'AC-103', 'savings', 520000.00, 'active'),
-(4, 2, 'AC-104', 'business', 1250000.00, 'active'),
-(5, 3, 'AC-105', 'savings', 310000.00, 'active'),
-(6, 4, 'AC-106', 'savings', 175000.00, 'active'),
-(7, 5, 'AC-107', 'savings', 420000.00, 'active'),
-(8, 5, 'AC-108', 'checking', 88000.00, 'active'),
-(9, 6, 'AC-109', 'savings', 95000.00, 'active'),
-(10, 7, 'AC-110', 'savings', 130000.00, 'active'),
-(11, 8, 'AC-111', 'savings', 72000.00, 'active'),
-(12, 9, 'AC-112', 'savings', 245000.00, 'active'),
-(13, 10, 'AC-113', 'savings', 68000.00, 'active'),
-(14, 11, 'AC-114', 'savings', 110000.00, 'active'),
-(15, 12, 'AC-115', 'savings', 55000.00, 'active'),
-(16, 13, 'AC-116', 'savings', 85000.00, 'active'),
-(17, 14, 'AC-117', 'savings', 42000.00, 'active'),
-(18, 15, 'AC-118', 'savings', 78000.00, 'active'),
-(19, 3, 'AC-119', 'checking', 195000.00, 'active'),
-(20, 7, 'AC-120', 'business', 350000.00, 'active'),
-(21, 16, 'AC-121', 'savings', 267500.00, 'active'),
-(22, 16, 'AC-122', 'checking', 143000.00, 'active'),
-(23, 17, 'AC-123', 'savings', 489000.00, 'active'),
-(24, 18, 'AC-124', 'savings', 156800.00, 'active'),
-(25, 18, 'AC-125', 'business', 875000.00, 'active'),
-(26, 19, 'AC-126', 'savings', 312400.00, 'active'),
-(27, 20, 'AC-127', 'savings', 98500.00, 'active'),
-(28, 21, 'AC-128', 'savings', 224000.00, 'active'),
-(29, 21, 'AC-129', 'checking', 67300.00, 'active'),
-(30, 22, 'AC-130', 'savings', 541000.00, 'active'),
-(31, 23, 'AC-131', 'savings', 183200.00, 'active'),
-(32, 24, 'AC-132', 'savings', 396000.00, 'active'),
-(33, 24, 'AC-133', 'business', 1120000.00, 'active'),
-(34, 25, 'AC-134', 'savings', 275400.00, 'active'),
-(35, 26, 'AC-135', 'savings', 148700.00, 'active'),
-(36, 27, 'AC-136', 'savings', 89200.00, 'active'),
-(37, 28, 'AC-137', 'savings', 462000.00, 'active'),
-(38, 28, 'AC-138', 'checking', 118500.00, 'active'),
-(39, 29, 'AC-139', 'savings', 203600.00, 'active'),
-(40, 30, 'AC-140', 'savings', 337800.00, 'active'),
-(41, 31, 'AC-141', 'savings', 54200.00, 'active'),
-(42, 32, 'AC-142', 'savings', 189000.00, 'active'),
-(43, 32, 'AC-143', 'business', 760000.00, 'active'),
-(44, 33, 'AC-144', 'savings', 125300.00, 'active'),
-(45, 34, 'AC-145', 'savings', 298700.00, 'active'),
-(46, 35, 'AC-146', 'savings', 73600.00, 'active'),
-(47, 36, 'AC-147', 'savings', 412500.00, 'active'),
-(48, 37, 'AC-148', 'savings', 167800.00, 'active'),
-(49, 37, 'AC-149', 'checking', 84200.00, 'active'),
-(50, 38, 'AC-150', 'savings', 236000.00, 'active'),
-(51, 39, 'AC-151', 'savings', 18200.00, 'active'),
-(52, 40, 'AC-152', 'savings', 592000.00, 'active'),
-(53, 40, 'AC-153', 'business', 2480000.00, 'active'),
-(54, 41, 'AC-154', 'savings', 145600.00, 'active'),
-(55, 42, 'AC-155', 'savings', 287300.00, 'active'),
-(56, 42, 'AC-156', 'checking', 93400.00, 'active'),
-(57, 43, 'AC-157', 'savings', 178900.00, 'active'),
-(58, 44, 'AC-158', 'savings', 356200.00, 'active'),
-(59, 45, 'AC-159', 'savings', 112800.00, 'active'),
-(60, 45, 'AC-160', 'business', 945000.00, 'active'),
-(61, 46, 'AC-161', 'savings', 264500.00, 'active'),
-(62, 46, 'AC-162', 'checking', 78900.00, 'active'),
-(63, 47, 'AC-163', 'savings', 193200.00, 'active'),
-(64, 48, 'AC-164', 'savings', 421700.00, 'active'),
-(65, 48, 'AC-165', 'business', 1580000.00, 'active'),
-(66, 49, 'AC-166', 'savings', 87400.00, 'active'),
-(67, 49, 'AC-167', 'checking', 56200.00, 'active'),
-(68, 50, 'AC-168', 'savings', 315600.00, 'active'),
-(69, 50, 'AC-169', 'business', 1230000.00, 'active'),
-(70, 16, 'AC-170', 'business', 680000.00, 'active'),
-(71, 23, 'AC-171', 'checking', 102400.00, 'active'),
-(72, 30, 'AC-172', 'business', 890000.00, 'active'),
-(73, 34, 'AC-173', 'checking', 76300.00, 'active'),
-(74, 39, 'AC-174', 'checking', 45800.00, 'active'),
-(75, 41, 'AC-175', 'business', 520000.00, 'active')
+-- 75 Customer Accounts (AC-101 to AC-175)
+INSERT INTO customer_accounts (customer_id, account_number, account_type, balance, status) VALUES
+(1, 'AC-101', 'savings', 125000.00, 'active'),
+(1, 'AC-102', 'checking', 85000.00, 'active'),
+(2, 'AC-103', 'savings', 250000.00, 'active'),
+(2, 'AC-104', 'business', 500000.00, 'active'),
+(3, 'AC-105', 'savings', 75000.00, 'active'),
+(3, 'AC-106', 'checking', 42000.00, 'active'),
+(4, 'AC-107', 'savings', 180000.00, 'active'),
+(4, 'AC-108', 'business', 350000.00, 'active'),
+(5, 'AC-109', 'savings', 95000.00, 'active'),
+(5, 'AC-110', 'checking', 63000.00, 'active'),
+(6, 'AC-111', 'savings', 210000.00, 'active'),
+(7, 'AC-112', 'checking', 78000.00, 'active'),
+(7, 'AC-113', 'business', 420000.00, 'active'),
+(8, 'AC-114', 'savings', 145000.00, 'active'),
+(9, 'AC-115', 'savings', 310000.00, 'active'),
+(9, 'AC-116', 'checking', 92000.00, 'active'),
+(10, 'AC-117', 'savings', 67000.00, 'active'),
+(10, 'AC-118', 'business', 280000.00, 'active'),
+(11, 'AC-119', 'savings', 198000.00, 'active'),
+(12, 'AC-120', 'checking', 55000.00, 'active'),
+(12, 'AC-121', 'savings', 120000.00, 'active'),
+(13, 'AC-122', 'business', 750000.00, 'active'),
+(14, 'AC-123', 'savings', 88000.00, 'active'),
+(14, 'AC-124', 'checking', 47000.00, 'active'),
+(15, 'AC-125', 'savings', 165000.00, 'active'),
+(16, 'AC-126', 'business', 620000.00, 'active'),
+(16, 'AC-127', 'savings', 95000.00, 'active'),
+(17, 'AC-128', 'checking', 72000.00, 'active'),
+(18, 'AC-129', 'savings', 230000.00, 'active'),
+(18, 'AC-130', 'business', 480000.00, 'active'),
+(19, 'AC-131', 'savings', 105000.00, 'active'),
+(20, 'AC-132', 'checking', 68000.00, 'active'),
+(20, 'AC-133', 'savings', 142000.00, 'active'),
+(21, 'AC-134', 'business', 390000.00, 'active'),
+(22, 'AC-135', 'savings', 78000.00, 'active'),
+(22, 'AC-136', 'checking', 53000.00, 'active'),
+(23, 'AC-137', 'savings', 195000.00, 'active'),
+(24, 'AC-138', 'business', 550000.00, 'active'),
+(24, 'AC-139', 'savings', 112000.00, 'active'),
+(25, 'AC-140', 'checking', 85000.00, 'active'),
+(26, 'AC-141', 'savings', 175000.00, 'active'),
+(26, 'AC-142', 'business', 430000.00, 'active'),
+(27, 'AC-143', 'savings', 92000.00, 'active'),
+(28, 'AC-144', 'checking', 61000.00, 'active'),
+(28, 'AC-145', 'savings', 138000.00, 'active'),
+(29, 'AC-146', 'business', 680000.00, 'active'),
+(30, 'AC-147', 'savings', 83000.00, 'active'),
+(30, 'AC-148', 'checking', 49000.00, 'active'),
+(31, 'AC-149', 'savings', 215000.00, 'active'),
+(32, 'AC-150', 'business', 520000.00, 'active'),
+(33, 'AC-151', 'savings', 97000.00, 'active'),
+(33, 'AC-152', 'checking', 74000.00, 'active'),
+(34, 'AC-153', 'savings', 188000.00, 'active'),
+(35, 'AC-154', 'business', 410000.00, 'active'),
+(35, 'AC-155', 'savings', 108000.00, 'active'),
+(36, 'AC-156', 'checking', 56000.00, 'active'),
+(37, 'AC-157', 'savings', 225000.00, 'active'),
+(38, 'AC-158', 'business', 590000.00, 'active'),
+(38, 'AC-159', 'savings', 130000.00, 'active'),
+(39, 'AC-160', 'checking', 82000.00, 'active'),
+(40, 'AC-161', 'savings', 155000.00, 'active'),
+(40, 'AC-162', 'business', 470000.00, 'active'),
+(41, 'AC-163', 'savings', 100000.00, 'active'),
+(42, 'AC-164', 'checking', 67000.00, 'active'),
+(42, 'AC-165', 'savings', 148000.00, 'active'),
+(43, 'AC-166', 'business', 360000.00, 'active'),
+(44, 'AC-167', 'savings', 87000.00, 'active'),
+(44, 'AC-168', 'checking', 52000.00, 'active'),
+(45, 'AC-169', 'savings', 205000.00, 'active'),
+(46, 'AC-170', 'business', 540000.00, 'active'),
+(46, 'AC-171', 'savings', 115000.00, 'active'),
+(47, 'AC-172', 'checking', 79000.00, 'active'),
+(48, 'AC-173', 'savings', 172000.00, 'active'),
+(49, 'AC-174', 'business', 450000.00, 'active'),
+(50, 'AC-175', 'savings', 135000.00, 'active')
 ON DUPLICATE KEY UPDATE balance = VALUES(balance);
 
--- Populate bank_transactions (realistic accounting transactions)
+-- Bank Transactions (120 transactions across various accounts)
 INSERT INTO bank_transactions (transaction_ref, account_id, transaction_type_id, amount, description, created_at) VALUES
--- January 2025 - Deposits (Salary deposits, client payments)
-('TXN-2025-0001', 1, 1, 65000.00, 'Cash in - Salary deposit January 2025', '2025-01-15 10:00:00'),
-('TXN-2025-0002', 3, 1, 200000.00, 'Cash in - Salary deposit January 2025', '2025-01-15 10:05:00'),
-('TXN-2025-0003', 5, 1, 220000.00, 'Cash in - Salary deposit January 2025', '2025-01-15 10:10:00'),
-('TXN-2025-0004', 4, 1, 850000.00, 'Cash in - Client payment ABC Corp Invoice INV-2025-001', '2025-01-20 14:30:00'),
-('TXN-2025-0005', 7, 1, 200000.00, 'Cash in - Salary deposit January 2025', '2025-01-15 10:15:00'),
-('TXN-2025-0006', 20, 1, 450000.00, 'Cash in - Sales collection from XYZ Trading', '2025-01-25 11:00:00'),
--- January 2025 - Withdrawals (Operating expenses)
-('TXN-2025-0007', 2, 2, 100000.00, 'Cash out - Office rent payment January', '2025-01-05 09:00:00'),
-('TXN-2025-0008', 2, 2, 75000.00, 'Cash out - Utilities payment January', '2025-01-10 14:00:00'),
-('TXN-2025-0009', 8, 2, 50000.00, 'Cash out - Office supplies purchase', '2025-01-12 11:30:00'),
--- January 2025 - Transfers
-('TXN-2025-0010', 4, 3, 500000.00, 'Transfer money in - From BDO main account', '2025-01-08 09:30:00'),
-('TXN-2025-0011', 2, 4, 500000.00, 'Transfer money out - To BPI operations', '2025-01-08 09:30:00'),
--- January 2025 - Interest
-('TXN-2025-0012', 3, 6, 4500.00, 'Interest earned - Savings account Jan', '2025-01-31 23:59:00'),
-('TXN-2025-0013', 7, 6, 3200.00, 'Interest earned - Savings account Jan', '2025-01-31 23:59:00'),
--- January 2025 - Fees
-('TXN-2025-0014', 2, 5, 500.00, 'Bank service fee - January', '2025-01-31 23:00:00'),
-
--- February 2025
-('TXN-2025-0015', 1, 1, 65000.00, 'Cash in - Salary deposit February 2025', '2025-02-14 10:00:00'),
-('TXN-2025-0016', 3, 1, 200000.00, 'Cash in - Salary deposit February 2025', '2025-02-14 10:05:00'),
-('TXN-2025-0017', 4, 1, 620000.00, 'Cash in - Client payment DEF Industries INV-2025-012', '2025-02-18 15:00:00'),
-('TXN-2025-0018', 20, 1, 380000.00, 'Cash in - Sales collection from LMN Corp', '2025-02-22 10:30:00'),
-('TXN-2025-0019', 2, 2, 100000.00, 'Cash out - Office rent payment February', '2025-02-03 09:00:00'),
-('TXN-2025-0020', 2, 2, 80000.00, 'Cash out - Utilities payment February', '2025-02-08 14:00:00'),
-('TXN-2025-0021', 8, 2, 150000.00, 'Cash out - Marketing campaign payment', '2025-02-15 11:00:00'),
-('TXN-2025-0022', 3, 6, 5200.00, 'Interest earned - Savings account Feb', '2025-02-28 23:59:00'),
-('TXN-2025-0023', 2, 5, 500.00, 'Bank service fee - February', '2025-02-28 23:00:00'),
--- February 2025 - Loan Payment
-('TXN-2025-0024', 1, 7, 4500.00, 'Paid loan - Salary loan installment LN-1001', '2025-02-01 10:00:00'),
-('TXN-2025-0025', 5, 7, 8000.00, 'Paid loan - Housing loan installment LN-1004', '2025-02-01 10:00:00'),
-
--- March 2025
-('TXN-2025-0026', 1, 1, 65000.00, 'Cash in - Salary deposit March 2025', '2025-03-14 10:00:00'),
-('TXN-2025-0027', 4, 1, 950000.00, 'Cash in - Major client payment GHI Group INV-2025-020', '2025-03-10 14:00:00'),
-('TXN-2025-0028', 6, 1, 120000.00, 'Cash in - Salary deposit March 2025', '2025-03-14 10:05:00'),
-('TXN-2025-0029', 2, 2, 100000.00, 'Cash out - Office rent payment March', '2025-03-03 09:00:00'),
-('TXN-2025-0030', 2, 2, 78000.00, 'Cash out - Utilities payment March', '2025-03-07 14:00:00'),
-('TXN-2025-0031', 8, 2, 80000.00, 'Cash out - Professional fees legal consultation', '2025-03-20 16:00:00'),
-('TXN-2025-0032', 4, 3, 300000.00, 'Transfer money in - From Security Bank investment', '2025-03-15 10:00:00'),
-('TXN-2025-0033', 8, 4, 300000.00, 'Transfer money out - To BPI operations', '2025-03-15 10:00:00'),
-('TXN-2025-0034', 3, 6, 5800.00, 'Interest earned - Savings account Mar', '2025-03-31 23:59:00'),
-('TXN-2025-0035', 1, 7, 4500.00, 'Paid loan - Salary loan installment LN-1001', '2025-03-01 10:00:00'),
-
--- April 2025 - Q2
-('TXN-2025-0036', 4, 1, 720000.00, 'Cash in - Client payment JKL Solutions INV-2025-031', '2025-04-08 11:00:00'),
-('TXN-2025-0037', 20, 1, 550000.00, 'Cash in - Sales collection April batch', '2025-04-20 14:00:00'),
-('TXN-2025-0038', 1, 1, 65000.00, 'Cash in - Salary deposit April 2025', '2025-04-15 10:00:00'),
-('TXN-2025-0039', 2, 2, 100000.00, 'Cash out - Office rent payment April', '2025-04-02 09:00:00'),
-('TXN-2025-0040', 2, 2, 82000.00, 'Cash out - Utilities payment April', '2025-04-10 14:00:00'),
-('TXN-2025-0041', 8, 2, 35000.00, 'Cash out - Office equipment purchase', '2025-04-18 11:00:00'),
-('TXN-2025-0042', 3, 6, 5500.00, 'Interest earned - Savings account Apr', '2025-04-30 23:59:00'),
-('TXN-2025-0043', 2, 5, 500.00, 'Bank service fee - April', '2025-04-30 23:00:00'),
-('TXN-2025-0044', 5, 7, 8000.00, 'Paid loan - Housing loan installment LN-1004', '2025-04-01 10:00:00'),
-
--- May 2025
-('TXN-2025-0045', 4, 1, 680000.00, 'Cash in - Client payment MNO Holdings INV-2025-042', '2025-05-12 10:30:00'),
-('TXN-2025-0046', 20, 1, 420000.00, 'Cash in - Sales collection May batch', '2025-05-22 15:00:00'),
-('TXN-2025-0047', 2, 2, 100000.00, 'Cash out - Office rent payment May', '2025-05-02 09:00:00'),
-('TXN-2025-0048', 2, 2, 85000.00, 'Cash out - Utilities payment May', '2025-05-09 14:00:00'),
-('TXN-2025-0049', 3, 6, 5600.00, 'Interest earned - Savings account May', '2025-05-31 23:59:00'),
-('TXN-2025-0050', 1, 7, 4500.00, 'Paid loan - Salary loan installment LN-1001', '2025-05-01 10:00:00'),
-
--- June 2025
-('TXN-2025-0051', 4, 1, 890000.00, 'Cash in - Client payment PQR Corp INV-2025-055', '2025-06-10 11:00:00'),
-('TXN-2025-0052', 20, 1, 510000.00, 'Cash in - Sales collection June batch', '2025-06-25 14:00:00'),
-('TXN-2025-0053', 2, 2, 100000.00, 'Cash out - Office rent payment June', '2025-06-02 09:00:00'),
-('TXN-2025-0054', 8, 2, 45000.00, 'Cash out - Training and development costs', '2025-06-15 16:00:00'),
-('TXN-2025-0055', 4, 3, 200000.00, 'Transfer money in - From BDO main account', '2025-06-20 10:00:00'),
-('TXN-2025-0056', 2, 4, 200000.00, 'Transfer money out - To BPI operations', '2025-06-20 10:00:00'),
-('TXN-2025-0057', 3, 6, 6100.00, 'Interest earned - Savings account Jun', '2025-06-30 23:59:00'),
-('TXN-2025-0058', 2, 5, 500.00, 'Bank service fee - June', '2025-06-30 23:00:00'),
-
--- July 2025 - Q3
-('TXN-2025-0059', 4, 1, 780000.00, 'Cash in - Client payment STU Enterprises INV-2025-068', '2025-07-08 10:00:00'),
-('TXN-2025-0060', 20, 1, 490000.00, 'Cash in - Sales collection July batch', '2025-07-20 14:00:00'),
-('TXN-2025-0061', 2, 2, 100000.00, 'Cash out - Office rent payment July', '2025-07-02 09:00:00'),
-('TXN-2025-0062', 2, 2, 88000.00, 'Cash out - Utilities payment July', '2025-07-08 14:00:00'),
-('TXN-2025-0063', 5, 7, 8000.00, 'Paid loan - Housing loan installment LN-1004', '2025-07-01 10:00:00'),
-
--- August 2025
-('TXN-2025-0064', 4, 1, 920000.00, 'Cash in - Client payment VWX Corp INV-2025-079', '2025-08-12 11:30:00'),
-('TXN-2025-0065', 20, 1, 530000.00, 'Cash in - Sales collection August batch', '2025-08-25 14:00:00'),
-('TXN-2025-0066', 2, 2, 100000.00, 'Cash out - Office rent payment August', '2025-08-01 09:00:00'),
-('TXN-2025-0067', 8, 2, 120000.00, 'Cash out - IT infrastructure upgrade', '2025-08-20 15:00:00'),
-('TXN-2025-0068', 3, 6, 6500.00, 'Interest earned - Savings account Aug', '2025-08-31 23:59:00'),
-
--- September 2025
-('TXN-2025-0069', 4, 1, 850000.00, 'Cash in - Client payment YZA Inc INV-2025-088', '2025-09-10 10:00:00'),
-('TXN-2025-0070', 20, 1, 470000.00, 'Cash in - Sales collection September batch', '2025-09-22 14:00:00'),
-('TXN-2025-0071', 2, 2, 100000.00, 'Cash out - Office rent payment September', '2025-09-01 09:00:00'),
-('TXN-2025-0072', 2, 2, 90000.00, 'Cash out - Utilities payment September', '2025-09-09 14:00:00'),
-('TXN-2025-0073', 1, 7, 4500.00, 'Paid loan - Salary loan installment LN-1001', '2025-09-01 10:00:00'),
-('TXN-2025-0074', 3, 6, 6800.00, 'Interest earned - Savings account Sep', '2025-09-30 23:59:00'),
-('TXN-2025-0075', 2, 5, 500.00, 'Bank service fee - September', '2025-09-30 23:00:00'),
-
--- October 2025 - Q4
-('TXN-2025-0076', 4, 1, 1050000.00, 'Cash in - Major client contract BCD Global INV-2025-095', '2025-10-05 10:00:00'),
-('TXN-2025-0077', 20, 1, 580000.00, 'Cash in - Sales collection October batch', '2025-10-20 14:00:00'),
-('TXN-2025-0078', 2, 2, 100000.00, 'Cash out - Office rent payment October', '2025-10-01 09:00:00'),
-('TXN-2025-0079', 8, 2, 250000.00, 'Cash out - Equipment purchase new workstations', '2025-10-15 11:00:00'),
-('TXN-2025-0080', 5, 7, 8000.00, 'Paid loan - Housing loan installment LN-1004', '2025-10-01 10:00:00'),
-
--- November 2025
-('TXN-2025-0081', 4, 1, 980000.00, 'Cash in - Client payment EFG Partners INV-2025-103', '2025-11-08 10:30:00'),
-('TXN-2025-0082', 20, 1, 620000.00, 'Cash in - Sales collection November batch', '2025-11-22 14:00:00'),
-('TXN-2025-0083', 2, 2, 100000.00, 'Cash out - Office rent payment November', '2025-11-03 09:00:00'),
-('TXN-2025-0084', 2, 2, 92000.00, 'Cash out - Utilities payment November', '2025-11-07 14:00:00'),
-('TXN-2025-0085', 3, 6, 7200.00, 'Interest earned - Savings account Nov', '2025-11-30 23:59:00'),
-
--- December 2025
-('TXN-2025-0086', 4, 1, 1200000.00, 'Cash in - Year-end client payment HIJ Corp INV-2025-115', '2025-12-05 10:00:00'),
-('TXN-2025-0087', 20, 1, 700000.00, 'Cash in - Sales collection December batch', '2025-12-18 14:00:00'),
-('TXN-2025-0088', 2, 2, 100000.00, 'Cash out - Office rent payment December', '2025-12-01 09:00:00'),
-('TXN-2025-0089', 8, 2, 180000.00, 'Cash out - Year-end bonuses misc expenses', '2025-12-20 15:00:00'),
-('TXN-2025-0090', 4, 3, 400000.00, 'Transfer money in - Year-end fund reallocation', '2025-12-15 10:00:00'),
-('TXN-2025-0091', 2, 4, 400000.00, 'Transfer money out - To BPI operations year-end', '2025-12-15 10:00:00'),
-('TXN-2025-0092', 3, 6, 7800.00, 'Interest earned - Savings account Dec', '2025-12-31 23:59:00'),
-('TXN-2025-0093', 2, 5, 500.00, 'Bank service fee - December', '2025-12-31 23:00:00'),
-('TXN-2025-0094', 1, 7, 4500.00, 'Paid loan - Final installment salary loan LN-1001', '2025-12-01 10:00:00'),
-('TXN-2025-0095', 5, 7, 8000.00, 'Paid loan - Housing loan installment LN-1004', '2025-12-01 10:00:00'),
-
--- January 2026
-('TXN-2026-0001', 4, 1, 880000.00, 'Cash in - Client payment KLM Corp INV-2026-001', '2026-01-10 10:00:00'),
-('TXN-2026-0002', 20, 1, 520000.00, 'Cash in - Sales collection January batch', '2026-01-22 14:00:00'),
-('TXN-2026-0003', 1, 1, 65000.00, 'Cash in - Salary deposit January 2026', '2026-01-15 10:00:00'),
-('TXN-2026-0004', 2, 2, 105000.00, 'Cash out - Office rent payment January 2026', '2026-01-03 09:00:00'),
-('TXN-2026-0005', 2, 2, 85000.00, 'Cash out - Utilities payment January 2026', '2026-01-08 14:00:00'),
-('TXN-2026-0006', 3, 6, 7500.00, 'Interest earned - Savings account Jan 2026', '2026-01-31 23:59:00'),
-('TXN-2026-0007', 5, 7, 8000.00, 'Paid loan - Housing loan installment LN-1004', '2026-01-01 10:00:00'),
-('TXN-2026-0008', 2, 5, 500.00, 'Bank service fee - January 2026', '2026-01-31 23:00:00'),
-
--- February 2026
-('TXN-2026-0009', 4, 1, 760000.00, 'Cash in - Client payment NOP Solutions INV-2026-010', '2026-02-08 11:00:00'),
-('TXN-2026-0010', 20, 1, 480000.00, 'Cash in - Sales collection February batch', '2026-02-20 14:00:00'),
-('TXN-2026-0011', 2, 2, 105000.00, 'Cash out - Office rent payment February 2026', '2026-02-03 09:00:00'),
-('TXN-2026-0012', 8, 2, 95000.00, 'Cash out - Marketing campaign Q1 2026', '2026-02-15 15:00:00'),
-('TXN-2026-0013', 3, 6, 7800.00, 'Interest earned - Savings account Feb 2026', '2026-02-28 23:59:00'),
-
--- March 2026
-('TXN-2026-0014', 4, 1, 1100000.00, 'Cash in - Major contract QRS Group INV-2026-020', '2026-03-05 10:00:00'),
-('TXN-2026-0015', 20, 1, 590000.00, 'Cash in - Sales collection March batch', '2026-03-22 14:00:00'),
-('TXN-2026-0016', 2, 2, 105000.00, 'Cash out - Office rent payment March 2026', '2026-03-03 09:00:00'),
-('TXN-2026-0017', 2, 2, 88000.00, 'Cash out - Utilities payment March 2026', '2026-03-07 14:00:00'),
-('TXN-2026-0018', 4, 3, 350000.00, 'Transfer money in - Q1 fund reallocation', '2026-03-15 10:00:00'),
-('TXN-2026-0019', 2, 4, 350000.00, 'Transfer money out - To operations Q1', '2026-03-15 10:00:00'),
-('TXN-2026-0020', 3, 6, 8200.00, 'Interest earned - Savings account Mar 2026', '2026-03-31 23:59:00'),
-('TXN-2026-0021', 5, 7, 8000.00, 'Paid loan - Housing loan installment LN-1004', '2026-03-01 10:00:00'),
-('TXN-2026-0022', 2, 5, 500.00, 'Bank service fee - March 2026', '2026-03-31 23:00:00');
-
--- Populate missions (stub data for rewards system)
-INSERT INTO missions (mission_text, points_value) VALUES
-('Complete first deposit', 100.00),
-('Set up auto-save', 50.00),
-('Refer a friend', 200.00),
-('Pay loan on time 3 months', 150.00),
-('Open business account', 300.00)
-ON DUPLICATE KEY UPDATE mission_text = VALUES(mission_text);
-
--- Populate report_settings
-INSERT INTO report_settings (setting_key, setting_value) VALUES
-('default_date_format', 'Y-m-d'),
-('currency', 'PHP'),
-('company_name', 'Evergreen Solutions Inc.'),
-('fiscal_year_start', '01-01'),
-('report_logo_path', '/assets/image/logo.png'),
-('decimal_places', '2')
-ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value);
-
--- ========================================
--- INITIAL CAPITAL INVESTMENT (January 2025)
--- ========================================
-
-INSERT IGNORE INTO journal_entries (journal_no, journal_type_id, entry_date, description, fiscal_period_id, reference_no, total_debit, total_credit, status, posted_by, posted_at, created_by) 
-VALUES ('JE-2025-0001', @gj_type, '2025-01-02', 'Initial capital investment', @jan_2025, 'INV-001', 10000000.00, 10000000.00, 'posted', 1, NOW(), 1);
-
-SET @je1 = LAST_INSERT_ID();
-
-INSERT IGNORE INTO journal_lines (journal_entry_id, account_id, debit, credit, memo) VALUES
-(@je1, @cash_bdo, 5000000.00, 0.00, 'Cash deposit - BDO'),
-(@je1, @cash_bpi, 2000000.00, 0.00, 'Cash deposit - BPI'),
-(@je1, @equipment, 1000000.00, 0.00, 'Office equipment purchase'),
-(@je1, @building, 1500000.00, 0.00, 'Building acquisition'),
-(@je1, @land, 500000.00, 0.00, 'Land acquisition'),
-(@je1, @capital_stock, 0.00, 10000000.00, 'Owner capital contribution');
-
--- ========================================
--- BANK LOAN (January 2025)
--- ========================================
-
-INSERT IGNORE INTO journal_entries (journal_no, journal_type_id, entry_date, description, fiscal_period_id, reference_no, total_debit, total_credit, status, posted_by, posted_at, created_by) 
-VALUES ('JE-2025-0002', @gj_type, '2025-01-05', 'Bank loan proceeds', @jan_2025, 'LOAN-001', 2000000.00, 2000000.00, 'posted', 1, NOW(), 1);
-
-SET @je2 = LAST_INSERT_ID();
-
-INSERT IGNORE INTO journal_lines (journal_entry_id, account_id, debit, credit, memo) VALUES
-(@je2, @cash_metro, 2000000.00, 0.00, 'Loan proceeds'),
-(@je2, @loan_longterm, 0.00, 2000000.00, 'Long-term loan payable');
-
--- ========================================
--- INVENTORY PURCHASE (January 2025)
--- ========================================
-
-INSERT IGNORE INTO journal_entries (journal_no, journal_type_id, entry_date, description, fiscal_period_id, reference_no, total_debit, total_credit, status, posted_by, posted_at, created_by) 
-VALUES ('JE-2025-0003', @ap_type, '2025-01-10', 'Inventory purchase on account', @jan_2025, 'PO-001', 1500000.00, 1500000.00, 'posted', 1, NOW(), 1);
-
-SET @je3 = LAST_INSERT_ID();
-
-INSERT IGNORE INTO journal_lines (journal_entry_id, account_id, debit, credit, memo) VALUES
-(@je3, @inventory_raw, 800000.00, 0.00, 'Raw materials inventory'),
-(@je3, @inventory_finished, 700000.00, 0.00, 'Finished goods inventory'),
-(@je3, @ap_trade, 0.00, 1500000.00, 'Trade payable');
-
--- ========================================
--- SALES REVENUE - CASH (January 2025)
--- ========================================
-
-INSERT IGNORE INTO journal_entries (journal_no, journal_type_id, entry_date, description, fiscal_period_id, reference_no, total_debit, total_credit, status, posted_by, posted_at, created_by) 
-VALUES ('JE-2025-0004', @cr_type, '2025-01-15', 'Cash sales', @jan_2025, 'INV-2501', 800000.00, 800000.00, 'posted', 1, NOW(), 1);
-
-SET @je4 = LAST_INSERT_ID();
-
-INSERT IGNORE INTO journal_lines (journal_entry_id, account_id, debit, credit, memo) VALUES
-(@je4, @cash_bdo, 800000.00, 0.00, 'Cash received'),
-(@je4, @sales_revenue, 0.00, 800000.00, 'Product sales');
-
--- ========================================
--- COST OF GOODS SOLD (January 2025)
--- ========================================
-
-INSERT IGNORE INTO journal_entries (journal_no, journal_type_id, entry_date, description, fiscal_period_id, reference_no, total_debit, total_credit, status, posted_by, posted_at, created_by) 
-VALUES ('JE-2025-0005', @gj_type, '2025-01-15', 'COGS for sales', @jan_2025, 'INV-2501', 480000.00, 480000.00, 'posted', 1, NOW(), 1);
-
-SET @je5 = LAST_INSERT_ID();
-
-INSERT IGNORE INTO journal_lines (journal_entry_id, account_id, debit, credit, memo) VALUES
-(@je5, @cogs, 480000.00, 0.00, 'Cost of goods sold'),
-(@je5, @inventory_finished, 0.00, 480000.00, 'Inventory reduction');
-
--- ========================================
--- SERVICE REVENUE - CREDIT (January 2025)
--- ========================================
-
-INSERT IGNORE INTO journal_entries (journal_no, journal_type_id, entry_date, description, fiscal_period_id, reference_no, total_debit, total_credit, status, posted_by, posted_at, created_by) 
-VALUES ('JE-2025-0006', @ar_type, '2025-01-20', 'Service revenue on account', @jan_2025, 'INV-2502', 600000.00, 600000.00, 'posted', 1, NOW(), 1);
-
-SET @je6 = LAST_INSERT_ID();
-
-INSERT IGNORE INTO journal_lines (journal_entry_id, account_id, debit, credit, memo) VALUES
-(@je6, @ar_trade, 600000.00, 0.00, 'Customer receivable'),
-(@je6, @service_revenue, 0.00, 600000.00, 'Service income');
-
--- ========================================
--- PAYROLL PROCESSING (January 2025)
--- ========================================
-
-INSERT IGNORE INTO journal_entries (journal_no, journal_type_id, entry_date, description, fiscal_period_id, reference_no, total_debit, total_credit, status, posted_by, posted_at, created_by) 
-VALUES ('JE-2025-0007', @pr_type, '2025-01-31', 'January payroll', @jan_2025, 'PR-2501', 500000.00, 500000.00, 'posted', 1, NOW(), 1);
-
-SET @je7 = LAST_INSERT_ID();
-
-INSERT IGNORE INTO journal_lines (journal_entry_id, account_id, debit, credit, memo) VALUES
-(@je7, @salaries_wages, 400000.00, 0.00, 'Employee salaries'),
-(@je7, @employee_benefits, 50000.00, 0.00, 'Employee benefits'),
-(@je7, @payroll_taxes, 50000.00, 0.00, 'Payroll taxes'),
-(@je7, @sss_payable, 0.00, 18000.00, 'SSS payable'),
-(@je7, @philhealth_payable, 0.00, 12000.00, 'PhilHealth payable'),
-(@je7, @pagibig_payable, 0.00, 5000.00, 'Pag-IBIG payable'),
-(@je7, @wht_payable, 0.00, 15000.00, 'Withholding tax payable'),
-(@je7, @cash_metro, 0.00, 400000.00, 'Net pay');
-
--- ========================================
--- RENT EXPENSE (January 2025)
--- ========================================
-
-INSERT IGNORE INTO journal_entries (journal_no, journal_type_id, entry_date, description, fiscal_period_id, reference_no, total_debit, total_credit, status, posted_by, posted_at, created_by) 
-VALUES ('JE-2025-0008', @cd_type, '2025-02-01', 'January rent payment', @feb_2025, 'RENT-JAN', 100000.00, 100000.00, 'posted', 1, NOW(), 1);
-
-SET @je8 = LAST_INSERT_ID();
-
-INSERT IGNORE INTO journal_lines (journal_entry_id, account_id, debit, credit, memo) VALUES
-(@je8, @rent_expense, 100000.00, 0.00, 'Office rent'),
-(@je8, @cash_bdo, 0.00, 100000.00, 'Cash paid');
-
--- ========================================
--- UTILITIES EXPENSE (February 2025)
--- ========================================
-
-INSERT IGNORE INTO journal_entries (journal_no, journal_type_id, entry_date, description, fiscal_period_id, reference_no, total_debit, total_credit, status, posted_by, posted_at, created_by) 
-VALUES ('JE-2025-0009', @cd_type, '2025-02-05', 'Utilities payment', @feb_2025, 'UTIL-FEB', 75000.00, 75000.00, 'posted', 1, NOW(), 1);
-
-SET @je9 = LAST_INSERT_ID();
-
-INSERT IGNORE INTO journal_lines (journal_entry_id, account_id, debit, credit, memo) VALUES
-(@je9, @utilities_expense, 75000.00, 0.00, 'Electricity and water'),
-(@je9, @cash_bdo, 0.00, 75000.00, 'Cash paid');
-
--- ========================================
--- OFFICE SUPPLIES PURCHASE (February 2025)
--- ========================================
-
-INSERT IGNORE INTO journal_entries (journal_no, journal_type_id, entry_date, description, fiscal_period_id, reference_no, total_debit, total_credit, status, posted_by, posted_at, created_by) 
-VALUES ('JE-2025-0010', @cd_type, '2025-02-10', 'Office supplies', @feb_2025, 'SUP-001', 50000.00, 50000.00, 'posted', 1, NOW(), 1);
-
-SET @je10 = LAST_INSERT_ID();
-
-INSERT IGNORE INTO journal_lines (journal_entry_id, account_id, debit, credit, memo) VALUES
-(@je10, @office_supplies, 50000.00, 0.00, 'Office supplies'),
-(@je10, @cash_bpi, 0.00, 50000.00, 'Cash paid');
-
--- ========================================
--- MARKETING EXPENSE (February 2025)
--- ========================================
-
-INSERT IGNORE INTO journal_entries (journal_no, journal_type_id, entry_date, description, fiscal_period_id, reference_no, total_debit, total_credit, status, posted_by, posted_at, created_by) 
-VALUES ('JE-2025-0011', @cd_type, '2025-02-15', 'Marketing campaign', @feb_2025, 'MKT-001', 150000.00, 150000.00, 'posted', 1, NOW(), 1);
-
-SET @je11 = LAST_INSERT_ID();
-
-INSERT IGNORE INTO journal_lines (journal_entry_id, account_id, debit, credit, memo) VALUES
-(@je11, @marketing_advertising, 150000.00, 0.00, 'Digital advertising'),
-(@je11, @cash_bdo, 0.00, 150000.00, 'Cash paid');
-
--- ========================================
--- PROFESSIONAL FEES (February 2025)
--- ========================================
-
-INSERT IGNORE INTO journal_entries (journal_no, journal_type_id, entry_date, description, fiscal_period_id, reference_no, total_debit, total_credit, status, posted_by, posted_at, created_by) 
-VALUES ('JE-2025-0012', @cd_type, '2025-02-20', 'Legal consultation', @feb_2025, 'LEGAL-001', 80000.00, 80000.00, 'posted', 1, NOW(), 1);
-
-SET @je12 = LAST_INSERT_ID();
-
-INSERT IGNORE INTO journal_lines (journal_entry_id, account_id, debit, credit, memo) VALUES
-(@je12, @professional_fees, 80000.00, 0.00, 'Legal fees'),
-(@je12, @cash_bdo, 0.00, 80000.00, 'Cash paid');
-
--- ========================================
--- INTEREST INCOME (February 2025)
--- ========================================
-
-INSERT IGNORE INTO journal_entries (journal_no, journal_type_id, entry_date, description, fiscal_period_id, reference_no, total_debit, total_credit, status, posted_by, posted_at, created_by) 
-VALUES ('JE-2025-0013', @cr_type, '2025-02-28', 'Bank interest earned', @feb_2025, 'INT-FEB', 10000.00, 10000.00, 'posted', 1, NOW(), 1);
-
-SET @je13 = LAST_INSERT_ID();
-
-INSERT IGNORE INTO journal_lines (journal_entry_id, account_id, debit, credit, memo) VALUES
-(@je13, @cash_bdo, 10000.00, 0.00, 'Interest received'),
-(@je13, @interest_income, 0.00, 10000.00, 'Bank interest income');
-
--- ========================================
--- LOAN INTEREST PAYMENT (February 2025)
--- ========================================
-
-INSERT IGNORE INTO journal_entries (journal_no, journal_type_id, entry_date, description, fiscal_period_id, reference_no, total_debit, total_credit, status, posted_by, posted_at, created_by) 
-VALUES ('JE-2025-0014', @cd_type, '2025-02-28', 'Loan interest payment', @feb_2025, 'LOAN-INT-FEB', 30000.00, 30000.00, 'posted', 1, NOW(), 1);
-
-SET @je14 = LAST_INSERT_ID();
-
-INSERT IGNORE INTO journal_lines (journal_entry_id, account_id, debit, credit, memo) VALUES
-(@je14, @interest_expense, 30000.00, 0.00, 'Interest on loan'),
-(@je14, @cash_metro, 0.00, 30000.00, 'Cash paid');
-
--- ========================================
--- DEPRECIATION EXPENSE (February 2025)
--- ========================================
-
-INSERT IGNORE INTO journal_entries (journal_no, journal_type_id, entry_date, description, fiscal_period_id, reference_no, total_debit, total_credit, status, posted_by, posted_at, created_by) 
-VALUES ('JE-2025-0015', @aj_type, '2025-02-28', 'Monthly depreciation', @feb_2025, 'DEP-FEB', 20000.00, 20000.00, 'posted', 1, NOW(), 1);
-
-SET @je15 = LAST_INSERT_ID();
-
-INSERT IGNORE INTO journal_lines (journal_entry_id, account_id, debit, credit, memo) VALUES
-(@je15, @depreciation_expense, 20000.00, 0.00, 'Equipment depreciation'),
-(@je15, @accum_dep_equip, 0.00, 20000.00, 'Accumulated depreciation');
-
--- ========================================
--- CUSTOMER PAYMENT (March 2025)
--- ========================================
-
-INSERT IGNORE INTO journal_entries (journal_no, journal_type_id, entry_date, description, fiscal_period_id, reference_no, total_debit, total_credit, status, posted_by, posted_at, created_by) 
-VALUES ('JE-2025-0016', @cr_type, '2025-03-05', 'Payment from ABC Corp', @mar_2025, 'CR-1001', 400000.00, 400000.00, 'posted', 1, NOW(), 1);
-
-SET @je16 = LAST_INSERT_ID();
-
-INSERT IGNORE INTO journal_lines (journal_entry_id, account_id, debit, credit, memo) VALUES
-(@je16, @cash_bpi, 400000.00, 0.00, 'Cash received'),
-(@je16, @ar_trade, 0.00, 400000.00, 'AR collection');
-
--- ========================================
--- EQUIPMENT PURCHASE (March 2025)
--- ========================================
-
-INSERT IGNORE INTO journal_entries (journal_no, journal_type_id, entry_date, description, fiscal_period_id, reference_no, total_debit, total_credit, status, posted_by, posted_at, created_by) 
-VALUES ('JE-2025-0017', @ap_type, '2025-03-10', 'Purchase computers', @mar_2025, 'INV-2001', 250000.00, 250000.00, 'posted', 1, NOW(), 1);
-
-SET @je17 = LAST_INSERT_ID();
-
-INSERT IGNORE INTO journal_lines (journal_entry_id, account_id, debit, credit, memo) VALUES
-(@je17, @equipment, 250000.00, 0.00, 'Equipment purchased'),
-(@je17, @ap_trade, 0.00, 250000.00, 'AP to supplier');
-
--- ========================================
--- DRAFT ENTRY (March 2025)
--- ========================================
-
-INSERT IGNORE INTO journal_entries (journal_no, journal_type_id, entry_date, description, fiscal_period_id, reference_no, total_debit, total_credit, status, created_by) 
-VALUES ('JE-2025-0018', @gj_type, '2025-03-15', 'Depreciation for March', @mar_2025, 'ADJ-DEP', 20000.00, 20000.00, 'draft', 1);
-
-SET @je18 = LAST_INSERT_ID();
-
-INSERT IGNORE INTO journal_lines (journal_entry_id, account_id, debit, credit, memo) VALUES
-(@je18, @depreciation_expense, 20000.00, 0.00, 'Monthly depreciation'),
-(@je18, @accum_dep_equip, 0.00, 20000.00, 'Accum. depreciation');
-
--- ========================================
--- TRANSPORTATION EXPENSE (March 2025)
--- ========================================
-
-INSERT IGNORE INTO journal_entries (journal_no, journal_type_id, entry_date, description, fiscal_period_id, reference_no, total_debit, total_credit, status, posted_by, posted_at, created_by) 
-VALUES ('JE-2025-0019', @cd_type, '2025-03-20', 'Fuel and maintenance', @mar_2025, 'TRANS-001', 15000.00, 15000.00, 'posted', 1, NOW(), 1);
-
-SET @je19 = LAST_INSERT_ID();
-
-INSERT IGNORE INTO journal_lines (journal_entry_id, account_id, debit, credit, memo) VALUES
-(@je19, @transportation_travel, 15000.00, 0.00, 'Fuel'),
-(@je19, @cash_hand, 0.00, 15000.00, 'Cash');
-
--- ========================================
--- SERVICE REVENUE - CASH (March 2025)
--- ========================================
-
-INSERT IGNORE INTO journal_entries (journal_no, journal_type_id, entry_date, description, fiscal_period_id, reference_no, total_debit, total_credit, status, posted_by, posted_at, created_by) 
-VALUES ('JE-2025-0020', @cr_type, '2025-03-25', 'Consulting services', @mar_2025, 'INV-5001', 300000.00, 300000.00, 'posted', 1, NOW(), 1);
-
-SET @je20 = LAST_INSERT_ID();
-
-INSERT IGNORE INTO journal_lines (journal_entry_id, account_id, debit, credit, memo) VALUES
-(@je20, @cash_bdo, 300000.00, 0.00, 'Cash received'),
-(@je20, @consulting_revenue, 0.00, 300000.00, 'Consulting revenue');
-
--- ========================================
--- ADDITIONAL JOURNAL ENTRIES (Q2 2025 - Q1 2026)
--- ========================================
-
--- Q2 2025: April
-INSERT IGNORE INTO journal_entries (journal_no, journal_type_id, entry_date, description, fiscal_period_id, reference_no, total_debit, total_credit, status, posted_by, posted_at, created_by) 
-VALUES ('JE-2025-0021', @cr_type, '2025-04-05', 'Cash in - Client payment JKL Solutions', @apr_2025, 'CR-2025-004', 720000.00, 720000.00, 'posted', 1, '2025-04-05 14:00:00', 1);
-SET @je21 = LAST_INSERT_ID();
-INSERT IGNORE INTO journal_lines (journal_entry_id, account_id, debit, credit, memo) VALUES
-(@je21, @cash_bdo, 720000.00, 0.00, 'Cash received from JKL Solutions'),
-(@je21, @sales_revenue, 0.00, 720000.00, 'Sales revenue - April');
-
-INSERT IGNORE INTO journal_entries (journal_no, journal_type_id, entry_date, description, fiscal_period_id, reference_no, total_debit, total_credit, status, posted_by, posted_at, created_by) 
-VALUES ('JE-2025-0022', @cd_type, '2025-04-10', 'Cash out - Vendor payment ABC Suppliers PO-2025-012', @apr_2025, 'CD-2025-004', 180000.00, 180000.00, 'posted', 1, '2025-04-10 10:00:00', 1);
-SET @je22 = LAST_INSERT_ID();
-INSERT IGNORE INTO journal_lines (journal_entry_id, account_id, debit, credit, memo) VALUES
-(@je22, @ap_trade, 180000.00, 0.00, 'Settled trade payable'),
-(@je22, @cash_bdo, 0.00, 180000.00, 'Cash disbursement');
-
-INSERT IGNORE INTO journal_entries (journal_no, journal_type_id, entry_date, description, fiscal_period_id, reference_no, total_debit, total_credit, status, posted_by, posted_at, created_by) 
-VALUES ('JE-2025-0023', @pr_type, '2025-04-30', 'Payroll disbursement - April 2025', @apr_2025, 'PR-2504', 520000.00, 520000.00, 'posted', 1, '2025-04-30 18:00:00', 1);
-SET @je23 = LAST_INSERT_ID();
-INSERT IGNORE INTO journal_lines (journal_entry_id, account_id, debit, credit, memo) VALUES
-(@je23, @salaries_wages, 420000.00, 0.00, 'Employee salaries April'),
-(@je23, @employee_benefits, 50000.00, 0.00, 'Employee benefits April'),
-(@je23, @payroll_taxes, 50000.00, 0.00, 'Payroll taxes April'),
-(@je23, @sss_payable, 0.00, 19000.00, 'SSS contributions'),
-(@je23, @philhealth_payable, 0.00, 13000.00, 'PhilHealth contributions'),
-(@je23, @pagibig_payable, 0.00, 5000.00, 'Pag-IBIG contributions'),
-(@je23, @wht_payable, 0.00, 16000.00, 'Withholding tax'),
-(@je23, @cash_metro, 0.00, 417000.00, 'Net payroll disbursement'),
-(@je23, @salaries_payable, 0.00, 50000.00, 'Accrued benefits payable');
-
--- May 2025
-INSERT IGNORE INTO journal_entries (journal_no, journal_type_id, entry_date, description, fiscal_period_id, reference_no, total_debit, total_credit, status, posted_by, posted_at, created_by) 
-VALUES ('JE-2025-0024', @cr_type, '2025-05-12', 'Cash in - Sales collection MNO Holdings', @may_2025, 'CR-2025-005', 680000.00, 680000.00, 'posted', 1, '2025-05-12 11:00:00', 1);
-SET @je24 = LAST_INSERT_ID();
-INSERT IGNORE INTO journal_lines (journal_entry_id, account_id, debit, credit, memo) VALUES
-(@je24, @cash_bpi, 680000.00, 0.00, 'Cash received from MNO Holdings'),
-(@je24, @service_revenue, 0.00, 680000.00, 'Service revenue - May');
-
-INSERT IGNORE INTO journal_entries (journal_no, journal_type_id, entry_date, description, fiscal_period_id, reference_no, total_debit, total_credit, status, posted_by, posted_at, created_by) 
-VALUES ('JE-2025-0025', @cd_type, '2025-05-15', 'Cash out - Insurance premium quarterly payment', @may_2025, 'INS-2025-Q2', 45000.00, 45000.00, 'posted', 1, '2025-05-15 09:00:00', 1);
-SET @je25 = LAST_INSERT_ID();
-INSERT IGNORE INTO journal_lines (journal_entry_id, account_id, debit, credit, memo) VALUES
-(@je25, @insurance_expense, 45000.00, 0.00, 'Insurance premium Q2'),
-(@je25, @cash_bdo, 0.00, 45000.00, 'Cash paid');
-
-INSERT IGNORE INTO journal_entries (journal_no, journal_type_id, entry_date, description, fiscal_period_id, reference_no, total_debit, total_credit, status, posted_by, posted_at, created_by) 
-VALUES ('JE-2025-0026', @aj_type, '2025-05-31', 'Monthly depreciation - May 2025', @may_2025, 'DEP-MAY', 25000.00, 25000.00, 'posted', 1, '2025-05-31 17:00:00', 1);
-SET @je26 = LAST_INSERT_ID();
-INSERT IGNORE INTO journal_lines (journal_entry_id, account_id, debit, credit, memo) VALUES
-(@je26, @depreciation_expense, 25000.00, 0.00, 'Monthly depreciation'),
-(@je26, @accum_dep_equip, 0.00, 12500.00, 'Equipment depreciation'),
-(@je26, @accum_dep_build, 0.00, 12500.00, 'Building depreciation');
-
--- June 2025
-INSERT IGNORE INTO journal_entries (journal_no, journal_type_id, entry_date, description, fiscal_period_id, reference_no, total_debit, total_credit, status, posted_by, posted_at, created_by) 
-VALUES ('JE-2025-0027', @cr_type, '2025-06-10', 'Cash in - Client payment PQR Corp contract', @jun_2025, 'CR-2025-006', 890000.00, 890000.00, 'posted', 1, '2025-06-10 14:30:00', 1);
-SET @je27 = LAST_INSERT_ID();
-INSERT IGNORE INTO journal_lines (journal_entry_id, account_id, debit, credit, memo) VALUES
-(@je27, @cash_bdo, 890000.00, 0.00, 'Cash received from PQR Corp'),
-(@je27, @sales_revenue, 0.00, 650000.00, 'Product sales'),
-(@je27, @service_revenue, 0.00, 240000.00, 'Service revenue');
-
-INSERT IGNORE INTO journal_entries (journal_no, journal_type_id, entry_date, description, fiscal_period_id, reference_no, total_debit, total_credit, status, posted_by, posted_at, created_by) 
-VALUES ('JE-2025-0028', @cd_type, '2025-06-20', 'Cash out - Paid loan monthly installment LOAN-2024-001', @jun_2025, 'LOAN-PAY-JUN', 5025.00, 5025.00, 'posted', 1, '2025-06-20 10:00:00', 1);
-SET @je28 = LAST_INSERT_ID();
-INSERT IGNORE INTO journal_lines (journal_entry_id, account_id, debit, credit, memo) VALUES
-(@je28, @loan_current, 3935.00, 0.00, 'Loan principal repayment'),
-(@je28, @interest_expense, 1090.00, 0.00, 'Loan interest'),
-(@je28, @cash_bdo, 0.00, 5025.00, 'Cash paid for loan installment');
-
-INSERT IGNORE INTO journal_entries (journal_no, journal_type_id, entry_date, description, fiscal_period_id, reference_no, total_debit, total_credit, status, posted_by, posted_at, created_by) 
-VALUES ('JE-2025-0029', @pr_type, '2025-06-30', 'Payroll disbursement - June 2025', @jun_2025, 'PR-2506', 530000.00, 530000.00, 'posted', 1, '2025-06-30 18:00:00', 1);
-SET @je29 = LAST_INSERT_ID();
-INSERT IGNORE INTO journal_lines (journal_entry_id, account_id, debit, credit, memo) VALUES
-(@je29, @salaries_wages, 430000.00, 0.00, 'Employee salaries June'),
-(@je29, @employee_benefits, 50000.00, 0.00, 'Employee benefits June'),
-(@je29, @payroll_taxes, 50000.00, 0.00, 'Payroll taxes June'),
-(@je29, @sss_payable, 0.00, 19500.00, 'SSS contributions'),
-(@je29, @philhealth_payable, 0.00, 13500.00, 'PhilHealth contributions'),
-(@je29, @pagibig_payable, 0.00, 5000.00, 'Pag-IBIG contributions'),
-(@je29, @wht_payable, 0.00, 17000.00, 'Withholding tax'),
-(@je29, @cash_metro, 0.00, 425000.00, 'Net payroll disbursement'),
-(@je29, @salaries_payable, 0.00, 50000.00, 'Accrued benefits payable');
-
--- Q3 2025: July-September
-INSERT IGNORE INTO journal_entries (journal_no, journal_type_id, entry_date, description, fiscal_period_id, reference_no, total_debit, total_credit, status, posted_by, posted_at, created_by) 
-VALUES ('JE-2025-0030', @cr_type, '2025-07-08', 'Cash in - Client payment STU Enterprises', @jul_2025, 'CR-2025-007', 780000.00, 780000.00, 'posted', 1, '2025-07-08 11:00:00', 1);
-SET @je30 = LAST_INSERT_ID();
-INSERT IGNORE INTO journal_lines (journal_entry_id, account_id, debit, credit, memo) VALUES
-(@je30, @cash_bdo, 780000.00, 0.00, 'Cash received from STU Enterprises'),
-(@je30, @sales_revenue, 0.00, 780000.00, 'Sales revenue - July');
-
-INSERT IGNORE INTO journal_entries (journal_no, journal_type_id, entry_date, description, fiscal_period_id, reference_no, total_debit, total_credit, status, posted_by, posted_at, created_by) 
-VALUES ('JE-2025-0031', @cd_type, '2025-08-12', 'Cash out - IT infrastructure upgrade', @aug_2025, 'EQUIP-2025-003', 350000.00, 350000.00, 'posted', 1, '2025-08-12 14:00:00', 1);
-SET @je31 = LAST_INSERT_ID();
-INSERT IGNORE INTO journal_lines (journal_entry_id, account_id, debit, credit, memo) VALUES
-(@je31, @equipment, 350000.00, 0.00, 'IT equipment purchased'),
-(@je31, @cash_bdo, 0.00, 350000.00, 'Cash paid');
-
-INSERT IGNORE INTO journal_entries (journal_no, journal_type_id, entry_date, description, fiscal_period_id, reference_no, total_debit, total_credit, status, posted_by, posted_at, created_by) 
-VALUES ('JE-2025-0032', @cr_type, '2025-08-25', 'Cash in - Sales collection August batch', @aug_2025, 'CR-2025-008', 530000.00, 530000.00, 'posted', 1, '2025-08-25 14:00:00', 1);
-SET @je32 = LAST_INSERT_ID();
-INSERT IGNORE INTO journal_lines (journal_entry_id, account_id, debit, credit, memo) VALUES
-(@je32, @cash_bpi, 530000.00, 0.00, 'Cash received - sales batch'),
-(@je32, @service_revenue, 0.00, 530000.00, 'Service revenue - August');
-
-INSERT IGNORE INTO journal_entries (journal_no, journal_type_id, entry_date, description, fiscal_period_id, reference_no, total_debit, total_credit, status, posted_by, posted_at, created_by) 
-VALUES ('JE-2025-0033', @aj_type, '2025-09-30', 'Monthly depreciation - Q3 2025 catch-up', @sep_2025, 'DEP-Q3', 75000.00, 75000.00, 'posted', 1, '2025-09-30 17:00:00', 1);
-SET @je33 = LAST_INSERT_ID();
-INSERT IGNORE INTO journal_lines (journal_entry_id, account_id, debit, credit, memo) VALUES
-(@je33, @depreciation_expense, 75000.00, 0.00, 'Q3 depreciation'),
-(@je33, @accum_dep_equip, 0.00, 25000.00, 'Equipment depreciation'),
-(@je33, @accum_dep_build, 0.00, 25000.00, 'Building depreciation'),
-(@je33, @accum_dep_veh, 0.00, 12500.00, 'Vehicle depreciation'),
-(@je33, @accum_dep_mach, 0.00, 12500.00, 'Machinery depreciation');
-
--- Q4 2025: October-December
-INSERT IGNORE INTO journal_entries (journal_no, journal_type_id, entry_date, description, fiscal_period_id, reference_no, total_debit, total_credit, status, posted_by, posted_at, created_by) 
-VALUES ('JE-2025-0034', @cr_type, '2025-10-05', 'Cash in - Major contract BCD Global', @oct_2025, 'CR-2025-010', 1050000.00, 1050000.00, 'posted', 1, '2025-10-05 10:00:00', 1);
-SET @je34 = LAST_INSERT_ID();
-INSERT IGNORE INTO journal_lines (journal_entry_id, account_id, debit, credit, memo) VALUES
-(@je34, @cash_bdo, 1050000.00, 0.00, 'Cash received from BCD Global'),
-(@je34, @sales_revenue, 0.00, 800000.00, 'Product sales'),
-(@je34, @consulting_revenue, 0.00, 250000.00, 'Consulting services');
-
-INSERT IGNORE INTO journal_entries (journal_no, journal_type_id, entry_date, description, fiscal_period_id, reference_no, total_debit, total_credit, status, posted_by, posted_at, created_by) 
-VALUES ('JE-2025-0035', @cd_type, '2025-10-15', 'Cash out - Equipment purchase new workstations', @oct_2025, 'PO-2025-015', 250000.00, 250000.00, 'posted', 1, '2025-10-15 11:00:00', 1);
-SET @je35 = LAST_INSERT_ID();
-INSERT IGNORE INTO journal_lines (journal_entry_id, account_id, debit, credit, memo) VALUES
-(@je35, @equipment, 250000.00, 0.00, 'New computer workstations'),
-(@je35, @cash_bdo, 0.00, 250000.00, 'Cash paid');
-
-INSERT IGNORE INTO journal_entries (journal_no, journal_type_id, entry_date, description, fiscal_period_id, reference_no, total_debit, total_credit, status, posted_by, posted_at, created_by) 
-VALUES ('JE-2025-0036', @cr_type, '2025-11-08', 'Cash in - Client payment EFG Partners', @nov_2025, 'CR-2025-011', 980000.00, 980000.00, 'posted', 1, '2025-11-08 10:30:00', 1);
-SET @je36 = LAST_INSERT_ID();
-INSERT IGNORE INTO journal_lines (journal_entry_id, account_id, debit, credit, memo) VALUES
-(@je36, @cash_bdo, 980000.00, 0.00, 'Cash received from EFG Partners'),
-(@je36, @sales_revenue, 0.00, 980000.00, 'Sales revenue - November');
-
-INSERT IGNORE INTO journal_entries (journal_no, journal_type_id, entry_date, description, fiscal_period_id, reference_no, total_debit, total_credit, status, posted_by, posted_at, created_by) 
-VALUES ('JE-2025-0037', @pr_type, '2025-11-30', 'Payroll disbursement - November 2025', @nov_2025, 'PR-2511', 550000.00, 550000.00, 'posted', 1, '2025-11-30 18:00:00', 1);
-SET @je37 = LAST_INSERT_ID();
-INSERT IGNORE INTO journal_lines (journal_entry_id, account_id, debit, credit, memo) VALUES
-(@je37, @salaries_wages, 450000.00, 0.00, 'Employee salaries November'),
-(@je37, @employee_benefits, 50000.00, 0.00, 'Employee benefits November'),
-(@je37, @payroll_taxes, 50000.00, 0.00, 'Payroll taxes November'),
-(@je37, @sss_payable, 0.00, 20000.00, 'SSS contributions'),
-(@je37, @philhealth_payable, 0.00, 14000.00, 'PhilHealth contributions'),
-(@je37, @pagibig_payable, 0.00, 5000.00, 'Pag-IBIG contributions'),
-(@je37, @wht_payable, 0.00, 18000.00, 'Withholding tax'),
-(@je37, @cash_metro, 0.00, 443000.00, 'Net payroll disbursement'),
-(@je37, @salaries_payable, 0.00, 50000.00, 'Accrued benefits payable');
-
-INSERT IGNORE INTO journal_entries (journal_no, journal_type_id, entry_date, description, fiscal_period_id, reference_no, total_debit, total_credit, status, posted_by, posted_at, created_by) 
-VALUES ('JE-2025-0038', @cr_type, '2025-12-05', 'Cash in - Year-end client payment HIJ Corp', @dec_2025, 'CR-2025-012', 1200000.00, 1200000.00, 'posted', 1, '2025-12-05 10:00:00', 1);
-SET @je38 = LAST_INSERT_ID();
-INSERT IGNORE INTO journal_lines (journal_entry_id, account_id, debit, credit, memo) VALUES
-(@je38, @cash_bdo, 1200000.00, 0.00, 'Cash received from HIJ Corp'),
-(@je38, @sales_revenue, 0.00, 900000.00, 'Product sales Q4'),
-(@je38, @service_revenue, 0.00, 300000.00, 'Service revenue Q4');
-
-INSERT IGNORE INTO journal_entries (journal_no, journal_type_id, entry_date, description, fiscal_period_id, reference_no, total_debit, total_credit, status, posted_by, posted_at, created_by) 
-VALUES ('JE-2025-0039', @aj_type, '2025-12-31', 'Year-end depreciation and adjustments', @dec_2025, 'ADJ-YE-2025', 100000.00, 100000.00, 'posted', 1, '2025-12-31 17:00:00', 1);
-SET @je39 = LAST_INSERT_ID();
-INSERT IGNORE INTO journal_lines (journal_entry_id, account_id, debit, credit, memo) VALUES
-(@je39, @depreciation_expense, 100000.00, 0.00, 'Year-end depreciation catch-up'),
-(@je39, @accum_dep_equip, 0.00, 35000.00, 'Equipment depreciation'),
-(@je39, @accum_dep_build, 0.00, 30000.00, 'Building depreciation'),
-(@je39, @accum_dep_veh, 0.00, 20000.00, 'Vehicle depreciation'),
-(@je39, @accum_dep_mach, 0.00, 15000.00, 'Machinery depreciation');
-
--- Q1 2026: January-March
-INSERT IGNORE INTO journal_entries (journal_no, journal_type_id, entry_date, description, fiscal_period_id, reference_no, total_debit, total_credit, status, posted_by, posted_at, created_by) 
-VALUES ('JE-2026-0001', @cr_type, '2026-01-10', 'Cash in - Client payment KLM Corp new contract', @jan_2026, 'CR-2026-001', 880000.00, 880000.00, 'posted', 1, '2026-01-10 10:00:00', 1);
-SET @je40 = LAST_INSERT_ID();
-INSERT IGNORE INTO journal_lines (journal_entry_id, account_id, debit, credit, memo) VALUES
-(@je40, @cash_bdo, 880000.00, 0.00, 'Cash received from KLM Corp'),
-(@je40, @sales_revenue, 0.00, 880000.00, 'Sales revenue - January 2026');
-
-INSERT IGNORE INTO journal_entries (journal_no, journal_type_id, entry_date, description, fiscal_period_id, reference_no, total_debit, total_credit, status, posted_by, posted_at, created_by) 
-VALUES ('JE-2026-0002', @pr_type, '2026-01-31', 'Payroll disbursement - January 2026', @jan_2026, 'PR-2601', 560000.00, 560000.00, 'posted', 1, '2026-01-31 18:00:00', 1);
-SET @je41 = LAST_INSERT_ID();
-INSERT IGNORE INTO journal_lines (journal_entry_id, account_id, debit, credit, memo) VALUES
-(@je41, @salaries_wages, 460000.00, 0.00, 'Employee salaries January 2026'),
-(@je41, @employee_benefits, 50000.00, 0.00, 'Employee benefits'),
-(@je41, @payroll_taxes, 50000.00, 0.00, 'Payroll taxes'),
-(@je41, @sss_payable, 0.00, 20500.00, 'SSS contributions'),
-(@je41, @philhealth_payable, 0.00, 14500.00, 'PhilHealth contributions'),
-(@je41, @pagibig_payable, 0.00, 5000.00, 'Pag-IBIG contributions'),
-(@je41, @wht_payable, 0.00, 18000.00, 'Withholding tax'),
-(@je41, @cash_metro, 0.00, 452000.00, 'Net payroll disbursement'),
-(@je41, @salaries_payable, 0.00, 50000.00, 'Accrued benefits payable');
-
-INSERT IGNORE INTO journal_entries (journal_no, journal_type_id, entry_date, description, fiscal_period_id, reference_no, total_debit, total_credit, status, posted_by, posted_at, created_by) 
-VALUES ('JE-2026-0003', @cr_type, '2026-02-08', 'Cash in - Client payment NOP Solutions', @feb_2026, 'CR-2026-002', 760000.00, 760000.00, 'posted', 1, '2026-02-08 11:00:00', 1);
-SET @je42 = LAST_INSERT_ID();
-INSERT IGNORE INTO journal_lines (journal_entry_id, account_id, debit, credit, memo) VALUES
-(@je42, @cash_bpi, 760000.00, 0.00, 'Cash received from NOP Solutions'),
-(@je42, @service_revenue, 0.00, 760000.00, 'Service revenue - February 2026');
-
-INSERT IGNORE INTO journal_entries (journal_no, journal_type_id, entry_date, description, fiscal_period_id, reference_no, total_debit, total_credit, status, posted_by, posted_at, created_by) 
-VALUES ('JE-2026-0004', @cd_type, '2026-02-15', 'Cash out - Marketing campaign Q1 2026', @feb_2026, 'MKT-2026-Q1', 95000.00, 95000.00, 'posted', 1, '2026-02-15 15:00:00', 1);
-SET @je43 = LAST_INSERT_ID();
-INSERT IGNORE INTO journal_lines (journal_entry_id, account_id, debit, credit, memo) VALUES
-(@je43, @marketing_advertising, 95000.00, 0.00, 'Marketing campaign Q1 2026'),
-(@je43, @cash_bdo, 0.00, 95000.00, 'Cash paid');
-
-INSERT IGNORE INTO journal_entries (journal_no, journal_type_id, entry_date, description, fiscal_period_id, reference_no, total_debit, total_credit, status, posted_by, posted_at, created_by) 
-VALUES ('JE-2026-0005', @cr_type, '2026-03-05', 'Cash in - Major contract QRS Group', @mar_2026, 'CR-2026-003', 1100000.00, 1100000.00, 'posted', 1, '2026-03-05 10:00:00', 1);
-SET @je44 = LAST_INSERT_ID();
-INSERT IGNORE INTO journal_lines (journal_entry_id, account_id, debit, credit, memo) VALUES
-(@je44, @cash_bdo, 1100000.00, 0.00, 'Cash received from QRS Group'),
-(@je44, @sales_revenue, 0.00, 850000.00, 'Product sales Q1 2026'),
-(@je44, @consulting_revenue, 0.00, 250000.00, 'Consulting services Q1 2026');
-
-INSERT IGNORE INTO journal_entries (journal_no, journal_type_id, entry_date, description, fiscal_period_id, reference_no, total_debit, total_credit, status, posted_by, posted_at, created_by) 
-VALUES ('JE-2026-0006', @pr_type, '2026-03-31', 'Payroll disbursement - March 2026', @mar_2026, 'PR-2603', 570000.00, 570000.00, 'posted', 1, '2026-03-31 18:00:00', 1);
-SET @je45 = LAST_INSERT_ID();
-INSERT IGNORE INTO journal_lines (journal_entry_id, account_id, debit, credit, memo) VALUES
-(@je45, @salaries_wages, 470000.00, 0.00, 'Employee salaries March 2026'),
-(@je45, @employee_benefits, 50000.00, 0.00, 'Employee benefits'),
-(@je45, @payroll_taxes, 50000.00, 0.00, 'Payroll taxes'),
-(@je45, @sss_payable, 0.00, 21000.00, 'SSS contributions'),
-(@je45, @philhealth_payable, 0.00, 15000.00, 'PhilHealth contributions'),
-(@je45, @pagibig_payable, 0.00, 5000.00, 'Pag-IBIG contributions'),
-(@je45, @wht_payable, 0.00, 19000.00, 'Withholding tax'),
-(@je45, @cash_metro, 0.00, 460000.00, 'Net payroll disbursement'),
-(@je45, @salaries_payable, 0.00, 50000.00, 'Accrued benefits payable');
+-- January 2025 transactions
+('TXN-2025-0001', 1, 1, 50000.00, 'Initial deposit - savings account', '2025-01-02 09:15:00'),
+('TXN-2025-0002', 2, 1, 35000.00, 'Payroll deposit', '2025-01-03 10:30:00'),
+('TXN-2025-0003', 3, 1, 100000.00, 'Wire transfer deposit', '2025-01-05 14:20:00'),
+('TXN-2025-0004', 4, 1, 250000.00, 'Business revenue deposit', '2025-01-06 11:00:00'),
+('TXN-2025-0005', 1, 2, -15000.00, 'ATM withdrawal', '2025-01-07 16:45:00'),
+('TXN-2025-0006', 5, 1, 30000.00, 'Savings deposit', '2025-01-08 09:30:00'),
+('TXN-2025-0007', 6, 2, -8000.00, 'Counter withdrawal', '2025-01-10 13:15:00'),
+('TXN-2025-0008', 7, 3, -20000.00, 'Transfer to savings', '2025-01-12 10:00:00'),
+('TXN-2025-0009', 8, 1, 175000.00, 'Business client payment', '2025-01-13 15:30:00'),
+('TXN-2025-0010', 9, 4, -5000.00, 'Loan payment', '2025-01-15 09:00:00'),
+-- February 2025 transactions
+('TXN-2025-0011', 10, 1, 25000.00, 'Monthly deposit', '2025-02-01 10:00:00'),
+('TXN-2025-0012', 11, 1, 80000.00, 'Salary deposit', '2025-02-03 09:15:00'),
+('TXN-2025-0013', 12, 2, -12000.00, 'Bill payment withdrawal', '2025-02-05 14:00:00'),
+('TXN-2025-0014', 13, 1, 300000.00, 'Business deposit', '2025-02-06 11:30:00'),
+('TXN-2025-0015', 14, 3, -45000.00, 'Inter-account transfer', '2025-02-07 16:00:00'),
+('TXN-2025-0016', 15, 1, 150000.00, 'Investment return deposit', '2025-02-10 09:45:00'),
+('TXN-2025-0017', 16, 4, -25000.00, 'Supplier payment', '2025-02-12 13:00:00'),
+('TXN-2025-0018', 17, 1, 28000.00, 'Refund deposit', '2025-02-14 10:30:00'),
+('TXN-2025-0019', 18, 2, -10000.00, 'Cash withdrawal', '2025-02-15 15:00:00'),
+('TXN-2025-0020', 19, 5, -500.00, 'Monthly maintenance fee', '2025-02-28 23:59:00'),
+-- March 2025 transactions
+('TXN-2025-0021', 20, 1, 42000.00, 'Payroll deposit', '2025-03-01 09:00:00'),
+('TXN-2025-0022', 21, 1, 95000.00, 'Contract payment received', '2025-03-03 10:15:00'),
+('TXN-2025-0023', 22, 2, -18000.00, 'Rent payment withdrawal', '2025-03-05 14:30:00'),
+('TXN-2025-0024', 23, 3, -30000.00, 'Transfer to business account', '2025-03-07 11:00:00'),
+('TXN-2025-0025', 24, 1, 200000.00, 'Sales revenue deposit', '2025-03-10 09:30:00'),
+('TXN-2025-0026', 25, 4, -8500.00, 'Utility bill payment', '2025-03-12 13:45:00'),
+('TXN-2025-0027', 26, 1, 65000.00, 'Freelance income deposit', '2025-03-14 10:00:00'),
+('TXN-2025-0028', 27, 2, -22000.00, 'Cash withdrawal', '2025-03-16 16:15:00'),
+('TXN-2025-0029', 28, 1, 38000.00, 'Insurance claim deposit', '2025-03-18 09:45:00'),
+('TXN-2025-0030', 29, 5, -750.00, 'Service charge', '2025-03-31 23:59:00'),
+-- April 2025 transactions
+('TXN-2025-0031', 30, 1, 55000.00, 'Monthly savings deposit', '2025-04-01 09:00:00'),
+('TXN-2025-0032', 31, 1, 120000.00, 'Business income deposit', '2025-04-03 10:30:00'),
+('TXN-2025-0033', 32, 2, -35000.00, 'Tuition payment withdrawal', '2025-04-05 14:00:00'),
+('TXN-2025-0034', 33, 3, -15000.00, 'Transfer to checking', '2025-04-07 11:15:00'),
+('TXN-2025-0035', 34, 1, 180000.00, 'Client payment deposit', '2025-04-09 09:30:00'),
+('TXN-2025-0036', 35, 4, -12000.00, 'Credit card payment', '2025-04-11 13:00:00'),
+('TXN-2025-0037', 36, 1, 28000.00, 'Bonus deposit', '2025-04-14 10:45:00'),
+('TXN-2025-0038', 37, 2, -9500.00, 'ATM withdrawal', '2025-04-16 16:30:00'),
+('TXN-2025-0039', 38, 1, 320000.00, 'Large business deposit', '2025-04-18 09:00:00'),
+('TXN-2025-0040', 39, 5, -500.00, 'Monthly fee', '2025-04-30 23:59:00'),
+-- May 2025 transactions
+('TXN-2025-0041', 40, 1, 48000.00, 'Salary deposit', '2025-05-01 09:15:00'),
+('TXN-2025-0042', 41, 1, 75000.00, 'Rental income deposit', '2025-05-03 10:00:00'),
+('TXN-2025-0043', 42, 2, -20000.00, 'Medical expenses withdrawal', '2025-05-05 14:15:00'),
+('TXN-2025-0044', 43, 3, -50000.00, 'Transfer to business', '2025-05-07 11:30:00'),
+('TXN-2025-0045', 44, 1, 88000.00, 'Commission deposit', '2025-05-09 09:45:00'),
+('TXN-2025-0046', 45, 4, -15000.00, 'Insurance premium payment', '2025-05-12 13:30:00'),
+('TXN-2025-0047', 46, 1, 210000.00, 'Wholesale payment deposit', '2025-05-14 10:00:00'),
+('TXN-2025-0048', 47, 2, -7000.00, 'Personal withdrawal', '2025-05-16 16:00:00'),
+('TXN-2025-0049', 48, 1, 42000.00, 'Dividend deposit', '2025-05-18 09:30:00'),
+('TXN-2025-0050', 49, 5, -1000.00, 'Account maintenance fee', '2025-05-31 23:59:00'),
+-- June 2025 transactions
+('TXN-2025-0051', 50, 1, 62000.00, 'Payroll deposit', '2025-06-01 09:00:00'),
+('TXN-2025-0052', 51, 1, 135000.00, 'Contract milestone payment', '2025-06-03 10:30:00'),
+('TXN-2025-0053', 52, 2, -28000.00, 'Appliance purchase withdrawal', '2025-06-05 14:00:00'),
+('TXN-2025-0054', 53, 3, -40000.00, 'Savings transfer', '2025-06-07 11:00:00'),
+('TXN-2025-0055', 54, 1, 165000.00, 'Vendor payment received', '2025-06-09 09:15:00'),
+('TXN-2025-0056', 55, 4, -18000.00, 'Loan amortization', '2025-06-11 13:45:00'),
+('TXN-2025-0057', 56, 1, 33000.00, 'Side income deposit', '2025-06-14 10:15:00'),
+('TXN-2025-0058', 57, 2, -14000.00, 'Travel expenses withdrawal', '2025-06-16 16:30:00'),
+('TXN-2025-0059', 58, 1, 280000.00, 'Quarterly revenue deposit', '2025-06-18 09:00:00'),
+('TXN-2025-0060', 59, 5, -500.00, 'Service charge', '2025-06-30 23:59:00'),
+-- July 2025 transactions
+('TXN-2025-0061', 60, 1, 51000.00, 'Monthly deposit', '2025-07-01 09:00:00'),
+('TXN-2025-0062', 61, 1, 98000.00, 'Investment income', '2025-07-04 10:00:00'),
+('TXN-2025-0063', 62, 2, -16000.00, 'School fees withdrawal', '2025-07-06 14:30:00'),
+('TXN-2025-0064', 63, 3, -25000.00, 'Account transfer', '2025-07-08 11:15:00'),
+('TXN-2025-0065', 64, 1, 145000.00, 'Project payment deposit', '2025-07-10 09:45:00'),
+('TXN-2025-0066', 65, 4, -10000.00, 'Car loan payment', '2025-07-12 13:00:00'),
+('TXN-2025-0067', 66, 1, 72000.00, 'Consulting fee deposit', '2025-07-15 10:30:00'),
+('TXN-2025-0068', 67, 2, -11000.00, 'Cash withdrawal', '2025-07-17 16:00:00'),
+('TXN-2025-0069', 68, 1, 195000.00, 'Business revenue', '2025-07-19 09:00:00'),
+('TXN-2025-0070', 69, 5, -750.00, 'Monthly fee', '2025-07-31 23:59:00'),
+-- August 2025 transactions
+('TXN-2025-0071', 70, 1, 43000.00, 'Salary deposit', '2025-08-01 09:15:00'),
+('TXN-2025-0072', 71, 1, 110000.00, 'Client retainer deposit', '2025-08-04 10:15:00'),
+('TXN-2025-0073', 72, 2, -23000.00, 'Electronic purchase', '2025-08-06 14:00:00'),
+('TXN-2025-0074', 73, 3, -35000.00, 'Transfer to spouse account', '2025-08-08 11:30:00'),
+('TXN-2025-0075', 74, 1, 240000.00, 'Quarterly bonus deposit', '2025-08-10 09:00:00'),
+-- September 2025 transactions
+('TXN-2025-0076', 75, 4, -22000.00, 'Property tax payment', '2025-09-01 09:00:00'),
+('TXN-2025-0077', 1, 1, 68000.00, 'Recurring deposit', '2025-09-03 10:30:00'),
+('TXN-2025-0078', 3, 2, -30000.00, 'Large withdrawal', '2025-09-05 14:00:00'),
+('TXN-2025-0079', 5, 1, 52000.00, 'Freelance payment', '2025-09-08 11:00:00'),
+('TXN-2025-0080', 8, 1, 190000.00, 'Business contract payment', '2025-09-10 09:30:00'),
+-- October 2025 transactions
+('TXN-2025-0081', 10, 4, -6500.00, 'Water and electric bill', '2025-10-01 09:00:00'),
+('TXN-2025-0082', 13, 1, 350000.00, 'Major business deposit', '2025-10-03 10:00:00'),
+('TXN-2025-0083', 15, 2, -45000.00, 'Investment purchase', '2025-10-06 14:30:00'),
+('TXN-2025-0084', 18, 3, -60000.00, 'Large transfer', '2025-10-08 11:15:00'),
+('TXN-2025-0085', 22, 1, 82000.00, 'Sales deposit', '2025-10-10 09:45:00'),
+-- November 2025 transactions
+('TXN-2025-0086', 25, 4, -13500.00, 'Internet and phone bill', '2025-11-01 09:00:00'),
+('TXN-2025-0087', 28, 1, 47000.00, 'Pension deposit', '2025-11-04 10:30:00'),
+('TXN-2025-0088', 30, 2, -19000.00, 'Home repair withdrawal', '2025-11-06 14:00:00'),
+('TXN-2025-0089', 34, 1, 160000.00, 'Year-end bonus deposit', '2025-11-08 11:00:00'),
+('TXN-2025-0090', 38, 3, -75000.00, 'Investment transfer', '2025-11-10 09:30:00'),
+-- December 2025 transactions
+('TXN-2025-0091', 4, 1, 400000.00, '13th month pay deposit', '2025-12-01 09:00:00'),
+('TXN-2025-0092', 8, 1, 280000.00, 'Christmas bonus deposit', '2025-12-03 10:15:00'),
+('TXN-2025-0093', 12, 2, -35000.00, 'Holiday shopping withdrawal', '2025-12-05 14:00:00'),
+('TXN-2025-0094', 16, 4, -50000.00, 'Year-end supplier payment', '2025-12-08 11:30:00'),
+('TXN-2025-0095', 20, 1, 95000.00, 'Year-end commission', '2025-12-10 09:00:00'),
+-- January 2026 transactions
+('TXN-2026-0001', 1, 1, 55000.00, 'New year deposit', '2026-01-02 09:00:00'),
+('TXN-2026-0002', 4, 1, 320000.00, 'Q1 business deposit', '2026-01-05 10:30:00'),
+('TXN-2026-0003', 9, 2, -12000.00, 'January expenses withdrawal', '2026-01-07 14:00:00'),
+('TXN-2026-0004', 13, 1, 185000.00, 'Client payment received', '2026-01-10 11:00:00'),
+('TXN-2026-0005', 22, 3, -40000.00, 'Transfer to business account', '2026-01-12 09:30:00'),
+-- February 2026 transactions
+('TXN-2026-0006', 2, 1, 48000.00, 'February payroll deposit', '2026-02-01 09:15:00'),
+('TXN-2026-0007', 7, 4, -9000.00, 'Loan payment', '2026-02-03 10:00:00'),
+('TXN-2026-0008', 11, 1, 92000.00, 'Contract payment', '2026-02-06 14:30:00'),
+('TXN-2026-0009', 17, 2, -15000.00, 'Valentines withdrawal', '2026-02-14 11:00:00'),
+('TXN-2026-0010', 26, 1, 128000.00, 'Business revenue deposit', '2026-02-18 09:45:00'),
+-- March 2026 transactions
+('TXN-2026-0011', 3, 1, 78000.00, 'March deposit', '2026-03-01 09:00:00'),
+('TXN-2026-0012', 6, 2, -11000.00, 'Grocery withdrawal', '2026-03-03 10:30:00'),
+('TXN-2026-0013', 14, 1, 145000.00, 'Quarterly revenue', '2026-03-05 14:00:00'),
+('TXN-2026-0014', 19, 3, -55000.00, 'Transfer to investment', '2026-03-06 11:15:00'),
+('TXN-2026-0015', 24, 1, 230000.00, 'Large business deposit', '2026-03-07 09:30:00'),
+('TXN-2026-0016', 30, 4, -7500.00, 'Insurance payment', '2026-03-07 13:00:00'),
+('TXN-2026-0017', 35, 1, 58000.00, 'Freelance deposit', '2026-03-08 10:00:00'),
+('TXN-2026-0018', 40, 2, -20000.00, 'Cash withdrawal', '2026-03-08 16:00:00'),
+('TXN-2026-0019', 46, 1, 175000.00, 'Sales revenue deposit', '2026-03-08 09:00:00'),
+('TXN-2026-0020', 50, 5, -500.00, 'Monthly maintenance fee', '2026-03-08 23:59:00');
 
 -- ========================================
 -- 10. COMPREHENSIVE LOANS DATA
@@ -3483,117 +2619,6 @@ INSERT IGNORE INTO compliance_reports (report_type, period_start, period_end, ge
 ON DUPLICATE KEY UPDATE compliance_score = VALUES(compliance_score);
 
 -- ========================================
--- 16. ACCOUNT BALANCES - EXPLICIT POSITIVE VALUES
--- ========================================
-
--- First calculate from journal entries dynamically
-INSERT IGNORE INTO account_balances (account_id, fiscal_period_id, opening_balance, debit_movements, credit_movements, closing_balance, last_updated)
-SELECT 
-    a.id as account_id,
-    fp.id as fiscal_period_id,
-    0.00 as opening_balance,
-    COALESCE(SUM(jl.debit), 0.00) as debit_movements,
-    COALESCE(SUM(jl.credit), 0.00) as credit_movements,
-    COALESCE(SUM(jl.debit), 0.00) - COALESCE(SUM(jl.credit), 0.00) as closing_balance,
-    NOW() as last_updated
-FROM accounts a
-CROSS JOIN fiscal_periods fp
-LEFT JOIN journal_lines jl ON a.id = jl.account_id
-LEFT JOIN journal_entries je ON jl.journal_entry_id = je.id AND je.fiscal_period_id = fp.id AND je.status = 'posted'
-WHERE a.is_active = 1
-GROUP BY a.id, fp.id
-ON DUPLICATE KEY UPDATE 
-    debit_movements = VALUES(debit_movements),
-    credit_movements = VALUES(credit_movements),
-    closing_balance = VALUES(closing_balance),
-    last_updated = VALUES(last_updated);
-
--- Override with explicit positive balances for key accounts (FY2025-Q1 through FY2026-Q1)
--- This ensures financial reports show realistic positive numbers
--- Assets = Liabilities + Equity (Accounting Equation: ₱19.5M = ₱5.2M + ₱14.3M)
-
--- FY2025-Q1 Balances (January - March 2025)
-SET @fy2025q1 = (SELECT id FROM fiscal_periods WHERE period_name = 'FY2025-Q1' LIMIT 1);
-
-UPDATE account_balances SET opening_balance = 10000000.00, debit_movements = 2500000.00, credit_movements = 1800000.00, closing_balance = 10700000.00 WHERE account_id = (SELECT id FROM accounts WHERE code = '1001' LIMIT 1) AND fiscal_period_id = @fy2025q1;
-UPDATE account_balances SET opening_balance = 0.00, debit_movements = 1850000.00, credit_movements = 950000.00, closing_balance = 900000.00 WHERE account_id = (SELECT id FROM accounts WHERE code = '1002' LIMIT 1) AND fiscal_period_id = @fy2025q1;
-UPDATE account_balances SET opening_balance = 0.00, debit_movements = 750000.00, credit_movements = 250000.00, closing_balance = 500000.00 WHERE account_id = (SELECT id FROM accounts WHERE code = '1003' LIMIT 1) AND fiscal_period_id = @fy2025q1;
-UPDATE account_balances SET opening_balance = 0.00, debit_movements = 1200000.00, credit_movements = 100000.00, closing_balance = 1100000.00 WHERE account_id = (SELECT id FROM accounts WHERE code = '1004' LIMIT 1) AND fiscal_period_id = @fy2025q1;
-UPDATE account_balances SET opening_balance = 0.00, debit_movements = 350000.00, credit_movements = 50000.00, closing_balance = 300000.00 WHERE account_id = (SELECT id FROM accounts WHERE code = '1005' LIMIT 1) AND fiscal_period_id = @fy2025q1;
-UPDATE account_balances SET opening_balance = 0.00, debit_movements = 5000000.00, credit_movements = 250000.00, closing_balance = 4750000.00 WHERE account_id = (SELECT id FROM accounts WHERE code = '1006' LIMIT 1) AND fiscal_period_id = @fy2025q1;
-UPDATE account_balances SET opening_balance = 0.00, debit_movements = 1500000.00, credit_movements = 250000.00, closing_balance = 1250000.00 WHERE account_id = (SELECT id FROM accounts WHERE code = '1007' LIMIT 1) AND fiscal_period_id = @fy2025q1;
-
--- Liabilities (credit normal - positive closing = credit balance)
-UPDATE account_balances SET opening_balance = 0.00, debit_movements = 400000.00, credit_movements = 1200000.00, closing_balance = 800000.00 WHERE account_id = (SELECT id FROM accounts WHERE code = '2001' LIMIT 1) AND fiscal_period_id = @fy2025q1;
-UPDATE account_balances SET opening_balance = 0.00, debit_movements = 100000.00, credit_movements = 650000.00, closing_balance = 550000.00 WHERE account_id = (SELECT id FROM accounts WHERE code = '2002' LIMIT 1) AND fiscal_period_id = @fy2025q1;
-UPDATE account_balances SET opening_balance = 0.00, debit_movements = 50000.00, credit_movements = 600000.00, closing_balance = 550000.00 WHERE account_id = (SELECT id FROM accounts WHERE code = '2003' LIMIT 1) AND fiscal_period_id = @fy2025q1;
-UPDATE account_balances SET opening_balance = 0.00, debit_movements = 200000.00, credit_movements = 1300000.00, closing_balance = 1100000.00 WHERE account_id = (SELECT id FROM accounts WHERE code = '2004' LIMIT 1) AND fiscal_period_id = @fy2025q1;
-UPDATE account_balances SET opening_balance = 0.00, debit_movements = 100000.00, credit_movements = 550000.00, closing_balance = 450000.00 WHERE account_id = (SELECT id FROM accounts WHERE code = '2005' LIMIT 1) AND fiscal_period_id = @fy2025q1;
-UPDATE account_balances SET opening_balance = 0.00, debit_movements = 50000.00, credit_movements = 350000.00, closing_balance = 300000.00 WHERE account_id = (SELECT id FROM accounts WHERE code = '2006' LIMIT 1) AND fiscal_period_id = @fy2025q1;
-UPDATE account_balances SET opening_balance = 0.00, debit_movements = 100000.00, credit_movements = 550000.00, closing_balance = 450000.00 WHERE account_id = (SELECT id FROM accounts WHERE code = '2007' LIMIT 1) AND fiscal_period_id = @fy2025q1;
-UPDATE account_balances SET opening_balance = 0.00, debit_movements = 150000.00, credit_movements = 1150000.00, closing_balance = 1000000.00 WHERE account_id = (SELECT id FROM accounts WHERE code = '2008' LIMIT 1) AND fiscal_period_id = @fy2025q1;
-
--- Equity (credit normal)
-UPDATE account_balances SET opening_balance = 0.00, debit_movements = 0.00, credit_movements = 10000000.00, closing_balance = 10000000.00 WHERE account_id = (SELECT id FROM accounts WHERE code = '3001' LIMIT 1) AND fiscal_period_id = @fy2025q1;
-UPDATE account_balances SET opening_balance = 0.00, debit_movements = 0.00, credit_movements = 2500000.00, closing_balance = 2500000.00 WHERE account_id = (SELECT id FROM accounts WHERE code = '3002' LIMIT 1) AND fiscal_period_id = @fy2025q1;
-UPDATE account_balances SET opening_balance = 0.00, debit_movements = 0.00, credit_movements = 1800000.00, closing_balance = 1800000.00 WHERE account_id = (SELECT id FROM accounts WHERE code = '3003' LIMIT 1) AND fiscal_period_id = @fy2025q1;
-
--- Revenue (credit normal)
-UPDATE account_balances SET opening_balance = 0.00, debit_movements = 0.00, credit_movements = 3500000.00, closing_balance = 3500000.00 WHERE account_id = (SELECT id FROM accounts WHERE code = '4001' LIMIT 1) AND fiscal_period_id = @fy2025q1;
-UPDATE account_balances SET opening_balance = 0.00, debit_movements = 0.00, credit_movements = 1200000.00, closing_balance = 1200000.00 WHERE account_id = (SELECT id FROM accounts WHERE code = '4002' LIMIT 1) AND fiscal_period_id = @fy2025q1;
-UPDATE account_balances SET opening_balance = 0.00, debit_movements = 0.00, credit_movements = 450000.00, closing_balance = 450000.00 WHERE account_id = (SELECT id FROM accounts WHERE code = '4003' LIMIT 1) AND fiscal_period_id = @fy2025q1;
-UPDATE account_balances SET opening_balance = 0.00, debit_movements = 0.00, credit_movements = 350000.00, closing_balance = 350000.00 WHERE account_id = (SELECT id FROM accounts WHERE code = '4004' LIMIT 1) AND fiscal_period_id = @fy2025q1;
-
--- Expenses (debit normal)
-UPDATE account_balances SET opening_balance = 0.00, debit_movements = 1850000.00, credit_movements = 0.00, closing_balance = 1850000.00 WHERE account_id = (SELECT id FROM accounts WHERE code = '5001' LIMIT 1) AND fiscal_period_id = @fy2025q1;
-UPDATE account_balances SET opening_balance = 0.00, debit_movements = 450000.00, credit_movements = 0.00, closing_balance = 450000.00 WHERE account_id = (SELECT id FROM accounts WHERE code = '5002' LIMIT 1) AND fiscal_period_id = @fy2025q1;
-UPDATE account_balances SET opening_balance = 0.00, debit_movements = 280000.00, credit_movements = 0.00, closing_balance = 280000.00 WHERE account_id = (SELECT id FROM accounts WHERE code = '5003' LIMIT 1) AND fiscal_period_id = @fy2025q1;
-UPDATE account_balances SET opening_balance = 0.00, debit_movements = 350000.00, credit_movements = 0.00, closing_balance = 350000.00 WHERE account_id = (SELECT id FROM accounts WHERE code = '5004' LIMIT 1) AND fiscal_period_id = @fy2025q1;
-UPDATE account_balances SET opening_balance = 0.00, debit_movements = 180000.00, credit_movements = 0.00, closing_balance = 180000.00 WHERE account_id = (SELECT id FROM accounts WHERE code = '5005' LIMIT 1) AND fiscal_period_id = @fy2025q1;
-UPDATE account_balances SET opening_balance = 0.00, debit_movements = 250000.00, credit_movements = 0.00, closing_balance = 250000.00 WHERE account_id = (SELECT id FROM accounts WHERE code = '5006' LIMIT 1) AND fiscal_period_id = @fy2025q1;
-UPDATE account_balances SET opening_balance = 0.00, debit_movements = 340000.00, credit_movements = 0.00, closing_balance = 340000.00 WHERE account_id = (SELECT id FROM accounts WHERE code = '5007' LIMIT 1) AND fiscal_period_id = @fy2025q1;
-
--- FY2026-Q1 Balances (January - March 2026)
-SET @fy2026q1 = (SELECT id FROM fiscal_periods WHERE period_name = 'FY2026-Q1' LIMIT 1);
-
--- Assets
-UPDATE account_balances SET opening_balance = 10700000.00, debit_movements = 3200000.00, credit_movements = 2100000.00, closing_balance = 11800000.00 WHERE account_id = (SELECT id FROM accounts WHERE code = '1001' LIMIT 1) AND fiscal_period_id = @fy2026q1;
-UPDATE account_balances SET opening_balance = 900000.00, debit_movements = 2100000.00, credit_movements = 1200000.00, closing_balance = 1800000.00 WHERE account_id = (SELECT id FROM accounts WHERE code = '1002' LIMIT 1) AND fiscal_period_id = @fy2026q1;
-UPDATE account_balances SET opening_balance = 500000.00, debit_movements = 850000.00, credit_movements = 400000.00, closing_balance = 950000.00 WHERE account_id = (SELECT id FROM accounts WHERE code = '1003' LIMIT 1) AND fiscal_period_id = @fy2026q1;
-UPDATE account_balances SET opening_balance = 1100000.00, debit_movements = 600000.00, credit_movements = 200000.00, closing_balance = 1500000.00 WHERE account_id = (SELECT id FROM accounts WHERE code = '1004' LIMIT 1) AND fiscal_period_id = @fy2026q1;
-UPDATE account_balances SET opening_balance = 300000.00, debit_movements = 200000.00, credit_movements = 50000.00, closing_balance = 450000.00 WHERE account_id = (SELECT id FROM accounts WHERE code = '1005' LIMIT 1) AND fiscal_period_id = @fy2026q1;
-UPDATE account_balances SET opening_balance = 4750000.00, debit_movements = 500000.00, credit_movements = 500000.00, closing_balance = 4750000.00 WHERE account_id = (SELECT id FROM accounts WHERE code = '1006' LIMIT 1) AND fiscal_period_id = @fy2026q1;
-UPDATE account_balances SET opening_balance = 1250000.00, debit_movements = 300000.00, credit_movements = 300000.00, closing_balance = 1250000.00 WHERE account_id = (SELECT id FROM accounts WHERE code = '1007' LIMIT 1) AND fiscal_period_id = @fy2026q1;
-
--- Liabilities
-UPDATE account_balances SET opening_balance = 800000.00, debit_movements = 500000.00, credit_movements = 950000.00, closing_balance = 1250000.00 WHERE account_id = (SELECT id FROM accounts WHERE code = '2001' LIMIT 1) AND fiscal_period_id = @fy2026q1;
-UPDATE account_balances SET opening_balance = 550000.00, debit_movements = 200000.00, credit_movements = 450000.00, closing_balance = 800000.00 WHERE account_id = (SELECT id FROM accounts WHERE code = '2002' LIMIT 1) AND fiscal_period_id = @fy2026q1;
-UPDATE account_balances SET opening_balance = 550000.00, debit_movements = 100000.00, credit_movements = 350000.00, closing_balance = 800000.00 WHERE account_id = (SELECT id FROM accounts WHERE code = '2003' LIMIT 1) AND fiscal_period_id = @fy2026q1;
-UPDATE account_balances SET opening_balance = 1100000.00, debit_movements = 300000.00, credit_movements = 700000.00, closing_balance = 1500000.00 WHERE account_id = (SELECT id FROM accounts WHERE code = '2004' LIMIT 1) AND fiscal_period_id = @fy2026q1;
-UPDATE account_balances SET opening_balance = 450000.00, debit_movements = 150000.00, credit_movements = 400000.00, closing_balance = 700000.00 WHERE account_id = (SELECT id FROM accounts WHERE code = '2005' LIMIT 1) AND fiscal_period_id = @fy2026q1;
-UPDATE account_balances SET opening_balance = 300000.00, debit_movements = 100000.00, credit_movements = 250000.00, closing_balance = 450000.00 WHERE account_id = (SELECT id FROM accounts WHERE code = '2006' LIMIT 1) AND fiscal_period_id = @fy2026q1;
-
--- Equity
-UPDATE account_balances SET opening_balance = 10000000.00, debit_movements = 0.00, credit_movements = 0.00, closing_balance = 10000000.00 WHERE account_id = (SELECT id FROM accounts WHERE code = '3001' LIMIT 1) AND fiscal_period_id = @fy2026q1;
-UPDATE account_balances SET opening_balance = 2500000.00, debit_movements = 0.00, credit_movements = 500000.00, closing_balance = 3000000.00 WHERE account_id = (SELECT id FROM accounts WHERE code = '3002' LIMIT 1) AND fiscal_period_id = @fy2026q1;
-UPDATE account_balances SET opening_balance = 1800000.00, debit_movements = 0.00, credit_movements = 700000.00, closing_balance = 2500000.00 WHERE account_id = (SELECT id FROM accounts WHERE code = '3003' LIMIT 1) AND fiscal_period_id = @fy2026q1;
-
--- Revenue
-UPDATE account_balances SET opening_balance = 3500000.00, debit_movements = 0.00, credit_movements = 4200000.00, closing_balance = 7700000.00 WHERE account_id = (SELECT id FROM accounts WHERE code = '4001' LIMIT 1) AND fiscal_period_id = @fy2026q1;
-UPDATE account_balances SET opening_balance = 1200000.00, debit_movements = 0.00, credit_movements = 1500000.00, closing_balance = 2700000.00 WHERE account_id = (SELECT id FROM accounts WHERE code = '4002' LIMIT 1) AND fiscal_period_id = @fy2026q1;
-UPDATE account_balances SET opening_balance = 450000.00, debit_movements = 0.00, credit_movements = 550000.00, closing_balance = 1000000.00 WHERE account_id = (SELECT id FROM accounts WHERE code = '4003' LIMIT 1) AND fiscal_period_id = @fy2026q1;
-UPDATE account_balances SET opening_balance = 350000.00, debit_movements = 0.00, credit_movements = 450000.00, closing_balance = 800000.00 WHERE account_id = (SELECT id FROM accounts WHERE code = '4004' LIMIT 1) AND fiscal_period_id = @fy2026q1;
-
--- Expenses
-UPDATE account_balances SET opening_balance = 1850000.00, debit_movements = 2400000.00, credit_movements = 0.00, closing_balance = 4250000.00 WHERE account_id = (SELECT id FROM accounts WHERE code = '5001' LIMIT 1) AND fiscal_period_id = @fy2026q1;
-UPDATE account_balances SET opening_balance = 450000.00, debit_movements = 600000.00, credit_movements = 0.00, closing_balance = 1050000.00 WHERE account_id = (SELECT id FROM accounts WHERE code = '5002' LIMIT 1) AND fiscal_period_id = @fy2026q1;
-UPDATE account_balances SET opening_balance = 280000.00, debit_movements = 350000.00, credit_movements = 0.00, closing_balance = 630000.00 WHERE account_id = (SELECT id FROM accounts WHERE code = '5003' LIMIT 1) AND fiscal_period_id = @fy2026q1;
-UPDATE account_balances SET opening_balance = 350000.00, debit_movements = 450000.00, credit_movements = 0.00, closing_balance = 800000.00 WHERE account_id = (SELECT id FROM accounts WHERE code = '5004' LIMIT 1) AND fiscal_period_id = @fy2026q1;
-UPDATE account_balances SET opening_balance = 180000.00, debit_movements = 250000.00, credit_movements = 0.00, closing_balance = 430000.00 WHERE account_id = (SELECT id FROM accounts WHERE code = '5005' LIMIT 1) AND fiscal_period_id = @fy2026q1;
-UPDATE account_balances SET opening_balance = 250000.00, debit_movements = 320000.00, credit_movements = 0.00, closing_balance = 570000.00 WHERE account_id = (SELECT id FROM accounts WHERE code = '5006' LIMIT 1) AND fiscal_period_id = @fy2026q1;
-UPDATE account_balances SET opening_balance = 340000.00, debit_movements = 430000.00, credit_movements = 0.00, closing_balance = 770000.00 WHERE account_id = (SELECT id FROM accounts WHERE code = '5007' LIMIT 1) AND fiscal_period_id = @fy2026q1;
-
--- ========================================
 -- 17. VERIFICATION & SUMMARY QUERIES
 -- ========================================
 
@@ -3605,10 +2630,8 @@ SELECT 'DATA SUMMARY' AS section, 'Record Counts' AS info;
 SELECT 'Users:' AS table_name, COUNT(*) AS record_count FROM users
 UNION ALL
 SELECT 'Roles:', COUNT(*) FROM roles
-UNION ALL
-SELECT 'Account Types:', COUNT(*) FROM account_types
-UNION ALL
-SELECT 'Accounts:', COUNT(*) FROM accounts
+
+
 UNION ALL
 SELECT 'Journal Types:', COUNT(*) FROM journal_types
 UNION ALL
@@ -3619,14 +2642,11 @@ UNION ALL
 SELECT 'Bank Accounts:', COUNT(*) FROM bank_accounts
 UNION ALL
 SELECT 'Salary Components:', COUNT(*) FROM salary_components
-UNION ALL
-SELECT 'Expense Categories:', COUNT(*) FROM expense_categories
+
 UNION ALL
 SELECT 'Loan Types:', COUNT(*) FROM loan_types
-UNION ALL
-SELECT 'Journal Entries:', COUNT(*) FROM journal_entries
-UNION ALL
-SELECT 'Journal Lines:', COUNT(*) FROM journal_lines
+
+
 UNION ALL
 SELECT 'Loans:', COUNT(*) FROM loans
 UNION ALL
@@ -3647,8 +2667,7 @@ UNION ALL
 SELECT 'Audit Logs:', COUNT(*) FROM audit_logs
 UNION ALL
 SELECT 'Compliance Reports:', COUNT(*) FROM compliance_reports
-UNION ALL
-SELECT 'Account Balances:', COUNT(*) FROM account_balances
+
 UNION ALL
 SELECT 'Loan Applications:', COUNT(*) FROM loan_applications
 UNION ALL
@@ -3658,111 +2677,11 @@ SELECT 'Bank Customers:', COUNT(*) FROM bank_customers
 UNION ALL
 SELECT 'Transaction Types:', COUNT(*) FROM transaction_types;
 
--- Verify account balances are calculated correctly
-SELECT 
-    'ACCOUNT BALANCE VERIFICATION' AS check_type,
-    COUNT(*) as total_accounts,
-    SUM(CASE WHEN closing_balance > 0 THEN 1 ELSE 0 END) as debit_balance_accounts,
-    SUM(CASE WHEN closing_balance < 0 THEN 1 ELSE 0 END) as credit_balance_accounts,
-    SUM(CASE WHEN closing_balance = 0 THEN 1 ELSE 0 END) as zero_balance_accounts
-FROM account_balances;
 
--- Trial balance check
-SELECT 
-    'TRIAL BALANCE CHECK' AS check_type,
-    SUM(debit_movements) as total_debits,
-    SUM(credit_movements) as total_credits,
-    SUM(debit_movements) - SUM(credit_movements) as difference,
-    CASE 
-        WHEN ABS(SUM(debit_movements) - SUM(credit_movements)) < 0.01 THEN 'BALANCED'
-        ELSE 'UNBALANCED'
-    END as status
-FROM account_balances;
 
--- Check GAAP compliance (should show balanced books)
-SELECT 
-    'GAAP Compliance Check' as check_type,
-    SUM(jl.debit) as total_debits,
-    SUM(jl.credit) as total_credits,
-    CASE 
-        WHEN ABS(SUM(jl.debit) - SUM(jl.credit)) < 0.01 THEN 'BALANCED'
-        ELSE 'UNBALANCED'
-    END as status
-FROM journal_lines jl
-INNER JOIN journal_entries je ON jl.journal_entry_id = je.id
-WHERE je.status = 'posted';
 
--- Check SOX compliance (segregation of duties)
-SELECT 
-    'SOX Compliance Check' as check_type,
-    COUNT(*) as total_entries,
-    SUM(CASE WHEN created_by != posted_by THEN 1 ELSE 0 END) as segregated_entries,
-    ROUND((SUM(CASE WHEN created_by != posted_by THEN 1 ELSE 0 END) / COUNT(*)) * 100, 2) as segregation_percentage
-FROM journal_entries
-WHERE status = 'posted';
 
--- Check BIR compliance (documentation)
-SELECT 
-    'BIR Compliance Check' as check_type,
-    COUNT(*) as total_entries,
-    SUM(CASE WHEN reference_no IS NOT NULL AND reference_no != '' THEN 1 ELSE 0 END) as documented_entries,
-    ROUND((SUM(CASE WHEN reference_no IS NOT NULL AND reference_no != '' THEN 1 ELSE 0 END) / COUNT(*)) * 100, 2) as documentation_percentage
-FROM journal_entries
-WHERE status = 'posted';
 
--- Financial Summary
-SELECT 
-    'FINANCIAL SUMMARY' AS section,
-    'Total Assets' AS category,
-    SUM(CASE WHEN at.category = 'asset' THEN ab.closing_balance ELSE 0 END) AS amount
-FROM account_balances ab
-JOIN accounts a ON ab.account_id = a.id
-JOIN account_types at ON a.type_id = at.id
-WHERE ab.fiscal_period_id = (SELECT id FROM fiscal_periods WHERE period_name = 'FY2025-Q1' LIMIT 1)
-
-UNION ALL
-
-SELECT 
-    'FINANCIAL SUMMARY',
-    'Total Liabilities',
-    SUM(CASE WHEN at.category = 'liability' THEN ab.closing_balance ELSE 0 END)
-FROM account_balances ab
-JOIN accounts a ON ab.account_id = a.id
-JOIN account_types at ON a.type_id = at.id
-WHERE ab.fiscal_period_id = (SELECT id FROM fiscal_periods WHERE period_name = 'FY2025-Q1' LIMIT 1)
-
-UNION ALL
-
-SELECT 
-    'FINANCIAL SUMMARY',
-    'Total Equity',
-    SUM(CASE WHEN at.category = 'equity' THEN ab.closing_balance ELSE 0 END)
-FROM account_balances ab
-JOIN accounts a ON ab.account_id = a.id
-JOIN account_types at ON a.type_id = at.id
-WHERE ab.fiscal_period_id = (SELECT id FROM fiscal_periods WHERE period_name = 'FY2025-Q1' LIMIT 1)
-
-UNION ALL
-
-SELECT 
-    'FINANCIAL SUMMARY',
-    'Total Revenue',
-    SUM(CASE WHEN at.category = 'revenue' THEN ab.closing_balance ELSE 0 END)
-FROM account_balances ab
-JOIN accounts a ON ab.account_id = a.id
-JOIN account_types at ON a.type_id = at.id
-WHERE ab.fiscal_period_id = (SELECT id FROM fiscal_periods WHERE period_name = 'FY2025-Q1' LIMIT 1)
-
-UNION ALL
-
-SELECT 
-    'FINANCIAL SUMMARY',
-    'Total Expenses',
-    SUM(CASE WHEN at.category = 'expense' THEN ab.closing_balance ELSE 0 END)
-FROM account_balances ab
-JOIN accounts a ON ab.account_id = a.id
-JOIN account_types at ON a.type_id = at.id
-WHERE ab.fiscal_period_id = (SELECT id FROM fiscal_periods WHERE period_name = 'FY2025-Q1' LIMIT 1);
 
 -- Loan Portfolio Summary
 SELECT 
@@ -3788,17 +2707,8 @@ GROUP BY department, employment_type
 ORDER BY department, employment_type;
 
 -- Recent Activity Summary
-SELECT 
+SELECT
     'RECENT ACTIVITY SUMMARY' AS section,
-    'Journal Entries (Last 30 days)' AS activity,
-    COUNT(*) AS count
-FROM journal_entries
-WHERE created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
-
-UNION ALL
-
-SELECT 
-    'RECENT ACTIVITY SUMMARY',
     'Expense Claims (Last 30 days)',
     COUNT(*)
 FROM expense_claims

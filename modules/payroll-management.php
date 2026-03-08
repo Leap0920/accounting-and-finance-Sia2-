@@ -1034,6 +1034,7 @@ if ($attendance_payroll_adjustments && isset($attendance_payroll_adjustments['at
                                     <select class="form-select form-select-lg" id="payroll-month-select"
                                         onchange="changePayrollPeriod()">
                                         <?php
+                                        // Gather months from all data sources: attendance, leaves, employee_attendance, AND payroll periods/runs
                                         $months_query = "SELECT DISTINCT DATE_FORMAT(a.date, '%Y-%m') as month
                                                         FROM attendance a
                                                         UNION
@@ -1047,28 +1048,54 @@ if ($attendance_payroll_adjustments && isset($attendance_payroll_adjustments['at
                                                         UNION
                                                         SELECT DISTINCT DATE_FORMAT(ea.attendance_date, '%Y-%m') as month
                                                         FROM employee_attendance ea
+                                                        UNION
+                                                        SELECT DISTINCT DATE_FORMAT(pp.period_start, '%Y-%m') as month
+                                                        FROM payroll_periods pp
+                                                        UNION
+                                                        SELECT DISTINCT DATE_FORMAT(pp.period_end, '%Y-%m') as month
+                                                        FROM payroll_periods pp
                                                         ORDER BY month DESC";
 
                                         $months_result = $conn->query($months_query);
                                         $available_months = [];
                                         if ($months_result && $months_result->num_rows > 0) {
                                             while ($month_row = $months_result->fetch_assoc()) {
-                                                $available_months[] = $month_row['month'];
+                                                if (!empty($month_row['month'])) {
+                                                    $available_months[] = $month_row['month'];
+                                                }
                                             }
                                         }
+
+                                        // Always include the past 12 months + current month for easy navigation
                                         $current_month = date('Y-m');
-                                        if (!in_array($current_month, $available_months)) {
-                                            array_unshift($available_months, $current_month);
+                                        for ($i = 0; $i < 12; $i++) {
+                                            $fallback_month = date('Y-m', strtotime("-$i months"));
+                                            if (!in_array($fallback_month, $available_months)) {
+                                                $available_months[] = $fallback_month;
+                                            }
                                         }
+
                                         $available_months = array_unique($available_months);
                                         rsort($available_months);
                                         if (empty($available_months)) {
                                             $available_months = [$current_month];
                                         }
+
+                                        // Group months by year for easier navigation
+                                        $months_by_year = [];
                                         foreach ($available_months as $month_date) {
-                                            $month_label = date('F Y', strtotime($month_date . '-01'));
-                                            $selected = ($payroll_month == $month_date || (empty($payroll_month) && $month_date == $current_month)) ? 'selected' : '';
-                                            echo "<option value=\"" . htmlspecialchars($month_date) . "\" $selected>" . htmlspecialchars($month_label) . "</option>";
+                                            $yr = substr($month_date, 0, 4);
+                                            $months_by_year[$yr][] = $month_date;
+                                        }
+
+                                        foreach ($months_by_year as $yr => $months_in_year) {
+                                            echo "<optgroup label=\"$yr\">";
+                                            foreach ($months_in_year as $month_date) {
+                                                $month_label = date('F Y', strtotime($month_date . '-01'));
+                                                $selected = ($payroll_month == $month_date || (empty($payroll_month) && $month_date == $current_month)) ? 'selected' : '';
+                                                echo "<option value=\"" . htmlspecialchars($month_date) . "\" $selected>" . htmlspecialchars($month_label) . "</option>";
+                                            }
+                                            echo "</optgroup>";
                                         }
                                         ?>
                                     </select>

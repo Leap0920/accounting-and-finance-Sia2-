@@ -70,22 +70,19 @@ function finalizePayroll($conn)
         $date_to = $month . '-' . $last_day;
     }
 
-    // Check for duplicate payroll run for the same period.
-    // Exclude runs whose linked journal entry has been voided so those periods can be re-processed.
-    $dup_check = $conn->prepare("SELECT pr.id, pr.status FROM payroll_runs pr
-                                  INNER JOIN payroll_periods pp ON pr.payroll_period_id = pp.id
-                                  LEFT JOIN journal_entries je ON je.id = pr.journal_entry_id
-                                  WHERE pp.period_start = ? AND pp.period_end = ?
-                                  AND pr.status IN ('finalized','completed')
-                                  AND (je.id IS NULL OR je.status != 'voided')
-                                  LIMIT 1");
-    $dup_check->bind_param("ss", $date_from, $date_to);
-    $dup_check->execute();
-    $dup_res = $dup_check->get_result();
-    if ($dup_res->fetch_assoc()) {
-        echo json_encode(['success' => false, 'error' => 'Payroll has already been finalized for this period']);
-        return;
-    }
+    // Prepare per-employee duplicate check (replaces blanket period-level block)
+    // This allows processing employees in batches — only skip individuals already processed
+    $emp_dup_stmt = $conn->prepare(
+        "SELECT ps.id FROM payslips ps
+         INNER JOIN payroll_runs pr ON ps.payroll_run_id = pr.id
+         INNER JOIN payroll_periods pp ON pr.payroll_period_id = pp.id
+         LEFT JOIN journal_entries je ON je.id = pr.journal_entry_id
+         WHERE ps.employee_external_no = ?
+         AND pp.period_start = ? AND pp.period_end = ?
+         AND pr.status IN ('finalized','completed')
+         AND (je.id IS NULL OR je.status != 'voided')
+         LIMIT 1"
+    );
 
     // Check if specific employees were selected
     $selected_employees_json = $_POST['selected_employees'] ?? '';
@@ -137,11 +134,20 @@ function finalizePayroll($conn)
     }
 
     // 2. Calculate payroll for each employee
+    $skipped_employees = [];
     while ($emp = $employees_result->fetch_assoc()) {
         $ext_no = $emp['external_employee_no'];
 
         // Skip employees not in the selected list (if a selection was provided)
         if (!empty($selected_employees) && !in_array($ext_no, $selected_employees)) {
+            continue;
+        }
+
+        // Skip employees who already have an active (non-voided) payslip for this period
+        $emp_dup_stmt->bind_param("sss", $ext_no, $date_from, $date_to);
+        $emp_dup_stmt->execute();
+        if ($emp_dup_stmt->get_result()->fetch_assoc()) {
+            $skipped_employees[] = trim($emp['first_name'] . ' ' . $emp['last_name']);
             continue;
         }
 
@@ -187,7 +193,17 @@ function finalizePayroll($conn)
     }
 
     if (empty($payroll_results)) {
-        echo json_encode(['success' => false, 'error' => 'No payroll data found for the selected period']);
+        if (!empty($skipped_employees)) {
+            $count = count($skipped_employees);
+            if ($count <= 3) {
+                $names = implode(', ', $skipped_employees);
+            } else {
+                $names = implode(', ', array_slice($skipped_employees, 0, 3)) . ' and ' . ($count - 3) . ' more';
+            }
+            echo json_encode(['success' => false, 'error' => "All $count selected employees have already been processed for this period. Skipped: $names"]);
+        } else {
+            echo json_encode(['success' => false, 'error' => 'No payroll data found for the selected period']);
+        }
         return;
     }
 
@@ -466,6 +482,19 @@ function previewPayroll($conn)
         return;
     }
 
+    // Prepare per-employee status check for the preview
+    $status_stmt = $conn->prepare(
+        "SELECT ps.id, pr.status as run_status, je.status as je_status
+         FROM payslips ps
+         INNER JOIN payroll_runs pr ON ps.payroll_run_id = pr.id
+         INNER JOIN payroll_periods pp ON pr.payroll_period_id = pp.id
+         LEFT JOIN journal_entries je ON je.id = pr.journal_entry_id
+         WHERE ps.employee_external_no = ?
+         AND pp.period_start = ? AND pp.period_end = ?
+         AND pr.status IN ('finalized','completed')
+         ORDER BY ps.id DESC LIMIT 1"
+    );
+
     // Pre-fetch other deductions
     $other_deductions_total_per_emp = 0;
     $deductions_res = $conn->query("SELECT code, value FROM salary_components WHERE type = 'deduction' AND is_active = 1");
@@ -503,6 +532,19 @@ function previewPayroll($conn)
             $net = ($adj['net_salary_before_tax'] ?? $gross) - $sss['employee'] - $philhealth['employee'] - $pagibig['employee'] - $wht - $other_deductions_total_per_emp;
             $emp_deductions = $gross - $net;
 
+            // Determine per-employee processing status for this period
+            $emp_status = 'pending';
+            $status_stmt->bind_param("sss", $ext_no, $date_from, $date_to);
+            $status_stmt->execute();
+            $status_row = $status_stmt->get_result()->fetch_assoc();
+            if ($status_row) {
+                if (isset($status_row['je_status']) && $status_row['je_status'] === 'voided') {
+                    $emp_status = 'voided';
+                } else {
+                    $emp_status = 'processed';
+                }
+            }
+
             $employees[] = [
                 'employee_no'  => $ext_no,
                 'name'         => $name,
@@ -515,7 +557,8 @@ function previewPayroll($conn)
                 'wht'          => round($wht, 2),
                 'other'        => round($other_deductions_total_per_emp, 2),
                 'deductions'   => round($emp_deductions, 2),
-                'net'          => round($net, 2)
+                'net'          => round($net, 2),
+                'status'       => $emp_status
             ];
 
             $total_gross += $gross;

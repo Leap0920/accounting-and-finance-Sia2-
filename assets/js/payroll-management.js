@@ -998,14 +998,27 @@ function renderEmployeeSelectionTable(employees) {
         row.dataset.gross = emp.gross;
         row.dataset.deductions = emp.deductions;
         row.dataset.net = emp.net;
+        row.dataset.status = emp.status || 'pending';
+
+        const isProcessed = emp.status === 'processed';
+        const isVoided = emp.status === 'voided';
+
+        // Status badge HTML
+        let statusBadge = '';
+        if (isProcessed) {
+            statusBadge = '<span class="badge bg-success ms-2" style="font-size:0.7rem;"><i class="fas fa-check-circle me-1"></i>Processed</span>';
+            row.style.opacity = '0.6';
+        } else if (isVoided) {
+            statusBadge = '<span class="badge bg-warning text-dark ms-2" style="font-size:0.7rem;"><i class="fas fa-undo me-1"></i>Voided</span>';
+        }
 
         row.innerHTML = `
             <td class="text-center">
-                <input type="checkbox" class="form-check-input emp-checkbox" value="${emp.employee_no}" checked onchange="updateSelectionSummary()">
+                <input type="checkbox" class="form-check-input emp-checkbox" value="${emp.employee_no}" ${isProcessed ? 'disabled' : 'checked'} onchange="updateSelectionSummary()">
             </td>
             <td>
                 <div class="emp-name-cell">
-                    <span class="emp-name">${escapeHtml(emp.name)}</span>
+                    <span class="emp-name">${escapeHtml(emp.name)}${statusBadge}</span>
                     <small class="text-muted">${escapeHtml(emp.employee_no)}</small>
                 </div>
             </td>
@@ -1020,8 +1033,9 @@ function renderEmployeeSelectionTable(employees) {
 
     // Set total count
     document.getElementById('empTotalCount').textContent = employees.length;
-    document.getElementById('empCheckAll').checked = true;
-    document.getElementById('selectAllLabel').textContent = 'Deselect All';
+    const pendingCount = employees.filter(e => e.status !== 'processed').length;
+    document.getElementById('empCheckAll').checked = pendingCount > 0;
+    document.getElementById('selectAllLabel').textContent = pendingCount > 0 ? 'Deselect All' : 'Select All';
 
     updateSelectionSummary();
 
@@ -1042,7 +1056,7 @@ function escapeHtml(str) {
  * Update the selection summary (count + totals) based on checked checkboxes
  */
 function updateSelectionSummary() {
-    const checkboxes = document.querySelectorAll('#empModalTableBody .emp-checkbox');
+    const checkboxes = document.querySelectorAll('#empModalTableBody .emp-checkbox:not(:disabled)');
     let selectedCount = 0;
     let totalGross = 0;
     let totalNet = 0;
@@ -1060,10 +1074,10 @@ function updateSelectionSummary() {
     document.getElementById('empTotalGross').textContent = '₱' + totalGross.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
     document.getElementById('empTotalNet').textContent = '₱' + totalNet.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
 
-    // Update header checkbox state
-    const allCheckboxes = document.querySelectorAll('#empModalTableBody .emp-checkbox');
-    const allChecked = Array.from(allCheckboxes).every(cb => cb.checked);
-    const noneChecked = Array.from(allCheckboxes).every(cb => !cb.checked);
+    // Update header checkbox state (only considering enabled checkboxes)
+    const enabledCheckboxes = document.querySelectorAll('#empModalTableBody .emp-checkbox:not(:disabled)');
+    const allChecked = enabledCheckboxes.length > 0 && Array.from(enabledCheckboxes).every(cb => cb.checked);
+    const noneChecked = Array.from(enabledCheckboxes).every(cb => !cb.checked);
     const headerCb = document.getElementById('empCheckAll');
     headerCb.checked = allChecked;
     headerCb.indeterminate = !allChecked && !noneChecked;
@@ -1084,7 +1098,7 @@ function toggleSelectAllEmployees(checked) {
         headerCb.checked = checked;
     }
 
-    const checkboxes = document.querySelectorAll('#empModalTableBody .emp-checkbox');
+    const checkboxes = document.querySelectorAll('#empModalTableBody .emp-checkbox:not(:disabled)');
     checkboxes.forEach(function (cb) {
         // Only toggle visible rows
         const row = cb.closest('tr');

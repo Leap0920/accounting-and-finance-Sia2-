@@ -10,3 +10,11 @@
         <a href="../core/support-center.php">Support Center</a>
     </div>
 </div>
+
+<!-- Scroll Up Button -->
+<button id="scrollToTop" class="scroll-to-top" title="Scroll to top" aria-label="Scroll to top">
+    <i class="fas fa-chevron-up"></i>
+</button>
+
+<!-- Scroll Up Script -->
+<script src="../assets/js/scroll-up.js"></script>

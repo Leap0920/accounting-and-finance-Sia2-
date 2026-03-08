@@ -287,23 +287,16 @@ function getAccounts()
     try {
         $search = $_GET['search'] ?? '';
         $accountType = $_GET['account_type'] ?? '';
+        $sort = $_GET['sort'] ?? 'newest';
         $accounts = [];
 
-        // Query customer accounts with customer names and balances
-        $sql = "SELECT 
-            ca.account_number,
-            CONCAT(bc.first_name, ' ', bc.last_name) as account_name,
-            ca.account_type,
-            ca.balance as available_balance
-        FROM customer_accounts ca
-        JOIN bank_customers bc ON ca.customer_id = bc.customer_id
-        WHERE ca.status = 'active'";
-
+        // Base query - building the WHERE clause dynamically
+        $whereConditions = ["ca.status = 'active'"];
         $params = [];
         $types = '';
 
         if ($search) {
-            $sql .= " AND (CONCAT(bc.first_name, ' ', bc.last_name) LIKE ? OR ca.account_number LIKE ?)";
+            $whereConditions[] = "(CONCAT(bc.first_name, ' ', bc.last_name) LIKE ? OR ca.account_number LIKE ?)";
             $searchParam = "%$search%";
             $params[] = $searchParam;
             $params[] = $searchParam;
@@ -311,21 +304,58 @@ function getAccounts()
         }
 
         if ($accountType) {
-            $sql .= " AND ca.account_type = ?";
+            $whereConditions[] = "ca.account_type = ?";
             $params[] = strtolower($accountType);
             $types .= 's';
         }
 
-        $sql .= " ORDER BY ca.account_number";
+        $whereClause = implode(" AND ", $whereConditions);
 
-        // Get total count for pagination
-        $countSql = "SELECT COUNT(*) as total FROM ($sql) as count_query";
+        // Sorting
+        $orderBy = "ca.created_at DESC";
+        switch ($sort) {
+            case 'oldest':
+                $orderBy = "ca.created_at ASC";
+                break;
+            case 'name_asc':
+                $orderBy = "account_name ASC";
+                break;
+            case 'name_desc':
+                $orderBy = "account_name DESC";
+                break;
+            case 'acct_asc':
+                $orderBy = "ca.account_number ASC";
+                break;
+            case 'acct_desc':
+                $orderBy = "ca.account_number DESC";
+                break;
+        }
+
+        // 1. Get total count for pagination (using the filtered WHERE clause)
+        $countSql = "SELECT COUNT(*) as total 
+                     FROM customer_accounts ca
+                     JOIN bank_customers bc ON ca.customer_id = bc.customer_id
+                     WHERE $whereClause";
+        
         $countStmt = $conn->prepare($countSql);
         if (!empty($params)) {
             $countStmt->bind_param($types, ...$params);
         }
         $countStmt->execute();
-        $totalCount = $countStmt->get_result()->fetch_assoc()['total'] ?? 0;
+        $totalResult = $countStmt->get_result();
+        $totalCount = ($totalResult && $row = $totalResult->fetch_assoc()) ? $row['total'] : 0;
+
+        // 2. Query actual data with sorting and pagination
+        $sql = "SELECT 
+                    ca.account_number,
+                    CONCAT(bc.first_name, ' ', bc.last_name) as account_name,
+                    ca.account_type,
+                    ca.balance as available_balance,
+                    ca.created_at
+                FROM customer_accounts ca
+                JOIN bank_customers bc ON ca.customer_id = bc.customer_id
+                WHERE $whereClause
+                ORDER BY $orderBy";
 
         // Add pagination
         $limit = (int) ($_GET['limit'] ?? 25);
@@ -333,15 +363,13 @@ function getAccounts()
         $sql .= " LIMIT ? OFFSET ?";
 
         $stmt = $conn->prepare($sql);
-        if (!empty($params)) {
-            $types .= 'ii';
-            $params[] = $limit;
-            $params[] = $offset;
-            $stmt->bind_param($types, ...$params);
-        } else {
-            $stmt->bind_param('ii', $limit, $offset);
-        }
-
+        
+        $finalParams = $params;
+        $finalTypes = $types . 'ii';
+        $finalParams[] = $limit;
+        $finalParams[] = $offset;
+        
+        $stmt->bind_param($finalTypes, ...$finalParams);
         $stmt->execute();
         $result = $stmt->get_result();
 
@@ -351,7 +379,8 @@ function getAccounts()
                 'account_name' => $row['account_name'],
                 'account_type' => ucfirst($row['account_type']),
                 'available_balance' => (float) $row['available_balance'],
-                'source' => 'bank'
+                'source' => 'bank',
+                'created_at' => $row['created_at']
             ];
         }
 
@@ -359,7 +388,8 @@ function getAccounts()
             'success' => true,
             'data' => $accounts,
             'count' => count($accounts),
-            'total' => (int) $totalCount
+            'total' => (int) $totalCount,
+            'debug_sort' => $sort // Optional: for debugging
         ];
 
     } catch (Exception $e) {

@@ -28,14 +28,33 @@ function initializeGeneralLedger() {
     // Add smooth animations
     addSmoothAnimations();
 
-    // Add Enter key support for account search
+    // Add Enter key and automatic search support for account search
     const accountSearchInput = document.getElementById('account-search');
+    const accountTypeFilter = document.getElementById('account-type-filter');
+    
     if (accountSearchInput) {
+        // Enter key support
         accountSearchInput.addEventListener('keypress', function (e) {
             if (e.key === 'Enter') {
                 e.preventDefault();
                 applyAccountFilter();
             }
+        });
+
+        // Automatic synchronization (debounced search)
+        let searchTimeout;
+        accountSearchInput.addEventListener('input', function() {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                applyAccountFilter(true);
+            }, 500);
+        });
+    }
+
+    if (accountTypeFilter) {
+        // Automatic synchronization for type filter
+        accountTypeFilter.addEventListener('change', function() {
+            applyAccountFilter(true);
         });
     }
 
@@ -849,7 +868,7 @@ function viewDrillDown() {
     }
 }
 
-function applyAccountFilter() {
+function applyAccountFilter(isAutomatic = false) {
     const searchInput = document.getElementById('account-search');
     const typeFilter = document.getElementById('account-type-filter');
     const sortSelect = document.getElementById('account-sort');
@@ -865,6 +884,9 @@ function applyAccountFilter() {
 
     console.log('Applying account filter:', { search: searchTerm, type: accountType, sort: sort });
 
+    // Important: Reset to first page when filtering
+    paginationState.accounts.currentPage = 1;
+
     let filterMsg = '';
     if (searchTerm && accountType) {
         filterMsg = `Filtering by "${searchTerm}" and "${accountType}"...`;
@@ -874,7 +896,8 @@ function applyAccountFilter() {
         filterMsg = `Filtering by account type: "${accountType}"...`;
     }
 
-    if (filterMsg) {
+    // Only show notification if not processing an automatic sync (to avoid UI spam)
+    if (filterMsg && !isAutomatic) {
         showNotification(filterMsg, 'info');
     }
 

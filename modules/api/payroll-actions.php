@@ -170,6 +170,14 @@ function finalizePayroll($conn)
 
             $net = ($calc['salary_adjustments']['net_salary_before_tax'] ?? $gross) - $sss['employee'] - $philhealth['employee'] - $pagibig['employee'] - $wht - $other_deductions_total_per_emp;
 
+            // Persist mandatory deduction details inside payslip JSON for GL breakdown
+            $calc['mandatory_deductions'] = [
+                'sss_employee'       => $sss['employee'],
+                'philhealth_employee'=> $philhealth['employee'],
+                'pagibig_employee'   => $pagibig['employee'],
+                'withholding_tax'    => $wht,
+            ];
+
             $payroll_results[] = [
                 'employee_no' => $ext_no,
                 'gross' => $gross,

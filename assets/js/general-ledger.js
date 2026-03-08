@@ -1705,6 +1705,69 @@ function displayJournalEntryDetails(entry) {
         
         <div class="table-responsive">
             <h6 class="mb-3"><i class="fas fa-list me-2"></i>Account Lines</h6>
+    `;
+
+    // For Payroll (PR) entries with totals, show PH-based payroll summary
+    if (entry.type_code === 'PR' && entry.payroll_totals) {
+        const pt = entry.payroll_totals;
+        // Total Earnings = Take Home + all government deductions (so debit always equals credits)
+        const totalEarnings = pt.total_net + pt.total_wht + pt.total_sss + pt.total_philhealth + pt.total_pagibig;
+        html += `
+            <div class="alert alert-info py-2 px-3 mb-3">
+                <i class="fas fa-users me-2"></i>Total computation of <strong>${pt.employee_count}</strong> employee${pt.employee_count !== 1 ? 's' : ''} processed
+            </div>
+            <table class="table table-sm table-bordered table-hover">
+                <thead class="table-light">
+                    <tr>
+                        <th><i class="fas fa-book me-1"></i>Account</th>
+                        <th class="text-end"><i class="fas fa-arrow-up me-1"></i>Debit</th>
+                        <th class="text-end"><i class="fas fa-arrow-down me-1"></i>Credit</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Total Earnings</strong> <small class="text-muted">(Salaries &amp; Wages Expense)</small></td>
+                        <td class="text-end text-success fw-semibold">\u20b1${formatCurrency(totalEarnings)}</td>
+                        <td class="text-end">-</td>
+                    </tr>
+                    <tr>
+                        <td>Withholding Tax Payable</td>
+                        <td class="text-end">-</td>
+                        <td class="text-end text-danger">${pt.total_wht > 0 ? '\u20b1' + formatCurrency(pt.total_wht) : '-'}</td>
+                    </tr>
+                    <tr>
+                        <td>SSS Contributions Payable</td>
+                        <td class="text-end">-</td>
+                        <td class="text-end text-danger">${pt.total_sss > 0 ? '\u20b1' + formatCurrency(pt.total_sss) : '-'}</td>
+                    </tr>
+                    <tr>
+                        <td>PhilHealth Contributions Payable</td>
+                        <td class="text-end">-</td>
+                        <td class="text-end text-danger">${pt.total_philhealth > 0 ? '\u20b1' + formatCurrency(pt.total_philhealth) : '-'}</td>
+                    </tr>
+                    <tr>
+                        <td>Pag-IBIG Contributions Payable</td>
+                        <td class="text-end">-</td>
+                        <td class="text-end text-danger">${pt.total_pagibig > 0 ? '\u20b1' + formatCurrency(pt.total_pagibig) : '-'}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Take Home</strong> <small class="text-muted">(Net Salaries Payable)</small></td>
+                        <td class="text-end">-</td>
+                        <td class="text-end text-success fw-semibold">\u20b1${formatCurrency(pt.total_net)}</td>
+                    </tr>
+                </tbody>
+                <tfoot class="table-light">
+                    <tr>
+                        <th><strong>Total</strong></th>
+                        <th class="text-end text-success"><strong>\u20b1${formatCurrency(totalEarnings)}</strong></th>
+                        <th class="text-end text-success"><strong>\u20b1${formatCurrency(totalEarnings)}</strong></th>
+                    </tr>
+                </tfoot>
+            </table>
+        `;
+    } else {
+        // Non-PR entries: standard account lines
+        html += `
             <table class="table table-sm table-bordered table-hover">
                 <thead class="table-light">
                     <tr>
@@ -1716,45 +1779,51 @@ function displayJournalEntryDetails(entry) {
                     </tr>
                 </thead>
                 <tbody>
-    `;
+        `;
 
-    if (entry.lines && entry.lines.length > 0) {
-        entry.lines.forEach((line, index) => {
-            html += `
-                <tr>
-                    <td><strong>${escapeHtml(line.account_code || 'N/A')}</strong></td>
-                    <td>${escapeHtml(line.account_name || 'N/A')}</td>
-                    <td class="text-end text-success">${line.debit > 0 ? '₱' + formatCurrency(line.debit) : '-'}</td>
-                    <td class="text-end text-danger">${line.credit > 0 ? '₱' + formatCurrency(line.credit) : '-'}</td>
-                    <td>${escapeHtml(line.memo || '-')}</td>
-                </tr>
-            `;
-        });
-    } else {
-        html += '<tr><td colspan="5" class="text-center text-muted py-3">No account lines found</td></tr>';
-    }
+        if (entry.lines && entry.lines.length > 0) {
+            entry.lines.forEach((line, index) => {
+                html += `
+                    <tr>
+                        <td><strong>${escapeHtml(line.account_code || 'N/A')}</strong></td>
+                        <td>${escapeHtml(line.account_name || 'N/A')}</td>
+                        <td class="text-end text-success">${line.debit > 0 ? '\u20b1' + formatCurrency(line.debit) : '-'}</td>
+                        <td class="text-end text-danger">${line.credit > 0 ? '\u20b1' + formatCurrency(line.credit) : '-'}</td>
+                        <td>${escapeHtml(line.memo || '-')}</td>
+                    </tr>
+                `;
+            });
+        } else {
+            html += '<tr><td colspan="5" class="text-center text-muted py-3">No account lines found</td></tr>';
+        }
 
-    html += `
+        html += `
                 </tbody>
                 <tfoot class="table-light">
                     <tr>
                         <th colspan="2"><strong>Total</strong></th>
-                        <th class="text-end text-success"><strong>₱${formatCurrency(entry.total_debit || 0)}</strong></th>
-                        <th class="text-end text-danger"><strong>₱${formatCurrency(entry.total_credit || 0)}</strong></th>
+                        <th class="text-end text-success"><strong>\u20b1${formatCurrency(entry.total_debit || 0)}</strong></th>
+                        <th class="text-end text-danger"><strong>\u20b1${formatCurrency(entry.total_credit || 0)}</strong></th>
                         <th></th>
                     </tr>
                 </tfoot>
             </table>
-        </div>
-    `;
+        `;
+    }
 
-    // Payroll (PR) JE: append per-employee breakdown for transparency
+    html += `</div>`;
+
+    // Payroll (PR) JE: append per-employee breakdown with individual deduction columns
     if (entry.type_code === 'PR' && entry.payslip_breakdown && entry.payslip_breakdown.length > 0) {
-        let bkTotal = { gross: 0, ded: 0, net: 0 };
+        let bkTotal = { earnings: 0, wht: 0, sss: 0, ph: 0, pi: 0, net: 0 };
         let bkRows = '';
         entry.payslip_breakdown.forEach((emp, idx) => {
-            bkTotal.gross += emp.gross_pay;
-            bkTotal.ded   += emp.total_deductions;
+            const empEarnings = emp.net_pay + (emp.withholding_tax || 0) + (emp.sss || 0) + (emp.philhealth || 0) + (emp.pagibig || 0);
+            bkTotal.earnings += empEarnings;
+            bkTotal.wht   += emp.withholding_tax || 0;
+            bkTotal.sss   += emp.sss || 0;
+            bkTotal.ph    += emp.philhealth || 0;
+            bkTotal.pi    += emp.pagibig || 0;
             bkTotal.net   += emp.net_pay;
             bkRows += `
                 <tr>
@@ -1763,9 +1832,11 @@ function displayJournalEntryDetails(entry) {
                     <td><strong>${escapeHtml(emp.name)}</strong></td>
                     <td><small class="text-muted">${escapeHtml(emp.department || '\u2014')}</small></td>
                     <td><small class="text-muted">${escapeHtml(emp.position || '\u2014')}</small></td>
-                    <td class="text-end">\u20b1${formatCurrency(emp.base_salary)}</td>
-                    <td class="text-end fw-semibold">\u20b1${formatCurrency(emp.gross_pay)}</td>
-                    <td class="text-end text-danger">\u20b1${formatCurrency(emp.total_deductions)}</td>
+                    <td class="text-end fw-semibold">\u20b1${formatCurrency(empEarnings)}</td>
+                    <td class="text-end">${emp.withholding_tax > 0 ? '\u20b1' + formatCurrency(emp.withholding_tax) : '-'}</td>
+                    <td class="text-end">\u20b1${formatCurrency(emp.sss || 0)}</td>
+                    <td class="text-end">\u20b1${formatCurrency(emp.philhealth || 0)}</td>
+                    <td class="text-end">\u20b1${formatCurrency(emp.pagibig || 0)}</td>
                     <td class="text-end fw-bold text-success">\u20b1${formatCurrency(emp.net_pay)}</td>
                 </tr>`;
         });
@@ -1782,18 +1853,23 @@ function displayJournalEntryDetails(entry) {
                         <th>Name</th>
                         <th>Department</th>
                         <th>Position</th>
-                        <th class="text-end">Base Salary</th>
-                        <th class="text-end">Gross Pay</th>
-                        <th class="text-end">Deductions</th>
-                        <th class="text-end">Net Pay</th>
+                        <th class="text-end">Total Earnings</th>
+                        <th class="text-end">WHT</th>
+                        <th class="text-end">SSS</th>
+                        <th class="text-end">PhilHealth</th>
+                        <th class="text-end">Pag-IBIG</th>
+                        <th class="text-end">Take Home</th>
                     </tr>
                 </thead>
                 <tbody>${bkRows}</tbody>
                 <tfoot class="table-light">
                     <tr class="fw-bold">
-                        <td colspan="6">Total &mdash; ${entry.payslip_breakdown.length} employee${entry.payslip_breakdown.length !== 1 ? 's' : ''}</td>
-                        <td class="text-end">\u20b1${formatCurrency(bkTotal.gross)}</td>
-                        <td class="text-end text-danger">\u20b1${formatCurrency(bkTotal.ded)}</td>
+                        <td colspan="5">Total &mdash; ${entry.payslip_breakdown.length} employee${entry.payslip_breakdown.length !== 1 ? 's' : ''}</td>
+                        <td class="text-end">\u20b1${formatCurrency(bkTotal.earnings)}</td>
+                        <td class="text-end">${bkTotal.wht > 0 ? '\u20b1' + formatCurrency(bkTotal.wht) : '-'}</td>
+                        <td class="text-end">\u20b1${formatCurrency(bkTotal.sss)}</td>
+                        <td class="text-end">\u20b1${formatCurrency(bkTotal.ph)}</td>
+                        <td class="text-end">\u20b1${formatCurrency(bkTotal.pi)}</td>
                         <td class="text-end text-success">\u20b1${formatCurrency(bkTotal.net)}</td>
                     </tr>
                 </tfoot>

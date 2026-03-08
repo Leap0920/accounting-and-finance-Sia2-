@@ -6,6 +6,7 @@ ini_set('log_errors', 1);
 
 require_once '../../config/database.php';
 require_once '../../includes/session.php';
+require_once __DIR__ . '/payroll-calculation.php';
 
 // Require login to access this API
 requireLogin();
@@ -753,6 +754,7 @@ function getJournalEntryDetails()
 
         // For Payroll (PR) entries, attach per-employee breakdown from payslips
         $payslip_breakdown = [];
+        $payroll_totals = null;
         if (($entry['type_code'] ?? '') === 'PR') {
             $ps_sql = "SELECT
                 ps.employee_external_no,
@@ -762,7 +764,8 @@ function getJournalEntryDetails()
                 COALESCE(c.salary, er.base_monthly_salary, 0) as base_salary,
                 ps.gross_pay,
                 ps.total_deductions,
-                ps.net_pay
+                ps.net_pay,
+                ps.payslip_json
             FROM payslips ps
             INNER JOIN payroll_runs prun ON ps.payroll_run_id = prun.id
             LEFT JOIN employee_refs er ON er.external_employee_no = ps.employee_external_no
@@ -777,20 +780,83 @@ function getJournalEntryDetails()
             $ps_stmt->bind_param('i', $journalId);
             $ps_stmt->execute();
             $ps_result = $ps_stmt->get_result();
+
+            $agg = ['gross' => 0, 'wht' => 0, 'sss' => 0, 'philhealth' => 0, 'pagibig' => 0, 'net' => 0];
+
             while ($ps_row = $ps_result->fetch_assoc()) {
+                $gross    = (float) $ps_row['gross_pay'];
+                $net      = (float) $ps_row['net_pay'];
+                $base_sal = (float) $ps_row['base_salary'];
+
+                // Extract per-employee deductions from payslip_json
+                $emp_sss = 0; $emp_ph = 0; $emp_pi = 0; $emp_wht = 0;
+                $json_data = !empty($ps_row['payslip_json']) ? json_decode($ps_row['payslip_json'], true) : null;
+
+                if ($json_data && isset($json_data['mandatory_deductions'])) {
+                    // New format: deductions stored directly
+                    $md = $json_data['mandatory_deductions'];
+                    $emp_sss = (float) ($md['sss_employee'] ?? 0);
+                    $emp_ph  = (float) ($md['philhealth_employee'] ?? 0);
+                    $emp_pi  = (float) ($md['pagibig_employee'] ?? 0);
+                    $emp_wht = (float) ($md['withholding_tax'] ?? 0);
+                } else {
+                    // Fallback: recalculate from prorated_base_salary for older payslips
+                    $prorated = 0;
+                    if ($json_data && isset($json_data['salary_adjustments']['prorated_base_salary'])) {
+                        $prorated = (float) $json_data['salary_adjustments']['prorated_base_salary'];
+                    }
+                    if ($prorated <= 0) {
+                        $prorated = $base_sal;
+                    }
+                    if ($prorated > 0) {
+                        $sss_calc = calculateSSSContribution($prorated);
+                        $ph_calc  = calculatePhilHealthContribution($prorated);
+                        $pi_calc  = calculatePagIBIGContribution($prorated);
+                        $emp_sss  = $sss_calc['employee'];
+                        $emp_ph   = $ph_calc['employee'];
+                        $emp_pi   = $pi_calc['employee'];
+                        $taxable  = $gross - $emp_sss - $emp_ph - $emp_pi;
+                        $emp_wht  = calculateBIRWithholdingTax($taxable);
+                    }
+                }
+
                 $payslip_breakdown[] = [
                     'employee_no'      => $ps_row['employee_external_no'],
                     'name'             => trim(preg_replace('/\s+/', ' ', $ps_row['employee_name'])),
                     'department'       => $ps_row['department'],
                     'position'         => $ps_row['position'],
-                    'base_salary'      => (float) $ps_row['base_salary'],
-                    'gross_pay'        => (float) $ps_row['gross_pay'],
+                    'base_salary'      => $base_sal,
+                    'gross_pay'        => $gross,
+                    'withholding_tax'  => $emp_wht,
+                    'sss'              => $emp_sss,
+                    'philhealth'       => $emp_ph,
+                    'pagibig'          => $emp_pi,
                     'total_deductions' => (float) $ps_row['total_deductions'],
-                    'net_pay'          => (float) $ps_row['net_pay'],
+                    'net_pay'          => $net,
+                ];
+
+                $agg['gross']      += $gross;
+                $agg['wht']        += $emp_wht;
+                $agg['sss']        += $emp_sss;
+                $agg['philhealth'] += $emp_ph;
+                $agg['pagibig']    += $emp_pi;
+                $agg['net']        += $net;
+            }
+
+            if (!empty($payslip_breakdown)) {
+                $payroll_totals = [
+                    'employee_count'     => count($payslip_breakdown),
+                    'total_gross'        => round($agg['gross'], 2),
+                    'total_wht'          => round($agg['wht'], 2),
+                    'total_sss'          => round($agg['sss'], 2),
+                    'total_philhealth'   => round($agg['philhealth'], 2),
+                    'total_pagibig'      => round($agg['pagibig'], 2),
+                    'total_net'          => round($agg['net'], 2),
                 ];
             }
         }
         $entry['payslip_breakdown'] = $payslip_breakdown;
+        $entry['payroll_totals'] = $payroll_totals;
 
         return [
             'success' => true,

@@ -751,6 +751,47 @@ function getJournalEntryDetails()
         $entry['created_at'] = $entry['created_at'] ?? null;
         $entry['posted_at'] = $entry['posted_at'] ?? null;
 
+        // For Payroll (PR) entries, attach per-employee breakdown from payslips
+        $payslip_breakdown = [];
+        if (($entry['type_code'] ?? '') === 'PR') {
+            $ps_sql = "SELECT
+                ps.employee_external_no,
+                CONCAT(e.first_name, ' ', COALESCE(e.middle_name, ''), ' ', e.last_name) as employee_name,
+                COALESCE(d.department_name, er.department, '') as department,
+                COALESCE(p.position_title, er.position, '') as position,
+                COALESCE(c.salary, er.base_monthly_salary, 0) as base_salary,
+                ps.gross_pay,
+                ps.total_deductions,
+                ps.net_pay
+            FROM payslips ps
+            INNER JOIN payroll_runs prun ON ps.payroll_run_id = prun.id
+            LEFT JOIN employee_refs er ON er.external_employee_no = ps.employee_external_no
+            LEFT JOIN employee e ON e.employee_id = CAST(SUBSTRING(ps.employee_external_no, 4) AS UNSIGNED)
+            LEFT JOIN department d ON e.department_id = d.department_id
+            LEFT JOIN `position` p ON e.position_id = p.position_id
+            LEFT JOIN contract c ON e.contract_id = c.contract_id
+            WHERE prun.journal_entry_id = ?
+            ORDER BY e.last_name, e.first_name, ps.employee_external_no";
+
+            $ps_stmt = $conn->prepare($ps_sql);
+            $ps_stmt->bind_param('i', $journalId);
+            $ps_stmt->execute();
+            $ps_result = $ps_stmt->get_result();
+            while ($ps_row = $ps_result->fetch_assoc()) {
+                $payslip_breakdown[] = [
+                    'employee_no'      => $ps_row['employee_external_no'],
+                    'name'             => trim(preg_replace('/\s+/', ' ', $ps_row['employee_name'])),
+                    'department'       => $ps_row['department'],
+                    'position'         => $ps_row['position'],
+                    'base_salary'      => (float) $ps_row['base_salary'],
+                    'gross_pay'        => (float) $ps_row['gross_pay'],
+                    'total_deductions' => (float) $ps_row['total_deductions'],
+                    'net_pay'          => (float) $ps_row['net_pay'],
+                ];
+            }
+        }
+        $entry['payslip_breakdown'] = $payslip_breakdown;
+
         return [
             'success' => true,
             'data' => $entry

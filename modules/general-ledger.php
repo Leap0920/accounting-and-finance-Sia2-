@@ -648,7 +648,7 @@ $current_user = getCurrentUser();
     <!-- Journal Entry Detail Modal -->
     <div class="modal fade" id="journalEntryDetailModal" tabindex="-1" aria-labelledby="journalEntryDetailModalLabel"
         aria-hidden="true">
-        <div class="modal-dialog modal-lg">
+        <div class="modal-dialog modal-xl">
             <div class="modal-content">
                 <div class="modal-header bg-info text-white">
                     <h5 class="modal-title" id="journalEntryDetailModalLabel">

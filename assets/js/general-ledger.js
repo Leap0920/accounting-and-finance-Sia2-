@@ -1748,6 +1748,59 @@ function displayJournalEntryDetails(entry) {
         </div>
     `;
 
+    // Payroll (PR) JE: append per-employee breakdown for transparency
+    if (entry.type_code === 'PR' && entry.payslip_breakdown && entry.payslip_breakdown.length > 0) {
+        let bkTotal = { gross: 0, ded: 0, net: 0 };
+        let bkRows = '';
+        entry.payslip_breakdown.forEach((emp, idx) => {
+            bkTotal.gross += emp.gross_pay;
+            bkTotal.ded   += emp.total_deductions;
+            bkTotal.net   += emp.net_pay;
+            bkRows += `
+                <tr>
+                    <td class="text-center text-muted">${idx + 1}</td>
+                    <td><span class="badge bg-light text-dark border">${escapeHtml(emp.employee_no)}</span></td>
+                    <td><strong>${escapeHtml(emp.name)}</strong></td>
+                    <td><small class="text-muted">${escapeHtml(emp.department || '\u2014')}</small></td>
+                    <td><small class="text-muted">${escapeHtml(emp.position || '\u2014')}</small></td>
+                    <td class="text-end">\u20b1${formatCurrency(emp.base_salary)}</td>
+                    <td class="text-end fw-semibold">\u20b1${formatCurrency(emp.gross_pay)}</td>
+                    <td class="text-end text-danger">\u20b1${formatCurrency(emp.total_deductions)}</td>
+                    <td class="text-end fw-bold text-success">\u20b1${formatCurrency(emp.net_pay)}</td>
+                </tr>`;
+        });
+        html += `
+        <div class="table-responsive mt-4">
+            <h6 class="mb-2"><i class="fas fa-users me-2"></i>Employee Payroll Breakdown
+                <span class="badge bg-primary ms-1">${entry.payslip_breakdown.length} employee${entry.payslip_breakdown.length !== 1 ? 's' : ''}</span>
+            </h6>
+            <table class="table table-sm table-bordered table-hover align-middle mb-0">
+                <thead class="table-primary">
+                    <tr>
+                        <th class="text-center" style="width:2.2rem">#</th>
+                        <th>Emp. No.</th>
+                        <th>Name</th>
+                        <th>Department</th>
+                        <th>Position</th>
+                        <th class="text-end">Base Salary</th>
+                        <th class="text-end">Gross Pay</th>
+                        <th class="text-end">Deductions</th>
+                        <th class="text-end">Net Pay</th>
+                    </tr>
+                </thead>
+                <tbody>${bkRows}</tbody>
+                <tfoot class="table-light">
+                    <tr class="fw-bold">
+                        <td colspan="6">Total &mdash; ${entry.payslip_breakdown.length} employee${entry.payslip_breakdown.length !== 1 ? 's' : ''}</td>
+                        <td class="text-end">\u20b1${formatCurrency(bkTotal.gross)}</td>
+                        <td class="text-end text-danger">\u20b1${formatCurrency(bkTotal.ded)}</td>
+                        <td class="text-end text-success">\u20b1${formatCurrency(bkTotal.net)}</td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>`;
+    }
+
     body.innerHTML = html;
 
     // Store journal number for void modal

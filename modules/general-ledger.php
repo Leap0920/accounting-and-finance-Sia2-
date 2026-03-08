@@ -283,10 +283,9 @@ $current_user = getCurrentUser();
                         <span class="gl-toolbar__icon"><i class="fas fa-filter"></i></span>
                         <select class="search-input" id="account-type-filter">
                             <option value="">All Account Types</option>
-                            <option value="Savings">Savings</option>
-                            <option value="Checking">Checking</option>
-                            <option value="Fixed Deposit">Fixed Deposit</option>
-                            <option value="Loan">Loan</option>
+                            <option value="savings">Savings</option>
+                            <option value="checking">Checking</option>
+                            <option value="business">Business</option>
                         </select>
                     </div>
                     <div class="gl-toolbar__field">

@@ -289,20 +289,21 @@ function getAccounts()
         $accountType = $_GET['account_type'] ?? '';
         $accounts = [];
 
-        // Use the v_account_balances view which provides accurate GL account balances
+        // Query customer accounts with customer names and balances
         $sql = "SELECT 
-            code as account_number,
-            name as account_name,
-            account_type,
-            closing_balance as available_balance
-        FROM v_account_balances 
-        WHERE 1=1";
+            ca.account_number,
+            CONCAT(bc.first_name, ' ', bc.last_name) as account_name,
+            ca.account_type,
+            ca.balance as available_balance
+        FROM customer_accounts ca
+        JOIN bank_customers bc ON ca.customer_id = bc.customer_id
+        WHERE ca.status = 'active'";
 
         $params = [];
         $types = '';
 
         if ($search) {
-            $sql .= " AND (name LIKE ? OR code LIKE ?)";
+            $sql .= " AND (CONCAT(bc.first_name, ' ', bc.last_name) LIKE ? OR ca.account_number LIKE ?)";
             $searchParam = "%$search%";
             $params[] = $searchParam;
             $params[] = $searchParam;
@@ -310,12 +311,12 @@ function getAccounts()
         }
 
         if ($accountType) {
-            $sql .= " AND account_type = ?";
+            $sql .= " AND ca.account_type = ?";
             $params[] = strtolower($accountType);
             $types .= 's';
         }
 
-        $sql .= " ORDER BY code";
+        $sql .= " ORDER BY ca.account_number";
 
         // Get total count for pagination
         $countSql = "SELECT COUNT(*) as total FROM ($sql) as count_query";
@@ -350,7 +351,7 @@ function getAccounts()
                 'account_name' => $row['account_name'],
                 'account_type' => ucfirst($row['account_type']),
                 'available_balance' => (float) $row['available_balance'],
-                'source' => 'gl'
+                'source' => 'bank'
             ];
         }
 
@@ -1484,15 +1485,17 @@ function getAccountTransactions()
         }
 
         if ($source === 'gl') {
-            // Get GL account info from accounts table
+            // Get GL account info with aggregated balance from journal_lines
             $sql = "SELECT 
                         a.code as account_number,
                         a.name as account_name,
                         at.name as account_type,
-                        COALESCE(v.closing_balance, 0) as available_balance
+                        COALESCE((SELECT SUM(jl.debit) - SUM(jl.credit) 
+                                  FROM journal_lines jl 
+                                  JOIN journal_entries je ON jl.journal_entry_id = je.id 
+                                  WHERE jl.account_id = a.id AND je.status = 'posted'), 0) as available_balance
                     FROM accounts a
                     INNER JOIN account_types at ON a.type_id = at.id
-                    LEFT JOIN v_account_balances v ON a.code = v.code
                     WHERE a.code = ?
                     LIMIT 1";
 
@@ -1560,29 +1563,10 @@ function getAccountTransactions()
         $sql = "SELECT 
                     ca.account_number,
                     CONCAT(COALESCE(bc.first_name, ''), ' ', COALESCE(bc.last_name, '')) as account_name,
-                    COALESCE(bat.type_name, 'Unknown') as account_type,
-                    COALESCE(
-                        (SELECT SUM(
-                            CASE tt.type_name
-                                WHEN 'Deposit' THEN bt.amount
-                                WHEN 'Transfer In' THEN bt.amount
-                                WHEN 'Interest Payment' THEN bt.amount
-                                WHEN 'Loan Disbursement' THEN bt.amount
-                                WHEN 'Withdrawal' THEN -bt.amount
-                                WHEN 'Transfer Out' THEN -bt.amount
-                                WHEN 'Service Charge' THEN -bt.amount
-                                WHEN 'Loan Payment' THEN -bt.amount
-                                ELSE 0
-                            END
-                        )
-                         FROM bank_transactions bt
-                         INNER JOIN transaction_types tt ON bt.transaction_type_id = tt.transaction_type_id
-                         WHERE bt.account_id = ca.account_id), 
-                        0
-                    ) as available_balance
+                    ca.account_type,
+                    ca.balance as available_balance
                 FROM customer_accounts ca
                 INNER JOIN bank_customers bc ON ca.customer_id = bc.customer_id
-                INNER JOIN bank_account_types bat ON ca.account_type_id = bat.account_type_id
                 WHERE ca.account_number = ?
                 LIMIT 1";
 

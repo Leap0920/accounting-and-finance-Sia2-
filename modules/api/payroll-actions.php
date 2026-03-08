@@ -70,10 +70,14 @@ function finalizePayroll($conn)
         $date_to = $month . '-' . $last_day;
     }
 
-    // Check for duplicate payroll run for the same period
+    // Check for duplicate payroll run for the same period.
+    // Exclude runs whose linked journal entry has been voided so those periods can be re-processed.
     $dup_check = $conn->prepare("SELECT pr.id, pr.status FROM payroll_runs pr
                                   INNER JOIN payroll_periods pp ON pr.payroll_period_id = pp.id
-                                  WHERE pp.period_start = ? AND pp.period_end = ? AND pr.status IN ('finalized','completed')
+                                  LEFT JOIN journal_entries je ON je.id = pr.journal_entry_id
+                                  WHERE pp.period_start = ? AND pp.period_end = ?
+                                  AND pr.status IN ('finalized','completed')
+                                  AND (je.id IS NULL OR je.status != 'voided')
                                   LIMIT 1");
     $dup_check->bind_param("ss", $date_from, $date_to);
     $dup_check->execute();

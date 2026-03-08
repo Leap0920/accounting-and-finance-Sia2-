@@ -1012,11 +1012,27 @@ function voidJournalEntry()
                 reverseAccountBalances($conn, $journalEntryId, $entry['fiscal_period_id']);
             }
 
-            // Update status
+            // Update journal entry status
             $updateSql = "UPDATE journal_entries SET status = 'voided' WHERE id = ?";
             $updateStmt = $conn->prepare($updateSql);
             $updateStmt->bind_param('i', $journalEntryId);
             $updateStmt->execute();
+
+            // If this JE belongs to a payroll run, void the run too so the period can be re-processed
+            $prStmt = $conn->prepare(
+                "SELECT pr.id FROM payroll_runs pr
+                 INNER JOIN journal_entries je ON je.id = pr.journal_entry_id
+                 INNER JOIN journal_types jt ON jt.id = je.journal_type_id AND jt.code = 'PR'
+                 WHERE pr.journal_entry_id = ?"
+            );
+            $prStmt->bind_param('i', $journalEntryId);
+            $prStmt->execute();
+            $prResult = $prStmt->get_result();
+            if ($prRow = $prResult->fetch_assoc()) {
+                $voidPR = $conn->prepare("UPDATE payroll_runs SET status = 'voided' WHERE id = ?");
+                $voidPR->bind_param('i', $prRow['id']);
+                $voidPR->execute();
+            }
 
             // Log to audit trail
             logAuditAction($conn, $currentUser['id'], 'VOID', 'journal_entry', $journalEntryId, "Voided journal entry: $reason");

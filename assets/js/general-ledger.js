@@ -266,26 +266,23 @@ function renderAccountTypesChart(data) {
 
     const ctx = canvas.getContext('2d');
 
-    // Create vibrant gradients for each account type
-    const createGradient = (color1, color2) => {
-        const grad = ctx.createLinearGradient(0, 0, 0, 400);
-        grad.addColorStop(0, color1);
-        grad.addColorStop(1, color2);
-        return grad;
-    };
-
     const colorMap = {
-        'Asset': { main: '#1B6B4A', light: '#34D399' },
-        'Liability': { main: '#EF4444', light: '#F87171' },
-        'Revenue': { main: '#F5A623', light: '#FCD34D' },
-        'Equity': { main: '#8B5CF6', light: '#A78BFA' },
-        'Expense': { main: '#E8612D', light: '#FB923C' }
+        'Asset':       '#1B6B4A',
+        'Assets':      '#1B6B4A',
+        'Liability':   '#EF4444',
+        'Liabilities': '#EF4444',
+        'Revenue':     '#F5A623',
+        'Revenues':    '#F5A623',
+        'Equity':      '#8B5CF6',
+        'Equities':    '#8B5CF6',
+        'Expense':     '#E8612D',
+        'Expenses':    '#E8612D'
     };
 
-    const bgColors = data.labels.map(label => {
-        const colors = colorMap[label] || { main: '#94A3B8', light: '#CBD5E1' };
-        return createGradient(colors.main, colors.light);
-    });
+    // Fallback palette for any unexpected labels
+    const fallbackPalette = ['#3B82F6', '#10B981', '#F59E0B', '#6366F1', '#EC4899'];
+
+    const bgColors = data.labels.map((label, i) => colorMap[label] || fallbackPalette[i % fallbackPalette.length]);
 
     const total = data.values.reduce((a, b) => a + b, 0);
     if (total > 0) {

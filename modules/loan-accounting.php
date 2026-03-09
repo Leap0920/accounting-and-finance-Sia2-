@@ -1384,7 +1384,7 @@ if (!empty($status) && $applyFilters) {
                                         $loanStatus = strtolower($loan['status'] ?? 'pending');
                                         ?>
                                         <tr data-status="<?php echo htmlspecialchars($loanStatus); ?>">
-                                            <td>
+                                            <td class="col-type">
                                                 <?php if ($loan['record_type'] === 'application'): ?>
                                                     <span class="ln-type-badge ln-type-badge--app">APP</span>
                                                 <?php else: ?>

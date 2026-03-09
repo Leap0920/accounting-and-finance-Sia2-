@@ -9,458 +9,186 @@ $current_user = getCurrentUser();
 function ensureSoftDeleteColumnsExist($conn)
 {
     try {
-        // Check if deleted_at column exists
         $checkSql = "SHOW COLUMNS FROM loans LIKE 'deleted_at'";
         $result = $conn->query($checkSql);
-
         if (!$result || $result->num_rows === 0) {
-            // Add deleted_at column
-            $alterSql = "ALTER TABLE loans ADD COLUMN deleted_at DATETIME NULL DEFAULT NULL";
-            if (!$conn->query($alterSql)) {
-                error_log("Failed to add deleted_at column: " . $conn->error);
-            }
+            $conn->query("ALTER TABLE loans ADD COLUMN deleted_at DATETIME NULL DEFAULT NULL");
         }
-
-        // Check if deleted_by column exists
         $checkSql = "SHOW COLUMNS FROM loans LIKE 'deleted_by'";
         $result = $conn->query($checkSql);
-
         if (!$result || $result->num_rows === 0) {
-            // Add deleted_by column
-            $alterSql = "ALTER TABLE loans ADD COLUMN deleted_by INT NULL DEFAULT NULL";
-            if (!$conn->query($alterSql)) {
-                error_log("Failed to add deleted_by column: " . $conn->error);
-            }
+            $conn->query("ALTER TABLE loans ADD COLUMN deleted_by INT NULL DEFAULT NULL");
         }
     } catch (Exception $e) {
         error_log("Error ensuring soft delete columns exist: " . $e->getMessage());
     }
 }
 
-// Ensure soft delete columns exist in loan_applications table
-function ensureApplicationSoftDeleteColumnsExist($conn)
-{
-    try {
-        // Check if deleted_at column exists
-        $checkSql = "SHOW COLUMNS FROM loan_applications LIKE 'deleted_at'";
-        $result = $conn->query($checkSql);
-
-        if (!$result || $result->num_rows === 0) {
-            // Add deleted_at column
-            $alterSql = "ALTER TABLE loan_applications ADD COLUMN deleted_at DATETIME NULL DEFAULT NULL";
-            if (!$conn->query($alterSql)) {
-                error_log("Failed to add deleted_at column to loan_applications: " . $conn->error);
-            }
-        }
-
-        // Check if deleted_by column exists
-        $checkSql = "SHOW COLUMNS FROM loan_applications LIKE 'deleted_by'";
-        $result = $conn->query($checkSql);
-
-        if (!$result || $result->num_rows === 0) {
-            // Add deleted_by column
-            $alterSql = "ALTER TABLE loan_applications ADD COLUMN deleted_by INT NULL DEFAULT NULL";
-            if (!$conn->query($alterSql)) {
-                error_log("Failed to add deleted_by column to loan_applications: " . $conn->error);
-            }
-        }
-    } catch (Exception $e) {
-        error_log("Error ensuring soft delete columns exist for loan_applications: " . $e->getMessage());
-    }
-}
-
-// Ensure columns exist before querying
 ensureSoftDeleteColumnsExist($conn);
-ensureApplicationSoftDeleteColumnsExist($conn);
-
-// Check if deleted_at column exists in loan_applications
-$hasAppDeletedAtColumn = false;
-try {
-    $checkResult = $conn->query("SHOW COLUMNS FROM loan_applications LIKE 'deleted_at'");
-    $hasAppDeletedAtColumn = $checkResult && $checkResult->num_rows > 0;
-} catch (Exception $e) {
-    $hasAppDeletedAtColumn = false;
-}
 
 // Get filter parameters
 $dateFrom = $_GET['date_from'] ?? '';
 $dateTo = $_GET['date_to'] ?? '';
-$transactionType = $_GET['transaction_type'] ?? '';
 $status = $_GET['status'] ?? '';
 $accountNumber = $_GET['account_number'] ?? '';
 $applyFilters = isset($_GET['apply_filters']);
 
-// Build query to combine both loans and loan_applications
-// This ensures loan applications from the loan subsystem are visible in loan-accounting
-// Show only applications for now (since loans table might be empty)
-// Set to false to include both loans and applications
-// Build query to combine both loans and loan_applications
-$showOnlyApplications = false;
+// Sort parameter (whitelist for safety)
+$sort = $_GET['sort'] ?? 'latest';
+$allowedSorts = ['latest', 'oldest', 'amount_high', 'amount_low'];
+if (!in_array($sort, $allowedSorts)) $sort = 'latest';
+$orderBy = match($sort) {
+    'oldest'     => 'l.start_date ASC, l.loan_no ASC',
+    'amount_high'=> 'l.principal_amount DESC, l.start_date DESC',
+    'amount_low' => 'l.principal_amount ASC, l.start_date DESC',
+    default      => 'l.start_date DESC, l.loan_no DESC',
+};
 
-// Initial base queries without filters
-$loansBaseSql = "SELECT 
+// Pagination
+$page = max(1, intval($_GET['page'] ?? 1));
+$perPage = 20;
+
+// Build loans-only query
+$baseSql = "SELECT 
         l.id,
         l.loan_no as loan_number,
         l.borrower_external_no as borrower_name,
         l.principal_amount as loan_amount,
-        COALESCE(l.interest_rate * 100, COALESCE(lt.interest_rate * 100, 20.00)) as interest_rate,
+        CASE WHEN l.interest_rate > 1 THEN l.interest_rate ELSE l.interest_rate * 100 END as interest_rate,
         l.term_months as loan_term,
         l.start_date,
         DATE_ADD(l.start_date, INTERVAL l.term_months MONTH) as maturity_date,
         l.current_balance as outstanding_balance,
         l.status,
-        'loan' as record_type,
         lt.name as loan_type_name,
-        NULL as account_number,
         l.created_at,
         u.full_name as created_by_name,
-        NULL as contact_number,
-        NULL as email,
-        NULL as job,
-        NULL as monthly_salary,
-        NULL as user_email,
-        NULL as purpose,
-        l.monthly_payment,
-        NULL as due_date,
-        NULL as next_payment_due,
-        NULL as approved_by,
-        NULL as approved_at,
-        NULL as rejected_by,
-        NULL as rejected_at,
-        NULL as rejection_remarks,
-        NULL as remarks,
-        NULL as file_name,
-        NULL as proof_of_income,
-        NULL as coe_document,
-        NULL as pdf_path,
-        NULL as application_id
+        l.monthly_payment
     FROM loans l
     LEFT JOIN loan_types lt ON l.loan_type_id = lt.id
     LEFT JOIN users u ON l.created_by = u.id
     WHERE (l.deleted_at IS NULL OR l.deleted_at = '') 
       AND l.status != 'cancelled'";
 
-$appsBaseSql = "SELECT 
-        la.id + 1000000 as id,
-        CONCAT('APP-', la.id) as loan_number,
-        COALESCE(la.full_name, la.user_email) as borrower_name,
-        COALESCE(la.loan_amount, 0) as loan_amount,
-        COALESCE(lt_app.interest_rate * 100, 20.00) as interest_rate,
-        CASE 
-            WHEN la.loan_terms LIKE '%6%' OR la.loan_terms LIKE '%6 Months%' THEN 6
-            WHEN la.loan_terms LIKE '%12%' OR la.loan_terms LIKE '%12 Months%' THEN 12
-            WHEN la.loan_terms LIKE '%24%' OR la.loan_terms LIKE '%24 Months%' THEN 24
-            WHEN la.loan_terms LIKE '%30%' OR la.loan_terms LIKE '%30 Months%' THEN 30
-            WHEN la.loan_terms LIKE '%36%' OR la.loan_terms LIKE '%36 Months%' THEN 36
-            ELSE 0
-        END as loan_term,
-        la.created_at as start_date,
-        la.due_date as maturity_date,
-        CASE 
-            WHEN la.loan_id IS NOT NULL THEN 
-                COALESCE(la.loan_amount, 0.00) - COALESCE((
-                    SELECT SUM(lp.principal_amount) 
-                    FROM loan_payments lp 
-                    WHERE lp.loan_id = la.loan_id
-                ), 0.00)
-            WHEN LOWER(la.status) IN ('approved', 'active') THEN COALESCE(la.loan_amount, 0.00)
-            ELSE 0.00
-        END as outstanding_balance,
-        la.status,
-        'application' as record_type,
-        COALESCE(lt_app.name, la.loan_type, 'N/A') as loan_type_name,
-        la.account_number,
-        la.created_at,
-        COALESCE(u_app.full_name, la.approved_by) as created_by_name,
-        la.contact_number,
-        la.email,
-        la.job,
-        la.monthly_salary,
-        la.user_email,
-        la.purpose,
-        la.monthly_payment,
-        la.due_date,
-        la.next_payment_due,
-        la.approved_by,
-        la.approved_at,
-        la.rejected_by,
-        la.rejected_at,
-        la.rejection_remarks,
-        la.remarks,
-        la.file_name,
-        la.proof_of_income,
-        la.coe_document,
-        la.pdf_path,
-        la.id as application_id
-    FROM loan_applications la
-    LEFT JOIN loan_types lt_app ON la.loan_type_id = lt_app.id
-    LEFT JOIN users u_app ON la.approved_by_user_id = u_app.id
-    " . ($hasAppDeletedAtColumn ? "WHERE (la.deleted_at IS NULL OR la.deleted_at = '')" : "WHERE 1=1");
-
-// Combine into UNION
-$combinedSql = "($loansBaseSql) UNION ALL ($appsBaseSql)";
-
-// Wrap and Apply Global Filters
+// Apply filters
 $whereConditions = [];
 $params = [];
 $types = '';
 
 if ($applyFilters) {
     if (!empty($dateFrom)) {
-        $whereConditions[] = "start_date >= ?";
+        $whereConditions[] = "l.start_date >= ?";
         $params[] = $dateFrom;
         $types .= 's';
     }
     if (!empty($dateTo)) {
-        $whereConditions[] = "start_date <= ?";
+        $whereConditions[] = "l.start_date <= ?";
         $params[] = $dateTo . ' 23:59:59';
         $types .= 's';
     }
     if (!empty($status)) {
-        $whereConditions[] = "LOWER(status) = ?";
+        $whereConditions[] = "LOWER(l.status) = ?";
         $params[] = strtolower($status);
         $types .= 's';
     }
     if (!empty($accountNumber)) {
-        $whereConditions[] = "(loan_number LIKE ? OR borrower_name LIKE ? OR account_number LIKE ?)";
+        $whereConditions[] = "(l.loan_no LIKE ? OR l.borrower_external_no LIKE ?)";
         $searchTerm = "%{$accountNumber}%";
         $params[] = $searchTerm;
         $params[] = $searchTerm;
-        $params[] = $searchTerm;
-        $types .= 'sss';
+        $types .= 'ss';
     }
 }
 
-$whereClause = !empty($whereConditions) ? "WHERE " . implode(" AND ", $whereConditions) : "";
-$sql = "SELECT * FROM ($combinedSql) AS combined_results $whereClause ORDER BY start_date DESC, loan_number DESC";
+$filterClause = !empty($whereConditions) ? " AND " . implode(" AND ", $whereConditions) : "";
+$countSql = "SELECT COUNT(*) as total FROM loans l 
+    LEFT JOIN loan_types lt ON l.loan_type_id = lt.id
+    WHERE (l.deleted_at IS NULL OR l.deleted_at = '') AND l.status != 'cancelled'" . $filterClause;
+$dataSql = $baseSql . $filterClause . " ORDER BY {$orderBy} LIMIT ? OFFSET ?";
 
-
-// Execute query with fallback
+// Execute queries
 $loans = [];
 $hasResults = false;
 $queryError = null;
-
-// Debug: Log the query
-error_log("Loan Accounting Query: " . $sql);
+$totalRecords = 0;
 
 if ($conn) {
-    // Try the UNION query first
-    $stmt = $conn->prepare($sql);
-
-    if ($stmt === false) {
-        // Query preparation failed - try simple loans query as fallback
-        $queryError = $conn->error;
-        error_log("Query preparation failed: " . $queryError);
-        // Try a simple loan_applications query as fallback
-        $fallbackSql = "SELECT 
-            la.id,
-            CONCAT('APP-', la.id) as loan_number,
-            la.full_name as borrower_name,
-            la.loan_amount,
-            COALESCE(lt.interest_rate * 100, 20.00) as interest_rate,
-            0 as loan_term,
-            la.created_at as start_date,
-            la.due_date as maturity_date,
-            CASE 
-                WHEN la.loan_id IS NOT NULL THEN 
-                    COALESCE(la.loan_amount, 0.00) - COALESCE((
-                        SELECT SUM(lp.principal_amount) 
-                        FROM loan_payments lp 
-                        WHERE lp.loan_id = la.loan_id
-                    ), 0.00)
-                WHEN LOWER(la.status) IN ('approved', 'active') THEN COALESCE(la.loan_amount, 0.00)
-                ELSE 0.00
-            END as outstanding_balance,
-            la.status,
-            'application' as record_type,
-            COALESCE(lt.name, la.loan_type, 'N/A') as loan_type_name,
-            la.account_number,
-            la.created_at,
-            la.approved_by as created_by_name,
-            la.contact_number,
-            la.email,
-            la.job,
-            la.monthly_salary,
-            la.user_email,
-            la.purpose,
-            la.monthly_payment,
-            la.due_date,
-            la.next_payment_due,
-            la.approved_by,
-            la.approved_at,
-            la.rejected_by,
-            la.rejected_at,
-            la.rejection_remarks,
-            la.remarks,
-            la.file_name,
-            la.proof_of_income,
-            la.coe_document,
-            la.pdf_path,
-            la.id as application_id
-        FROM loan_applications la
-        LEFT JOIN loan_types lt ON la.loan_type_id = lt.id
-        ORDER BY la.id DESC";
-
-        $stmt = $conn->prepare($fallbackSql);
-        if ($stmt && $stmt->execute()) {
-            $result = $stmt->get_result();
-            while ($row = $result->fetch_assoc()) {
-                $loans[] = $row;
-            }
-            $hasResults = count($loans) > 0;
-            $queryError = null; // Clear error if fallback worked
-            error_log("Fallback query found " . count($loans) . " loan applications");
-        } else {
-            error_log("Fallback query also failed: " . ($stmt ? $stmt->error : $conn->error));
-        }
-        if ($stmt)
-            $stmt->close();
-    } else {
+    // Get total count
+    $countStmt = $conn->prepare($countSql);
+    if ($countStmt) {
         if (!empty($params)) {
-            $stmt->bind_param($types, ...$params);
+            $countStmt->bind_param($types, ...$params);
         }
+        $countStmt->execute();
+        $totalRecords = $countStmt->get_result()->fetch_assoc()['total'];
+        $countStmt->close();
+    }
 
+    $totalPages = max(1, ceil($totalRecords / $perPage));
+    if ($page > $totalPages) $page = $totalPages;
+    $offset = ($page - 1) * $perPage;
+
+    // Get paginated data
+    $dataParams = array_merge($params, [$perPage, $offset]);
+    $dataTypes = $types . 'ii';
+    $stmt = $conn->prepare($dataSql);
+
+    if ($stmt) {
+        if (!empty($dataParams)) {
+            $stmt->bind_param($dataTypes, ...$dataParams);
+        }
         if ($stmt->execute()) {
             $result = $stmt->get_result();
-
             while ($row = $result->fetch_assoc()) {
                 $loans[] = $row;
             }
-
             $hasResults = count($loans) > 0;
-            error_log("Loan Accounting: Found " . count($loans) . " loans/applications");
         } else {
-            // Execution failed
             $queryError = $stmt->error;
-            error_log("Query execution failed: " . $queryError);
         }
-
         $stmt->close();
+    } else {
+        $queryError = $conn->error;
     }
+} else {
+    $totalPages = 1;
 }
 
-// Calculate statistics based on filtered results
-// This automatically adjusts when filters are applied since $loans array contains only filtered records
-$totalLoans = count($loans); // Total count of filtered records
-$totalApplications = 0;
+// Calculate statistics from current page results
+$totalLoans = $totalRecords;
 $totalAmount = 0;
 $totalOutstanding = 0;
 $activeLoans = 0;
-$pendingApplications = 0;
-$actualLoanCount = 0; // Actual loans (not applications)
 
-// Calculate statistics from filtered results
-foreach ($loans as $loan) {
-    $loanStatus = strtolower($loan['status'] ?? '');
-    $loanAmount = floatval($loan['loan_amount'] ?? 0);
-    $outstandingBalance = floatval($loan['outstanding_balance'] ?? 0);
-
-    // Add to total amount
-    $totalAmount += $loanAmount;
-
-    if ($loan['record_type'] === 'loan') {
-        // This is an actual loan record
-        $actualLoanCount++;
-        $totalOutstanding += $outstandingBalance;
-        if ($loanStatus === 'active') {
-            $activeLoans++;
+// For accurate stats, query the full dataset (not paginated)
+if ($conn) {
+    $statsSql = "SELECT 
+        SUM(l.principal_amount) as total_amount,
+        SUM(l.current_balance) as total_outstanding,
+        SUM(CASE WHEN LOWER(l.status) = 'active' THEN 1 ELSE 0 END) as active_count
+    FROM loans l
+    WHERE (l.deleted_at IS NULL OR l.deleted_at = '') AND l.status != 'cancelled'" . $filterClause;
+    $statsStmt = $conn->prepare($statsSql);
+    if ($statsStmt) {
+        if (!empty($params)) {
+            $statsStmt->bind_param($types, ...$params);
         }
-    } else {
-        // This is an application
-        $totalApplications++;
-
-        // Count pending applications
-        if ($loanStatus === 'pending') {
-            $pendingApplications++;
-        }
-
-        // Count approved/active applications as active loans
-        if (in_array($loanStatus, ['approved', 'active'])) {
-            $activeLoans++;
-            // Add outstanding balance for approved/active applications only
-            $totalOutstanding += $outstandingBalance;
-        }
+        $statsStmt->execute();
+        $statsRow = $statsStmt->get_result()->fetch_assoc();
+        $totalAmount = floatval($statsRow['total_amount'] ?? 0);
+        $totalOutstanding = floatval($statsRow['total_outstanding'] ?? 0);
+        $activeLoans = intval($statsRow['active_count'] ?? 0);
+        $statsStmt->close();
     }
 }
 
-// Since showOnlyApplications is true, all records are applications
-// Ensure statistics are accurate for applications mode with filtered data
-if ($showOnlyApplications) {
-    // All records are applications
-    $totalApplications = count($loans);
-
-    // Recalculate statistics from filtered results to ensure accuracy
-    // This ensures statistics automatically adjust based on active filters
-    $pendingApplications = 0;
-    $activeLoans = 0;
-    $totalOutstanding = 0;
-
-    foreach ($loans as $loan) {
-        $loanStatus = strtolower($loan['status'] ?? '');
-
-        // Count pending applications (from filtered results)
-        if ($loanStatus === 'pending') {
-            $pendingApplications++;
-        }
-
-        // Count approved/active applications as active loans (from filtered results)
-        if (in_array($loanStatus, ['approved', 'active'])) {
-            $activeLoans++;
-            // Add outstanding balance for approved/active applications only
-            $totalOutstanding += floatval($loan['outstanding_balance'] ?? 0);
-        }
-    }
-}
-
-// Determine dynamic labels based on selected status filter
-$statusLabel = '';
-$applicationsLabel = 'Loan Applications';
+// Dynamic labels based on status filter
+$applicationsLabel = 'Total Amount';
 $activeLoansLabel = 'Active Loans';
 
 if (!empty($status) && $applyFilters) {
     $statusLower = strtolower($status);
-    switch ($statusLower) {
-        case 'pending':
-            $statusLabel = 'Pending';
-            $applicationsLabel = 'Total Records';
-            $activeLoansLabel = 'Pending Loans';
-            break;
-        case 'approved':
-            $statusLabel = 'Approved';
-            $applicationsLabel = 'Total Records';
-            $activeLoansLabel = 'Approved Loans';
-            break;
-        case 'active':
-            $statusLabel = 'Active';
-            $applicationsLabel = 'Total Records';
-            $activeLoansLabel = 'Active Loans';
-            break;
-        case 'rejected':
-            $statusLabel = 'Rejected';
-            $applicationsLabel = 'Total Records';
-            $activeLoansLabel = 'Rejected Loans';
-            break;
-        case 'paid':
-            $statusLabel = 'Paid';
-            $applicationsLabel = 'Total Records';
-            $activeLoansLabel = 'Paid Loans';
-            break;
-        case 'defaulted':
-            $statusLabel = 'Defaulted';
-            $applicationsLabel = 'Total Records';
-            $activeLoansLabel = 'Defaulted Loans';
-            break;
-        case 'cancelled':
-            $statusLabel = 'Cancelled';
-            $applicationsLabel = 'Total Records';
-            $activeLoansLabel = 'Cancelled Loans';
-            break;
-        default:
-            $statusLabel = ucfirst($status);
-            $applicationsLabel = 'Total Records';
-            $activeLoansLabel = ucfirst($status) . ' Loans';
-            break;
-    }
+    $activeLoansLabel = ucfirst($statusLower) . ' Loans';
 }
 ?>
 <!DOCTYPE html>
@@ -1303,6 +1031,12 @@ if (!empty($status) && $applyFilters) {
                     <div class="ln-table-header">
                         <div class="ln-table-header__title">Loan History</div>
                         <div class="ln-table-header__filters">
+                            <select class="ln-filter-select" id="filterSort" onchange="applyInlineFilter()">
+                                <option value="latest" <?php echo $sort === 'latest' ? 'selected' : ''; ?>>Sort: Latest</option>
+                                <option value="oldest" <?php echo $sort === 'oldest' ? 'selected' : ''; ?>>Oldest First</option>
+                                <option value="amount_high" <?php echo $sort === 'amount_high' ? 'selected' : ''; ?>>Amount: High to Low</option>
+                                <option value="amount_low" <?php echo $sort === 'amount_low' ? 'selected' : ''; ?>>Amount: Low to High</option>
+                            </select>
                             <select class="ln-filter-select" id="filterStatus" onchange="applyInlineFilter()">
                                 <option value="" <?php echo empty($status) ? 'selected' : ''; ?>>Status: All</option>
                                 <option value="pending" <?php echo strtolower($status) === 'pending' ? 'selected' : ''; ?>>
@@ -1359,7 +1093,7 @@ if (!empty($status) && $applyFilters) {
                                     <tr>
                                         <th class="col-type">Type</th>
                                         <th class="col-loanno">Loan No.</th>
-                                        <th class="col-borrower">Borrower/Applicant</th>
+                                        <th class="col-borrower">Borrower</th>
                                         <th class="col-loantype">Loan Type</th>
                                         <th class="col-startdate">Start Date</th>
                                         <th class="col-maturity">Maturity</th>
@@ -1384,13 +1118,7 @@ if (!empty($status) && $applyFilters) {
                                         $loanStatus = strtolower($loan['status'] ?? 'pending');
                                         ?>
                                         <tr data-status="<?php echo htmlspecialchars($loanStatus); ?>">
-                                            <td class="col-type">
-                                                <?php if ($loan['record_type'] === 'application'): ?>
-                                                    <span class="ln-type-badge ln-type-badge--app">APP</span>
-                                                <?php else: ?>
-                                                    <span class="ln-type-badge ln-type-badge--loan">LOAN</span>
-                                                <?php endif; ?>
-                                            </td>
+                                            <td class="col-type"><span class="ln-type-badge ln-type-badge--loan">LOAN</span></td>
                                             <td class="journal-no"><?php echo htmlspecialchars($loan['loan_number']); ?></td>
                                             <td>
                                                 <div class="ln-borrower">
@@ -1407,8 +1135,6 @@ if (!empty($status) && $applyFilters) {
                                             <td class="date-cell">
                                                 <?php if (!empty($loan['maturity_date'])): ?>
                                                     <?php echo date('M d, Y', strtotime($loan['maturity_date'])); ?>
-                                                <?php elseif (!empty($loan['due_date'])): ?>
-                                                    <?php echo date('M d, Y', strtotime($loan['due_date'])); ?>
                                                 <?php else: ?>
                                                     <span style="color:#ccc;">—</span>
                                                 <?php endif; ?>
@@ -1438,10 +1164,10 @@ if (!empty($status) && $applyFilters) {
                                             </td>
                                             <td class="col-action">
                                                 <button class="ln-action-btn"
-                                                    onclick="<?php echo $loan['record_type'] === 'application' ? 'viewApplicationDetails(' . $loan['application_id'] . ')' : 'viewLoanDetails(' . $loan['id'] . ')'; ?>"
+                                                    onclick="viewLoanDetails(<?php echo $loan['id']; ?>)"
                                                     title="View Details"><i class="fas fa-eye"></i></button>
                                                 <button class="ln-action-btn ln-action-btn--danger"
-                                                    onclick="<?php echo $loan['record_type'] === 'application' ? 'deleteApplication(' . $loan['application_id'] . ')' : 'deleteLoan(' . $loan['id'] . ')'; ?>"
+                                                    onclick="deleteLoan(<?php echo $loan['id']; ?>)"
                                                     title="Delete"><i class="fas fa-trash-alt"></i></button>
                                             </td>
                                         </tr>
@@ -1451,18 +1177,58 @@ if (!empty($status) && $applyFilters) {
                         </div>
 
                         <!-- Pagination -->
+                        <?php
+                        // Build base URL for pagination links
+                        $paginationParams = [];
+                        if (!empty($status)) $paginationParams['status'] = $status;
+                        if (!empty($dateFrom)) $paginationParams['date_from'] = $dateFrom;
+                        if (!empty($dateTo)) $paginationParams['date_to'] = $dateTo;
+                        if (!empty($accountNumber)) $paginationParams['account_number'] = $accountNumber;
+                        if ($sort !== 'latest') $paginationParams['sort'] = $sort;
+                        if ($applyFilters) $paginationParams['apply_filters'] = '1';
+                        
+                        function buildPageUrl($pageNum, $params) {
+                            $params['page'] = $pageNum;
+                            return '?' . http_build_query($params);
+                        }
+                        
+                        $showingFrom = min(($page - 1) * $perPage + 1, $totalRecords);
+                        $showingTo = min($page * $perPage, $totalRecords);
+                        ?>
                         <div class="ln-pagination">
                             <div class="ln-pagination__info">
-                                Showing <?php echo count($loans); ?> of <?php echo number_format($totalLoans); ?> results
+                                Showing <?php echo $showingFrom; ?>-<?php echo $showingTo; ?> of <?php echo number_format($totalRecords); ?> results
                             </div>
                             <div class="ln-pagination__pages">
-                                <button class="ln-page-btn">Previous</button>
-                                <button class="ln-page-btn active">1</button>
-                                <?php if ($totalLoans > 20): ?>
-                                    <button class="ln-page-btn">2</button>
-                                    <button class="ln-page-btn">3</button>
+                                <?php if ($page > 1): ?>
+                                    <a href="<?php echo htmlspecialchars(buildPageUrl($page - 1, $paginationParams)); ?>" class="ln-page-btn">Previous</a>
+                                <?php else: ?>
+                                    <span class="ln-page-btn" style="opacity:0.5;cursor:default;">Previous</span>
                                 <?php endif; ?>
-                                <button class="ln-page-btn">Next</button>
+
+                                <?php
+                                // Show page numbers with smart range
+                                $startPage = max(1, $page - 2);
+                                $endPage = min($totalPages, $page + 2);
+                                if ($startPage > 1): ?>
+                                    <a href="<?php echo htmlspecialchars(buildPageUrl(1, $paginationParams)); ?>" class="ln-page-btn">1</a>
+                                    <?php if ($startPage > 2): ?><span class="ln-page-btn" style="border:none;cursor:default;">...</span><?php endif; ?>
+                                <?php endif;
+                                
+                                for ($i = $startPage; $i <= $endPage; $i++): ?>
+                                    <a href="<?php echo htmlspecialchars(buildPageUrl($i, $paginationParams)); ?>" class="ln-page-btn <?php echo $i === $page ? 'active' : ''; ?>"><?php echo $i; ?></a>
+                                <?php endfor;
+                                
+                                if ($endPage < $totalPages): ?>
+                                    <?php if ($endPage < $totalPages - 1): ?><span class="ln-page-btn" style="border:none;cursor:default;">...</span><?php endif; ?>
+                                    <a href="<?php echo htmlspecialchars(buildPageUrl($totalPages, $paginationParams)); ?>" class="ln-page-btn"><?php echo $totalPages; ?></a>
+                                <?php endif; ?>
+
+                                <?php if ($page < $totalPages): ?>
+                                    <a href="<?php echo htmlspecialchars(buildPageUrl($page + 1, $paginationParams)); ?>" class="ln-page-btn">Next</a>
+                                <?php else: ?>
+                                    <span class="ln-page-btn" style="opacity:0.5;cursor:default;">Next</span>
+                                <?php endif; ?>
                             </div>
                         </div>
                     <?php endif; ?>
@@ -1481,22 +1247,24 @@ if (!empty($status) && $applyFilters) {
                 const status = document.getElementById('filterStatus').value;
                 const dateFrom = document.getElementById('filterDateFrom').value;
                 const dateTo = document.getElementById('filterDateTo').value;
+                const sort = document.getElementById('filterSort').value;
 
                 const params = new URLSearchParams();
                 if (status) params.set('status', status);
                 if (dateFrom) params.set('date_from', dateFrom);
                 if (dateTo) params.set('date_to', dateTo);
+                if (sort && sort !== 'latest') params.set('sort', sort);
+                params.set('page', '1');
 
-                if (status || dateFrom || dateTo) {
+                if (status || dateFrom || dateTo || (sort && sort !== 'latest')) {
                     params.set('apply_filters', '1');
                 }
 
-                // Redirect to apply server-side filters
                 window.location.href = window.location.pathname + (params.toString() ? ('?' + params.toString()) : '');
             }
 
             function filterLoanTable() {
-                // This function is now handled in loan-accounting.js
+                // Handled in loan-accounting.js
             }
         </script>
 

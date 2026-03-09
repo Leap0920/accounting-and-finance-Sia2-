@@ -330,6 +330,8 @@ function getLoanDetails() {
             $loan['payment_schedule'] = $paymentSchedule;
             $loan['total_paid'] = $totalPaid;
             $loan['last_payment_date'] = $lastPaymentDate;
+            $loan['payments_made'] = count($paymentSchedule);
+            $loan['payments_total'] = intval($loan['loan_term'] ?? $loan['term_months'] ?? 0);
         }
         
         // Calculate payment status

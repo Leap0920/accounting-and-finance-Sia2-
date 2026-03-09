@@ -2561,59 +2561,189 @@ INSERT INTO bank_transactions (transaction_ref, account_id, transaction_type_id,
 -- ========================================
 -- 10. COMPREHENSIVE LOANS DATA
 -- ========================================
+-- Borrower names mapped to bank_customers table for realistic display
+-- Statuses: paid (fully paid), active (in-progress), defaulted (stopped paying), pending (new), cancelled
 
-INSERT IGNORE INTO loans (loan_no, loan_type_id, borrower_external_no, principal_amount, interest_rate, start_date, term_months, monthly_payment, current_balance, status, created_by, created_at) VALUES
--- Salary Loans
-('LN-1001', 1, 'EMP001', 50000.00, 0.05, '2024-01-01', 12, 4500.00, 45000.00, 'active', 1, '2024-01-01 09:00:00'),
-('LN-1003', 1, 'EMP005', 30000.00, 0.05, '2024-02-01', 12, 2700.00, 30000.00, 'active', 1, '2024-02-01 11:15:00'),
-('LN-1007', 1, 'EMP004', 25000.00, 0.05, '2024-01-20', 12, 2250.00, 25000.00, 'paid', 1, '2024-01-20 15:10:00'),
-('LN-1009', 1, 'EMP008', 40000.00, 0.05, '2024-02-15', 12, 3600.00, 40000.00, 'active', 1, '2024-02-15 14:30:00'),
-('LN-1010', 1, 'EMP010', 20000.00, 0.05, '2024-03-01', 12, 1800.00, 20000.00, 'active', 1, '2024-03-01 10:00:00'),
-('LN-1015', 1, 'EMP002', 35000.00, 0.05, '2024-11-01', 12, 3150.00, 35000.00, 'active', 1, '2024-11-01 09:00:00'),
-('LN-1016', 1, 'EMP004', 18000.00, 0.05, '2024-11-15', 12, 1620.00, 18000.00, 'active', 1, '2024-11-15 11:15:00'),
-('LN-1017', 1, 'EMP006', 28000.00, 0.05, '2024-12-01', 12, 2520.00, 28000.00, 'active', 1, '2024-12-01 10:00:00'),
-('LN-1018', 1, 'EMP008', 200000.00, 0.05, '2024-09-01', 60, 4000.00, 200000.00, 'active', 1, '2024-09-01 14:30:00'),
-('LN-1019', 1, 'EMP010', 35000.00, 0.05, '2024-12-10', 24, 1500.00, 35000.00, 'active', 1, '2024-12-10 10:00:00'),
+INSERT IGNORE INTO loans (loan_no, loan_type_id, borrower_external_no, principal_amount, interest_rate, start_date, term_months, monthly_payment, current_balance, next_payment_due, status, created_by, created_at) VALUES
 
--- Emergency Loans
-('LN-1002', 2, 'EMP003', 20000.00, 0.08, '2024-01-15', 6, 3600.00, 18000.00, 'active', 1, '2024-01-15 10:30:00'),
-('LN-1005', 2, 'EMP009', 15000.00, 0.08, '2024-02-10', 6, 2700.00, 15000.00, 'active', 1, '2024-02-10 16:45:00'),
-('LN-1008', 2, 'EMP006', 10000.00, 0.08, '2024-02-15', 6, 1800.00, 10000.00, 'defaulted', 1, '2024-02-15 12:00:00'),
-('LN-1011', 2, 'EMP002', 12000.00, 0.08, '2024-01-10', 6, 2160.00, 12000.00, 'active', 1, '2024-01-10 11:20:00'),
+-- ===== FULLY PAID LOANS (balance = 0) =====
 
--- Housing Loans
-('LN-1004', 3, 'EMP007', 400000.00, 0.06, '2023-06-01', 60, 8000.00, 320000.00, 'active', 1, '2023-06-01 14:20:00'),
-('LN-1012', 3, 'EMP001', 300000.00, 0.06, '2023-08-01', 60, 6000.00, 240000.00, 'active', 1, '2023-08-01 15:30:00'),
+-- LN-1001: Juan Dela Cruz - Salary Loan, 12 months, FULLY PAID (all 12 payments made)
+('LN-1001', 1, 'Juan Dela Cruz', 50000.00, 0.05, '2024-01-01', 12, 4375.00, 0.00, NULL, 'paid', 1, '2024-01-01 09:00:00'),
 
--- Education Loans
-('LN-1006', 4, 'EMP002', 80000.00, 0.04, '2023-09-01', 24, 3500.00, 56000.00, 'active', 1, '2023-09-01 13:30:00'),
-('LN-1013', 4, 'EMP003', 60000.00, 0.04, '2024-01-05', 24, 2600.00, 60000.00, 'active', 1, '2024-01-05 09:15:00'),
-('LN-1014', 4, 'EMP009', 45000.00, 0.04, '2024-02-20', 24, 1950.00, 45000.00, 'active', 1, '2024-02-20 16:00:00'),
+-- LN-1007: Ana Garcia - Salary Loan, 12 months, FULLY PAID
+('LN-1007', 1, 'Ana Garcia', 25000.00, 0.05, '2024-01-20', 12, 2188.00, 0.00, NULL, 'paid', 1, '2024-01-20 15:10:00'),
 
--- Vehicle Loans
-('LN-1020', 5, 'EMP011', 250000.00, 0.07, '2024-03-01', 36, 7500.00, 250000.00, 'active', 1, '2024-03-01 10:00:00'),
-('LN-1021', 5, 'EMP013', 180000.00, 0.07, '2024-04-15', 36, 5400.00, 180000.00, 'active', 1, '2024-04-15 14:30:00'),
+-- LN-1002: Jose Reyes - Emergency Loan, 6 months, FULLY PAID
+('LN-1002', 2, 'Jose Reyes', 20000.00, 0.08, '2024-01-15', 6, 3533.00, 0.00, NULL, 'paid', 1, '2024-01-15 10:30:00'),
 
--- Medical Loans
-('LN-1022', 6, 'EMP015', 12000.00, 0.03, '2024-05-01', 12, 1000.00, 12000.00, 'active', 1, '2024-05-01 09:00:00'),
-('LN-1023', 6, 'EMP017', 8000.00, 0.03, '2024-06-10', 12, 667.00, 8000.00, 'active', 1, '2024-06-10 11:15:00'),
+-- LN-1011: Maria Santos - Emergency Loan, 6 months, FULLY PAID
+('LN-1011', 2, 'Maria Santos', 12000.00, 0.08, '2024-01-10', 6, 2120.00, 0.00, NULL, 'paid', 1, '2024-01-10 11:20:00'),
 
--- Appliance Loans
-('LN-1024', 7, 'EMP019', 15000.00, 0.05, '2024-07-01', 18, 900.00, 15000.00, 'active', 1, '2024-07-01 10:00:00'),
-('LN-1025', 7, 'EMP021', 20000.00, 0.05, '2024-08-15', 18, 1200.00, 20000.00, 'active', 1, '2024-08-15 14:30:00'),
+-- LN-1041: Ana Garcia - Emergency Loan (Extended), 12 months, FULLY PAID
+('LN-1041', (SELECT id FROM loan_types WHERE code = 'EL'), 'Ana Garcia', 50000.00, 15.0000, '2023-12-01', 12, 4513.00, 0.00, NULL, 'paid', 1, '2023-12-01 09:00:00'),
 
--- Additional loans from sample_loan_data.sql (using extended loan types)
--- Note: These use different loan_type_id references based on the new types added above
-('LOAN-2024-001', (SELECT id FROM loan_types WHERE code = 'PL'), 'EMP001', 150000.00, 12.5000, '2024-01-15', 36, 5025.00, 120000.00, 'active', 1, '2024-01-15 09:00:00'),
-('LOAN-2024-002', (SELECT id FROM loan_types WHERE code = 'HL'), 'EMP002', 1500000.00, 8.5000, '2024-02-01', 240, 12850.00, 1450000.00, 'active', 1, '2024-02-01 11:00:00'),
-('LOAN-2024-003', (SELECT id FROM loan_types WHERE code = 'VL'), 'EMP003', 500000.00, 10.0000, '2024-03-10', 60, 10625.00, 450000.00, 'active', 1, '2024-03-10 10:00:00'),
-('LOAN-2024-004', (SELECT id FROM loan_types WHERE code = 'EL'), 'EMP004', 50000.00, 15.0000, '2023-12-01', 12, 4500.00, 0.00, 'paid', 1, '2023-12-01 09:00:00'),
-('LOAN-2024-005', (SELECT id FROM loan_types WHERE code = 'SL'), 'EMP005', 100000.00, 14.0000, '2024-04-01', 24, 4850.00, 85000.00, 'active', 1, '2024-04-01 09:00:00'),
-('LOAN-2024-006', (SELECT id FROM loan_types WHERE code = 'PL'), 'EMP001', 75000.00, 12.5000, '2024-05-15', 24, 3575.00, 65000.00, 'active', 1, '2024-05-15 10:00:00'),
-('LOAN-2023-010', (SELECT id FROM loan_types WHERE code = 'PL'), 'EMP002', 100000.00, 12.5000, '2023-01-15', 36, 3350.00, 0.00, 'paid', 1, '2023-01-15 09:00:00'),
-('LOAN-2023-015', (SELECT id FROM loan_types WHERE code = 'VL'), 'EMP003', 350000.00, 10.0000, '2023-06-01', 60, 7437.50, 280000.00, 'active', 1, '2023-06-01 09:00:00'),
-('LOAN-2024-007', (SELECT id FROM loan_types WHERE code = 'EL'), 'EMP004', 25000.00, 15.0000, '2024-06-01', 12, 2250.00, 18000.00, 'active', 1, '2024-06-01 09:00:00'),
-('LOAN-2024-008', (SELECT id FROM loan_types WHERE code = 'HL'), 'EMP005', 800000.00, 8.5000, '2024-07-01', 180, 7960.00, 795000.00, 'pending', 1, '2024-07-01 09:00:00')
+-- LN-1042: Maria Santos - Personal Loan, 36 months, FULLY PAID
+('LN-1042', (SELECT id FROM loan_types WHERE code = 'PL'), 'Maria Santos', 100000.00, 12.5000, '2023-01-15', 36, 3350.00, 0.00, NULL, 'paid', 1, '2023-01-15 09:00:00'),
+
+-- ===== ACTIVE - ALMOST PAID (80-95% paid) =====
+
+-- LN-1003: Pedro Ramos - Salary Loan, 12 months, 10 of 12 payments made
+('LN-1003', 1, 'Pedro Ramos', 30000.00, 0.05, '2024-02-01', 12, 2625.00, 5000.00, '2025-01-01', 'active', 1, '2024-02-01 11:15:00'),
+
+-- LN-1010: Sofia Mendoza - Salary Loan, 12 months, 11 of 12 payments made
+('LN-1010', 1, 'Sofia Mendoza', 20000.00, 0.05, '2024-03-01', 12, 1750.00, 1667.00, '2026-03-01', 'active', 1, '2024-03-01 10:00:00'),
+
+-- LN-1004: Carlos Torres - Housing Loan, 60 months, 30 of 60 payments made (halfway through long-term)
+('LN-1004', 3, 'Carlos Torres', 400000.00, 0.06, '2023-06-01', 60, 8000.00, 208000.00, '2026-01-01', 'active', 1, '2023-06-01 14:20:00'),
+
+-- LN-1006: Maria Santos - Education Loan, 24 months, 18 of 24 payments made
+('LN-1006', 4, 'Maria Santos', 80000.00, 0.04, '2023-09-01', 24, 3467.00, 20000.00, '2025-04-01', 'active', 1, '2023-09-01 13:30:00'),
+
+-- ===== ACTIVE - HALF PAID (40-60% paid) =====
+
+-- LN-1009: Elena Flores - Salary Loan, 12 months, 6 of 12 payments made
+('LN-1009', 1, 'Elena Flores', 40000.00, 0.05, '2024-02-15', 12, 3500.00, 20000.00, '2024-09-15', 'active', 1, '2024-02-15 14:30:00'),
+
+-- LN-1005: Miguel Rivera - Emergency Loan, 6 months, 3 of 6 payments made
+('LN-1005', 2, 'Miguel Rivera', 15000.00, 0.08, '2024-02-10', 6, 2650.00, 7500.00, '2024-06-10', 'active', 1, '2024-02-10 16:45:00'),
+
+-- LN-1012: Juan Dela Cruz - Housing Loan, 60 months, 24 of 60 payments made
+('LN-1012', 3, 'Juan Dela Cruz', 300000.00, 0.06, '2023-08-01', 60, 6000.00, 180000.00, '2025-09-01', 'active', 1, '2023-08-01 15:30:00'),
+
+-- LN-1013: Jose Reyes - Education Loan, 24 months, 12 of 24 payments made
+('LN-1013', 4, 'Jose Reyes', 60000.00, 0.04, '2024-01-05', 24, 2600.00, 30000.00, '2025-02-05', 'active', 1, '2024-01-05 09:15:00'),
+
+-- LN-1020: Antonio Hernandez - Vehicle Loan, 36 months, 12 of 36 payments made
+('LN-1020', 5, 'Antonio Hernandez', 250000.00, 0.07, '2024-03-01', 36, 7722.00, 166667.00, '2025-04-01', 'active', 1, '2024-03-01 10:00:00'),
+
+-- LN-1021: Carmen Lopez - Vehicle Loan, 36 months, 10 of 36 payments made
+('LN-1021', 5, 'Carmen Lopez', 180000.00, 0.07, '2024-04-15', 36, 5560.00, 130000.00, '2025-03-15', 'active', 1, '2024-04-15 14:30:00'),
+
+-- ===== ACTIVE - JUST STARTED (1-4 payments) =====
+
+-- LN-1015: Maria Santos - Salary Loan, 12 months, 4 payments made
+('LN-1015', 1, 'Maria Santos', 35000.00, 0.05, '2024-11-01', 12, 3063.00, 23333.00, '2025-04-01', 'active', 1, '2024-11-01 09:00:00'),
+
+-- LN-1016: Ana Garcia - Salary Loan, 12 months, 3 payments made
+('LN-1016', 1, 'Ana Garcia', 18000.00, 0.05, '2024-11-15', 12, 1575.00, 13500.00, '2025-03-15', 'active', 1, '2024-11-15 11:15:00'),
+
+-- LN-1017: Rosa Cruz - Salary Loan, 12 months, 3 payments made
+('LN-1017', 1, 'Rosa Cruz', 28000.00, 0.05, '2024-12-01', 12, 2450.00, 21000.00, '2025-04-01', 'active', 1, '2024-12-01 10:00:00'),
+
+-- LN-1019: Sofia Mendoza - Salary Loan (Extended), 24 months, 2 payments made
+('LN-1019', 1, 'Sofia Mendoza', 35000.00, 0.05, '2024-12-10', 24, 1531.00, 32083.00, '2025-03-10', 'active', 1, '2024-12-10 10:00:00'),
+
+-- LN-1014: Miguel Rivera - Education Loan, 24 months, 4 payments made
+('LN-1014', 4, 'Miguel Rivera', 45000.00, 0.04, '2024-02-20', 24, 1950.00, 37500.00, '2024-07-20', 'active', 1, '2024-02-20 16:00:00'),
+
+-- LN-1022: Roberto Martinez - Medical Loan, 12 months, 3 payments made
+('LN-1022', 6, 'Roberto Martinez', 12000.00, 0.03, '2024-05-01', 12, 1030.00, 9000.00, '2024-09-01', 'active', 1, '2024-05-01 09:00:00'),
+
+-- LN-1023: Teresa Gonzales - Medical Loan, 12 months, 2 payments made
+('LN-1023', 6, 'Teresa Gonzales', 8000.00, 0.03, '2024-06-10', 12, 687.00, 6667.00, '2024-09-10', 'active', 1, '2024-06-10 11:15:00'),
+
+-- LN-1024: Fernando Bautista - Appliance Loan, 18 months, 2 payments made
+('LN-1024', 7, 'Fernando Bautista', 15000.00, 0.05, '2024-07-01', 18, 900.00, 13333.00, '2024-10-01', 'active', 1, '2024-07-01 10:00:00'),
+
+-- LN-1025: Isabel Villanueva - Appliance Loan, 18 months, 1 payment made
+('LN-1025', 7, 'Isabel Villanueva', 20000.00, 0.05, '2024-08-15', 18, 1194.00, 18889.00, '2024-10-15', 'active', 1, '2024-08-15 14:30:00'),
+
+-- ===== ACTIVE - LONG-TERM WITH PAYMENTS =====
+
+-- LN-1018: Elena Flores - Salary Loan, 60 months, 6 payments made
+('LN-1018', 1, 'Elena Flores', 200000.00, 0.05, '2024-09-01', 60, 3774.00, 180000.00, '2025-04-01', 'active', 1, '2024-09-01 14:30:00'),
+
+-- ===== DEFAULTED LOANS (stopped paying) =====
+
+-- LN-1008: Rosa Cruz - Emergency Loan, 6 months, paid 2 then stopped
+('LN-1008', 2, 'Rosa Cruz', 10000.00, 0.08, '2024-02-15', 6, 1767.00, 6667.00, '2024-05-15', 'defaulted', 1, '2024-02-15 12:00:00'),
+
+-- LN-1026: Andres De Leon - Salary Loan, 12 months, paid 3 then stopped
+('LN-1026', 1, 'Andres De Leon', 45000.00, 0.05, '2024-04-01', 12, 3938.00, 33750.00, '2024-08-01', 'defaulted', 1, '2024-04-01 09:00:00'),
+
+-- LN-1027: Enrique Castro - Vehicle Loan, 36 months, paid 5 then stopped
+('LN-1027', 5, 'Enrique Castro', 280000.00, 0.07, '2024-01-01', 36, 8644.00, 241111.00, '2024-07-01', 'defaulted', 1, '2024-01-01 10:00:00'),
+
+-- ===== PENDING LOANS (no payments yet) =====
+
+-- LN-1028: Ricardo Aquino - Salary Loan, 12 months, just approved
+('LN-1028', 1, 'Ricardo Aquino', 40000.00, 0.05, '2026-02-15', 12, 3500.00, 40000.00, '2026-03-15', 'pending', 1, '2026-02-15 09:00:00'),
+
+-- LN-1029: Lucia Castillo - Education Loan, 24 months, just approved
+('LN-1029', 4, 'Lucia Castillo', 75000.00, 0.04, '2026-03-01', 24, 3250.00, 75000.00, '2026-04-01', 'pending', 1, '2026-03-01 10:00:00'),
+
+-- LN-1030: Manuel Pascual - Housing Loan, 60 months, pending approval
+('LN-1030', 3, 'Manuel Pascual', 500000.00, 0.06, '2026-03-05', 60, 10000.00, 500000.00, '2026-04-05', 'pending', 1, '2026-03-05 14:00:00'),
+
+-- ===== CANCELLED LOANS =====
+
+-- LN-1031: Gloria Fernandez - Emergency Loan, cancelled by borrower
+('LN-1031', 2, 'Gloria Fernandez', 18000.00, 0.08, '2024-10-01', 6, 3180.00, 18000.00, NULL, 'cancelled', 1, '2024-10-01 11:00:00'),
+
+-- LN-1032: Patricia Morales - Appliance Loan, cancelled before disbursement
+('LN-1032', 7, 'Patricia Morales', 12000.00, 0.05, '2024-09-15', 18, 717.00, 12000.00, NULL, 'cancelled', 1, '2024-09-15 09:30:00'),
+
+-- ===== NEW ADDITIONAL LOANS (variety of types and statuses) =====
+
+-- LN-1033: Cristina Lim - Medical Loan, 12 months, 8 payments made (almost done)
+('LN-1033', 6, 'Cristina Lim', 15000.00, 0.03, '2024-04-01', 12, 1288.00, 5000.00, '2024-12-01', 'active', 1, '2024-04-01 08:30:00'),
+
+-- LN-1034: Eduardo Go - Salary Loan, 12 months, FULLY PAID
+('LN-1034', 1, 'Eduardo Go', 30000.00, 0.05, '2024-03-01', 12, 2625.00, 0.00, NULL, 'paid', 1, '2024-03-01 09:00:00'),
+
+-- LN-1035: Margarita Sy - Appliance Loan, 18 months, 6 payments made
+('LN-1035', 7, 'Margarita Sy', 18000.00, 0.05, '2024-06-01', 18, 1075.00, 12000.00, '2025-01-01', 'active', 1, '2024-06-01 10:00:00'),
+
+-- LN-1036: Alejandro Chua - Education Loan, 24 months, defaulted after 4 payments
+('LN-1036', 4, 'Alejandro Chua', 90000.00, 0.04, '2024-03-01', 24, 3906.00, 75000.00, '2024-08-01', 'defaulted', 1, '2024-03-01 11:00:00'),
+
+-- LN-1037: Victoria Ong - Housing Loan, 60 months, 6 payments made
+('LN-1037', 3, 'Victoria Ong', 350000.00, 0.06, '2024-06-01', 60, 7000.00, 315000.00, '2025-01-01', 'active', 1, '2024-06-01 14:00:00'),
+
+-- LN-1038: Francisco Yap - Vehicle Loan, 36 months, 2 payments made
+('LN-1038', 5, 'Francisco Yap', 220000.00, 0.07, '2025-01-01', 36, 6793.00, 207778.00, '2025-04-01', 'active', 1, '2025-01-01 09:00:00'),
+
+-- LN-1039: Dolores Co - Salary Loan, 12 months, pending
+('LN-1039', 1, 'Dolores Co', 28000.00, 0.05, '2026-03-01', 12, 2450.00, 28000.00, '2026-04-01', 'pending', 1, '2026-03-01 10:30:00'),
+
+-- LN-1040: Gregorio Yu - Emergency Loan, 6 months, FULLY PAID
+('LN-1040', 2, 'Gregorio Yu', 10000.00, 0.08, '2024-05-01', 6, 1767.00, 0.00, NULL, 'paid', 1, '2024-05-01 09:00:00'),
+
+-- Extended loan types with real bank customer names
+-- LN-1043: Juan Dela Cruz - Personal Loan, 36 months, 14 payments made
+('LN-1043', (SELECT id FROM loan_types WHERE code = 'PL'), 'Juan Dela Cruz', 150000.00, 12.5000, '2024-01-15', 36, 5025.00, 91667.00, '2025-04-15', 'active', 1, '2024-01-15 09:00:00'),
+
+-- LN-1044: Maria Santos - Housing Loan (Extended), 240 months, 13 payments made
+('LN-1044', (SELECT id FROM loan_types WHERE code = 'HL'), 'Maria Santos', 1500000.00, 8.5000, '2024-02-01', 240, 12850.00, 1418750.00, '2025-04-01', 'active', 1, '2024-02-01 11:00:00'),
+
+-- LN-1045: Jose Reyes - Vehicle Loan (Extended), 60 months, 12 payments made
+('LN-1045', (SELECT id FROM loan_types WHERE code = 'VL'), 'Jose Reyes', 500000.00, 10.0000, '2024-03-10', 60, 10625.00, 400000.00, '2025-04-10', 'active', 1, '2024-03-10 10:00:00'),
+
+-- LN-1046: Pedro Ramos - Salary Loan (Extended), 24 months, 11 payments made
+('LN-1046', (SELECT id FROM loan_types WHERE code = 'SL'), 'Pedro Ramos', 100000.00, 14.0000, '2024-04-01', 24, 4850.00, 54167.00, '2025-04-01', 'active', 1, '2024-04-01 09:00:00'),
+
+-- LN-1047: Juan Dela Cruz - Personal Loan, 24 months, 10 payments made
+('LN-1047', (SELECT id FROM loan_types WHERE code = 'PL'), 'Juan Dela Cruz', 75000.00, 12.5000, '2024-05-15', 24, 3575.00, 43750.00, '2025-04-15', 'active', 1, '2024-05-15 10:00:00'),
+
+-- LN-1048: Jose Reyes - Vehicle Loan (Extended), 60 months, 21 payments made
+('LN-1048', (SELECT id FROM loan_types WHERE code = 'VL'), 'Jose Reyes', 350000.00, 10.0000, '2023-06-01', 60, 7437.50, 227500.00, '2025-04-01', 'active', 1, '2023-06-01 09:00:00'),
+
+-- LN-1049: Ana Garcia - Emergency Loan (Extended), 12 months, 9 payments made
+('LN-1049', (SELECT id FROM loan_types WHERE code = 'EL'), 'Ana Garcia', 25000.00, 15.0000, '2024-06-01', 12, 2257.00, 6250.00, '2025-04-01', 'active', 1, '2024-06-01 09:00:00'),
+
+-- LN-1050: Pedro Ramos - Housing Loan (Extended), 180 months, pending
+('LN-1050', (SELECT id FROM loan_types WHERE code = 'HL'), 'Pedro Ramos', 800000.00, 8.5000, '2024-07-01', 180, 7960.00, 800000.00, '2024-08-01', 'pending', 1, '2024-07-01 09:00:00'),
+
+-- LN-1051: Esperanza Lee - Personal Loan, 24 months, 5 payments made
+('LN-1051', (SELECT id FROM loan_types WHERE code = 'PL'), 'Esperanza Lee', 60000.00, 12.5000, '2025-04-01', 24, 2863.00, 47500.00, '2025-10-01', 'active', 1, '2025-04-01 09:00:00'),
+
+-- LN-1052: Joaquin Uy - Salary Loan (Extended), 12 months, 3 payments made
+('LN-1052', (SELECT id FROM loan_types WHERE code = 'SL'), 'Joaquin Uy', 80000.00, 14.0000, '2025-08-01', 12, 7200.00, 60000.00, '2025-12-01', 'active', 1, '2025-08-01 10:00:00'),
+
+-- LN-1053: Rosario Ang - Emergency Loan (Extended), 12 months, FULLY PAID
+('LN-1053', (SELECT id FROM loan_types WHERE code = 'EL'), 'Rosario Ang', 30000.00, 15.0000, '2024-08-01', 12, 2714.00, 0.00, NULL, 'paid', 1, '2024-08-01 11:00:00')
+
 ON DUPLICATE KEY UPDATE principal_amount = VALUES(principal_amount);
 
 -- ========================================
@@ -2745,83 +2875,540 @@ INSERT INTO `loan_valid_id` (`id`, `valid_id_type`) VALUES
 -- ========================================
 -- 11. LOAN PAYMENTS DATA
 -- ========================================
+-- Comprehensive payment histories with realistic amortization
+-- Uses loan_no lookups to match loan IDs dynamically
 
 INSERT IGNORE INTO loan_payments (loan_id, payment_date, amount, principal_amount, interest_amount, payment_reference, journal_entry_id, created_at) VALUES
--- Loan 1 (EMP001 - Salary Loan)
-(1, '2024-02-01', 4500.00, 4000.00, 500.00, 'PAY-2024-02-001', NULL, '2024-02-01 10:00:00'),
-(1, '2024-03-01', 4500.00, 4000.00, 500.00, 'PAY-2024-03-001', NULL, '2024-03-01 10:00:00'),
-(1, '2024-04-01', 4500.00, 4000.00, 500.00, 'PAY-2024-04-001', NULL, '2024-04-01 10:00:00'),
-(1, '2024-05-01', 4500.00, 4000.00, 500.00, 'PAY-2024-05-001', NULL, '2024-05-01 10:00:00'),
-(1, '2024-06-01', 4500.00, 4000.00, 500.00, 'PAY-2024-06-001', NULL, '2024-06-01 10:00:00'),
-(1, '2024-07-01', 4500.00, 4000.00, 500.00, 'PAY-2024-07-001', NULL, '2024-07-01 10:00:00'),
-(1, '2024-08-01', 4500.00, 4000.00, 500.00, 'PAY-2024-08-001', NULL, '2024-08-01 10:00:00'),
-(1, '2024-09-01', 4500.00, 4000.00, 500.00, 'PAY-2024-09-001', NULL, '2024-09-01 10:00:00'),
-(1, '2024-10-01', 4500.00, 4000.00, 500.00, 'PAY-2024-10-001', NULL, '2024-10-01 10:00:00'),
-(1, '2024-11-01', 4500.00, 4000.00, 500.00, 'PAY-2024-11-001', NULL, '2024-11-01 10:00:00'),
 
--- Loan 2 (EMP003 - Emergency Loan)
-(2, '2024-02-15', 3600.00, 3000.00, 600.00, 'PAY-2024-02-002', NULL, '2024-02-15 10:00:00'),
-(2, '2024-03-15', 3600.00, 3000.00, 600.00, 'PAY-2024-03-002', NULL, '2024-03-15 10:00:00'),
-(2, '2024-04-15', 3600.00, 3000.00, 600.00, 'PAY-2024-04-002', NULL, '2024-04-15 10:00:00'),
-(2, '2024-05-15', 3600.00, 3000.00, 600.00, 'PAY-2024-05-002', NULL, '2024-05-15 10:00:00'),
+-- =============================================
+-- LN-1001: Juan Dela Cruz - Salary Loan ₱50,000 @ 5%, 12 months — FULLY PAID (12/12 payments)
+-- Monthly payment: ₱4,375 | Interest = balance * 0.05 / 12
+-- =============================================
+((SELECT id FROM loans WHERE loan_no = 'LN-1001' LIMIT 1), '2024-02-01', 4375.00, 4167.00, 208.00, 'PAY-2024-02-001', NULL, '2024-02-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1001' LIMIT 1), '2024-03-01', 4375.00, 4184.00, 191.00, 'PAY-2024-03-001', NULL, '2024-03-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1001' LIMIT 1), '2024-04-01', 4375.00, 4192.00, 183.00, 'PAY-2024-04-001', NULL, '2024-04-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1001' LIMIT 1), '2024-05-01', 4375.00, 4200.00, 175.00, 'PAY-2024-05-001', NULL, '2024-05-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1001' LIMIT 1), '2024-06-01', 4375.00, 4209.00, 166.00, 'PAY-2024-06-001', NULL, '2024-06-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1001' LIMIT 1), '2024-07-01', 4375.00, 4217.00, 158.00, 'PAY-2024-07-001', NULL, '2024-07-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1001' LIMIT 1), '2024-08-01', 4375.00, 4225.00, 150.00, 'PAY-2024-08-001', NULL, '2024-08-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1001' LIMIT 1), '2024-09-01', 4375.00, 4233.00, 142.00, 'PAY-2024-09-001', NULL, '2024-09-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1001' LIMIT 1), '2024-10-01', 4375.00, 4242.00, 133.00, 'PAY-2024-10-001', NULL, '2024-10-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1001' LIMIT 1), '2024-11-01', 4375.00, 4250.00, 125.00, 'PAY-2024-11-001', NULL, '2024-11-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1001' LIMIT 1), '2024-12-01', 4375.00, 4258.00, 117.00, 'PAY-2024-12-001', NULL, '2024-12-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1001' LIMIT 1), '2025-01-01', 4375.00, 4267.00, 108.00, 'PAY-2025-01-001', NULL, '2025-01-01 10:00:00'),
 
--- Loan 3 (EMP005 - Salary Loan)
-(3, '2024-03-01', 2700.00, 2500.00, 200.00, 'PAY-2024-03-003', NULL, '2024-03-01 10:00:00'),
-(3, '2024-04-01', 2700.00, 2500.00, 200.00, 'PAY-2024-04-003', NULL, '2024-04-01 10:00:00'),
-(3, '2024-05-01', 2700.00, 2500.00, 200.00, 'PAY-2024-05-003', NULL, '2024-05-01 10:00:00'),
-(3, '2024-06-01', 2700.00, 2500.00, 200.00, 'PAY-2024-06-003', NULL, '2024-06-01 10:00:00'),
-(3, '2024-07-01', 2700.00, 2500.00, 200.00, 'PAY-2024-07-003', NULL, '2024-07-01 10:00:00'),
-(3, '2024-08-01', 2700.00, 2500.00, 200.00, 'PAY-2024-08-003', NULL, '2024-08-01 10:00:00'),
-(3, '2024-09-01', 2700.00, 2500.00, 200.00, 'PAY-2024-09-003', NULL, '2024-09-01 10:00:00'),
-(3, '2024-10-01', 2700.00, 2500.00, 200.00, 'PAY-2024-10-003', NULL, '2024-10-01 10:00:00'),
-(3, '2024-11-01', 2700.00, 2500.00, 200.00, 'PAY-2024-11-003', NULL, '2024-11-01 10:00:00'),
-(3, '2024-12-01', 2700.00, 2500.00, 200.00, 'PAY-2024-12-003', NULL, '2024-12-01 10:00:00'),
+-- =============================================
+-- LN-1007: Ana Garcia - Salary Loan ₱25,000 @ 5%, 12 months — FULLY PAID (12/12)
+-- =============================================
+((SELECT id FROM loans WHERE loan_no = 'LN-1007' LIMIT 1), '2024-02-20', 2188.00, 2084.00, 104.00, 'PAY-2024-02-007', NULL, '2024-02-20 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1007' LIMIT 1), '2024-03-20', 2188.00, 2093.00, 95.00, 'PAY-2024-03-007', NULL, '2024-03-20 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1007' LIMIT 1), '2024-04-20', 2188.00, 2101.00, 87.00, 'PAY-2024-04-007', NULL, '2024-04-20 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1007' LIMIT 1), '2024-05-20', 2188.00, 2109.00, 79.00, 'PAY-2024-05-007', NULL, '2024-05-20 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1007' LIMIT 1), '2024-06-20', 2188.00, 2117.00, 71.00, 'PAY-2024-06-007', NULL, '2024-06-20 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1007' LIMIT 1), '2024-07-20', 2188.00, 2126.00, 62.00, 'PAY-2024-07-007', NULL, '2024-07-20 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1007' LIMIT 1), '2024-08-20', 2188.00, 2134.00, 54.00, 'PAY-2024-08-007', NULL, '2024-08-20 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1007' LIMIT 1), '2024-09-20', 2188.00, 2142.00, 46.00, 'PAY-2024-09-007', NULL, '2024-09-20 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1007' LIMIT 1), '2024-10-20', 2188.00, 2151.00, 37.00, 'PAY-2024-10-007', NULL, '2024-10-20 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1007' LIMIT 1), '2024-11-20', 2188.00, 2159.00, 29.00, 'PAY-2024-11-007', NULL, '2024-11-20 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1007' LIMIT 1), '2024-12-20', 2188.00, 2167.00, 21.00, 'PAY-2024-12-007', NULL, '2024-12-20 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1007' LIMIT 1), '2025-01-20', 2188.00, 2176.00, 12.00, 'PAY-2025-01-007', NULL, '2025-01-20 10:00:00'),
 
--- Loan 4 (EMP007 - Housing Loan)
-(4, '2024-02-01', 8000.00, 6000.00, 2000.00, 'PAY-2024-02-003', NULL, '2024-02-01 10:00:00'),
-(4, '2024-03-01', 8000.00, 6000.00, 2000.00, 'PAY-2024-03-004', NULL, '2024-03-01 10:00:00'),
-(4, '2024-04-01', 8000.00, 6000.00, 2000.00, 'PAY-2024-04-004', NULL, '2024-04-01 10:00:00'),
-(4, '2024-05-01', 8000.00, 6000.00, 2000.00, 'PAY-2024-05-004', NULL, '2024-05-01 10:00:00'),
-(4, '2024-06-01', 8000.00, 6000.00, 2000.00, 'PAY-2024-06-004', NULL, '2024-06-01 10:00:00'),
-(4, '2024-07-01', 8000.00, 6000.00, 2000.00, 'PAY-2024-07-004', NULL, '2024-07-01 10:00:00'),
-(4, '2024-08-01', 8000.00, 6000.00, 2000.00, 'PAY-2024-08-004', NULL, '2024-08-01 10:00:00'),
-(4, '2024-09-01', 8000.00, 6000.00, 2000.00, 'PAY-2024-09-004', NULL, '2024-09-01 10:00:00'),
-(4, '2024-10-01', 8000.00, 6000.00, 2000.00, 'PAY-2024-10-004', NULL, '2024-10-01 10:00:00'),
-(4, '2024-11-01', 8000.00, 6000.00, 2000.00, 'PAY-2024-11-004', NULL, '2024-11-01 10:00:00'),
-(4, '2024-12-01', 8000.00, 6000.00, 2000.00, 'PAY-2024-12-004', NULL, '2024-12-01 10:00:00'),
+-- =============================================
+-- LN-1002: Jose Reyes - Emergency Loan ₱20,000 @ 8%, 6 months — FULLY PAID (6/6)
+-- =============================================
+((SELECT id FROM loans WHERE loan_no = 'LN-1002' LIMIT 1), '2024-02-15', 3533.00, 3400.00, 133.00, 'PAY-2024-02-002', NULL, '2024-02-15 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1002' LIMIT 1), '2024-03-15', 3533.00, 3423.00, 110.00, 'PAY-2024-03-002', NULL, '2024-03-15 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1002' LIMIT 1), '2024-04-15', 3533.00, 3445.00, 88.00, 'PAY-2024-04-002', NULL, '2024-04-15 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1002' LIMIT 1), '2024-05-15', 3533.00, 3468.00, 65.00, 'PAY-2024-05-002', NULL, '2024-05-15 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1002' LIMIT 1), '2024-06-15', 3533.00, 3491.00, 42.00, 'PAY-2024-06-002', NULL, '2024-06-15 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1002' LIMIT 1), '2024-07-15', 3533.00, 3514.00, 19.00, 'PAY-2024-07-002', NULL, '2024-07-15 10:00:00'),
 
--- Additional recent payments
-(15, '2024-12-01', 3150.00, 2800.00, 350.00, 'PAY-2024-12-001', NULL, '2024-12-01 10:00:00'),
-(16, '2024-12-15', 1620.00, 1500.00, 120.00, 'PAY-2024-12-002', NULL, '2024-12-15 10:00:00'),
-(17, '2024-12-01', 2520.00, 2300.00, 220.00, 'PAY-2024-12-003', NULL, '2024-12-01 10:00:00'),
-(18, '2024-12-01', 4000.00, 3000.00, 1000.00, 'PAY-2024-12-004', NULL, '2024-12-01 10:00:00'),
-(19, '2024-12-15', 1500.00, 1300.00, 200.00, 'PAY-2024-12-005', NULL, '2024-12-15 10:00:00'),
+-- =============================================
+-- LN-1011: Maria Santos - Emergency Loan ₱12,000 @ 8%, 6 months — FULLY PAID (6/6)
+-- =============================================
+((SELECT id FROM loans WHERE loan_no = 'LN-1011' LIMIT 1), '2024-02-10', 2120.00, 2040.00, 80.00, 'PAY-2024-02-011', NULL, '2024-02-10 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1011' LIMIT 1), '2024-03-10', 2120.00, 2054.00, 66.00, 'PAY-2024-03-011', NULL, '2024-03-10 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1011' LIMIT 1), '2024-04-10', 2120.00, 2067.00, 53.00, 'PAY-2024-04-011', NULL, '2024-04-10 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1011' LIMIT 1), '2024-05-10', 2120.00, 2081.00, 39.00, 'PAY-2024-05-011', NULL, '2024-05-10 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1011' LIMIT 1), '2024-06-10', 2120.00, 2095.00, 25.00, 'PAY-2024-06-011', NULL, '2024-06-10 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1011' LIMIT 1), '2024-07-10', 2120.00, 2109.00, 11.00, 'PAY-2024-07-011', NULL, '2024-07-10 10:00:00'),
 
--- Additional loan payments from sample_loan_data.sql for LOAN-2024-001 through LOAN-2024-008
-((SELECT id FROM loans WHERE loan_no = 'LOAN-2024-001' LIMIT 1), '2024-02-15', 5025.00, 3775.00, 1250.00, 'PAY-2024-001', NULL, '2024-02-15 10:00:00'),
-((SELECT id FROM loans WHERE loan_no = 'LOAN-2024-001' LIMIT 1), '2024-03-15', 5025.00, 3815.00, 1210.00, 'PAY-2024-002', NULL, '2024-03-15 10:00:00'),
-((SELECT id FROM loans WHERE loan_no = 'LOAN-2024-001' LIMIT 1), '2024-04-15', 5025.00, 3855.00, 1170.00, 'PAY-2024-003', NULL, '2024-04-15 10:00:00'),
-((SELECT id FROM loans WHERE loan_no = 'LOAN-2024-001' LIMIT 1), '2024-05-15', 5025.00, 3895.00, 1130.00, 'PAY-2024-004', NULL, '2024-05-15 10:00:00'),
-((SELECT id FROM loans WHERE loan_no = 'LOAN-2024-001' LIMIT 1), '2024-06-15', 5025.00, 3935.00, 1090.00, 'PAY-2024-005', NULL, '2024-06-15 10:00:00'),
-((SELECT id FROM loans WHERE loan_no = 'LOAN-2024-001' LIMIT 1), '2024-07-15', 5025.00, 3975.00, 1050.00, 'PAY-2024-006', NULL, '2024-07-15 10:00:00'),
-((SELECT id FROM loans WHERE loan_no = 'LOAN-2024-002' LIMIT 1), '2024-03-01', 12850.00, 2225.00, 10625.00, 'PAY-2024-010', NULL, '2024-03-01 10:00:00'),
-((SELECT id FROM loans WHERE loan_no = 'LOAN-2024-002' LIMIT 1), '2024-04-01', 12850.00, 2241.00, 10609.00, 'PAY-2024-011', NULL, '2024-04-01 10:00:00'),
-((SELECT id FROM loans WHERE loan_no = 'LOAN-2024-003' LIMIT 1), '2024-04-10', 10625.00, 6458.33, 4166.67, 'PAY-2024-020', NULL, '2024-04-10 10:00:00'),
-((SELECT id FROM loans WHERE loan_no = 'LOAN-2024-004' LIMIT 1), '2023-12-15', 4500.00, 3875.00, 625.00, 'PAY-2023-100', NULL, '2023-12-15 10:00:00'),
-((SELECT id FROM loans WHERE loan_no = 'LOAN-2024-004' LIMIT 1), '2024-01-15', 4500.00, 3924.00, 576.00, 'PAY-2024-101', NULL, '2024-01-15 10:00:00'),
-((SELECT id FROM loans WHERE loan_no = 'LOAN-2024-004' LIMIT 1), '2024-02-15', 4500.00, 3974.00, 526.00, 'PAY-2024-102', NULL, '2024-02-15 10:00:00'),
-((SELECT id FROM loans WHERE loan_no = 'LOAN-2024-004' LIMIT 1), '2024-03-15', 4500.00, 4024.00, 476.00, 'PAY-2024-103', NULL, '2024-03-15 10:00:00'),
-((SELECT id FROM loans WHERE loan_no = 'LOAN-2024-004' LIMIT 1), '2024-04-15', 4500.00, 4075.00, 425.00, 'PAY-2024-104', NULL, '2024-04-15 10:00:00'),
-((SELECT id FROM loans WHERE loan_no = 'LOAN-2024-004' LIMIT 1), '2024-05-15', 4500.00, 4126.00, 374.00, 'PAY-2024-105', NULL, '2024-05-15 10:00:00'),
-((SELECT id FROM loans WHERE loan_no = 'LOAN-2024-004' LIMIT 1), '2024-06-15', 4500.00, 4177.00, 323.00, 'PAY-2024-106', NULL, '2024-06-15 10:00:00'),
-((SELECT id FROM loans WHERE loan_no = 'LOAN-2024-004' LIMIT 1), '2024-07-15', 4500.00, 4229.00, 271.00, 'PAY-2024-107', NULL, '2024-07-15 10:00:00'),
-((SELECT id FROM loans WHERE loan_no = 'LOAN-2024-004' LIMIT 1), '2024-08-15', 4500.00, 4281.00, 219.00, 'PAY-2024-108', NULL, '2024-08-15 10:00:00'),
-((SELECT id FROM loans WHERE loan_no = 'LOAN-2024-004' LIMIT 1), '2024-09-15', 4500.00, 4334.00, 166.00, 'PAY-2024-109', NULL, '2024-09-15 10:00:00'),
-((SELECT id FROM loans WHERE loan_no = 'LOAN-2024-004' LIMIT 1), '2024-10-15', 4500.00, 4387.00, 113.00, 'PAY-2024-110', NULL, '2024-10-15 10:00:00'),
-((SELECT id FROM loans WHERE loan_no = 'LOAN-2024-004' LIMIT 1), '2024-11-15', 4113.00, 4050.00, 63.00, 'PAY-2024-111', NULL, '2024-11-15 10:00:00'),
-((SELECT id FROM loans WHERE loan_no = 'LOAN-2024-005' LIMIT 1), '2024-05-01', 4850.00, 3683.33, 1166.67, 'PAY-2024-200', NULL, '2024-05-01 10:00:00'),
-((SELECT id FROM loans WHERE loan_no = 'LOAN-2024-005' LIMIT 1), '2024-06-01', 4850.00, 3726.00, 1124.00, 'PAY-2024-201', NULL, '2024-06-01 10:00:00'),
-((SELECT id FROM loans WHERE loan_no = 'LOAN-2024-005' LIMIT 1), '2024-07-01', 4850.00, 3769.00, 1081.00, 'PAY-2024-202', NULL, '2024-07-01 10:00:00')
+-- =============================================
+-- LN-1034: Eduardo Go - Salary Loan ₱30,000 @ 5%, 12 months — FULLY PAID (12/12)
+-- =============================================
+((SELECT id FROM loans WHERE loan_no = 'LN-1034' LIMIT 1), '2024-04-01', 2625.00, 2500.00, 125.00, 'PAY-2024-04-034', NULL, '2024-04-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1034' LIMIT 1), '2024-05-01', 2625.00, 2510.00, 115.00, 'PAY-2024-05-034', NULL, '2024-05-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1034' LIMIT 1), '2024-06-01', 2625.00, 2521.00, 104.00, 'PAY-2024-06-034', NULL, '2024-06-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1034' LIMIT 1), '2024-07-01', 2625.00, 2531.00, 94.00, 'PAY-2024-07-034', NULL, '2024-07-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1034' LIMIT 1), '2024-08-01', 2625.00, 2542.00, 83.00, 'PAY-2024-08-034', NULL, '2024-08-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1034' LIMIT 1), '2024-09-01', 2625.00, 2552.00, 73.00, 'PAY-2024-09-034', NULL, '2024-09-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1034' LIMIT 1), '2024-10-01', 2625.00, 2563.00, 62.00, 'PAY-2024-10-034', NULL, '2024-10-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1034' LIMIT 1), '2024-11-01', 2625.00, 2573.00, 52.00, 'PAY-2024-11-034', NULL, '2024-11-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1034' LIMIT 1), '2024-12-01', 2625.00, 2584.00, 41.00, 'PAY-2024-12-034', NULL, '2024-12-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1034' LIMIT 1), '2025-01-01', 2625.00, 2594.00, 31.00, 'PAY-2025-01-034', NULL, '2025-01-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1034' LIMIT 1), '2025-02-01', 2625.00, 2604.00, 21.00, 'PAY-2025-02-034', NULL, '2025-02-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1034' LIMIT 1), '2025-03-01', 2625.00, 2615.00, 10.00, 'PAY-2025-03-034', NULL, '2025-03-01 10:00:00'),
+
+-- =============================================
+-- LN-1040: Gregorio Yu - Emergency Loan ₱10,000 @ 8%, 6 months — FULLY PAID (6/6)
+-- =============================================
+((SELECT id FROM loans WHERE loan_no = 'LN-1040' LIMIT 1), '2024-06-01', 1767.00, 1700.00, 67.00, 'PAY-2024-06-040', NULL, '2024-06-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1040' LIMIT 1), '2024-07-01', 1767.00, 1711.00, 56.00, 'PAY-2024-07-040', NULL, '2024-07-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1040' LIMIT 1), '2024-08-01', 1767.00, 1723.00, 44.00, 'PAY-2024-08-040', NULL, '2024-08-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1040' LIMIT 1), '2024-09-01', 1767.00, 1734.00, 33.00, 'PAY-2024-09-040', NULL, '2024-09-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1040' LIMIT 1), '2024-10-01', 1767.00, 1745.00, 22.00, 'PAY-2024-10-040', NULL, '2024-10-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1040' LIMIT 1), '2024-11-01', 1767.00, 1756.00, 11.00, 'PAY-2024-11-040', NULL, '2024-11-01 10:00:00'),
+
+-- =============================================
+-- LN-1003: Pedro Ramos - Salary Loan ₱30,000, 10 of 12 payments — ALMOST PAID
+-- =============================================
+((SELECT id FROM loans WHERE loan_no = 'LN-1003' LIMIT 1), '2024-03-01', 2625.00, 2500.00, 125.00, 'PAY-2024-03-003', NULL, '2024-03-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1003' LIMIT 1), '2024-04-01', 2625.00, 2510.00, 115.00, 'PAY-2024-04-003', NULL, '2024-04-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1003' LIMIT 1), '2024-05-01', 2625.00, 2521.00, 104.00, 'PAY-2024-05-003', NULL, '2024-05-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1003' LIMIT 1), '2024-06-01', 2625.00, 2531.00, 94.00, 'PAY-2024-06-003', NULL, '2024-06-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1003' LIMIT 1), '2024-07-01', 2625.00, 2542.00, 83.00, 'PAY-2024-07-003', NULL, '2024-07-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1003' LIMIT 1), '2024-08-01', 2625.00, 2552.00, 73.00, 'PAY-2024-08-003', NULL, '2024-08-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1003' LIMIT 1), '2024-09-01', 2625.00, 2563.00, 62.00, 'PAY-2024-09-003', NULL, '2024-09-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1003' LIMIT 1), '2024-10-01', 2625.00, 2573.00, 52.00, 'PAY-2024-10-003', NULL, '2024-10-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1003' LIMIT 1), '2024-11-01', 2625.00, 2584.00, 41.00, 'PAY-2024-11-003', NULL, '2024-11-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1003' LIMIT 1), '2024-12-01', 2625.00, 2594.00, 31.00, 'PAY-2024-12-003', NULL, '2024-12-01 10:00:00'),
+
+-- =============================================
+-- LN-1010: Sofia Mendoza - Salary Loan ₱20,000, 11 of 12 payments — ALMOST PAID
+-- =============================================
+((SELECT id FROM loans WHERE loan_no = 'LN-1010' LIMIT 1), '2024-04-01', 1750.00, 1667.00, 83.00, 'PAY-2024-04-010', NULL, '2024-04-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1010' LIMIT 1), '2024-05-01', 1750.00, 1674.00, 76.00, 'PAY-2024-05-010', NULL, '2024-05-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1010' LIMIT 1), '2024-06-01', 1750.00, 1681.00, 69.00, 'PAY-2024-06-010', NULL, '2024-06-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1010' LIMIT 1), '2024-07-01', 1750.00, 1688.00, 62.00, 'PAY-2024-07-010', NULL, '2024-07-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1010' LIMIT 1), '2024-08-01', 1750.00, 1695.00, 55.00, 'PAY-2024-08-010', NULL, '2024-08-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1010' LIMIT 1), '2024-09-01', 1750.00, 1702.00, 48.00, 'PAY-2024-09-010', NULL, '2024-09-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1010' LIMIT 1), '2024-10-01', 1750.00, 1710.00, 40.00, 'PAY-2024-10-010', NULL, '2024-10-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1010' LIMIT 1), '2024-11-01', 1750.00, 1717.00, 33.00, 'PAY-2024-11-010', NULL, '2024-11-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1010' LIMIT 1), '2024-12-01', 1750.00, 1724.00, 26.00, 'PAY-2024-12-010', NULL, '2024-12-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1010' LIMIT 1), '2025-01-01', 1750.00, 1731.00, 19.00, 'PAY-2025-01-010', NULL, '2025-01-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1010' LIMIT 1), '2025-02-01', 1750.00, 1738.00, 12.00, 'PAY-2025-02-010', NULL, '2025-02-01 10:00:00'),
+
+-- =============================================
+-- LN-1004: Carlos Torres - Housing Loan ₱400,000 @ 6%, 60 months, 30 payments — HALF PAID
+-- Showing first 6 and last 6 of the 30 payments for brevity
+-- =============================================
+((SELECT id FROM loans WHERE loan_no = 'LN-1004' LIMIT 1), '2023-07-01', 8000.00, 6000.00, 2000.00, 'PAY-2023-07-004', NULL, '2023-07-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1004' LIMIT 1), '2023-08-01', 8000.00, 6030.00, 1970.00, 'PAY-2023-08-004', NULL, '2023-08-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1004' LIMIT 1), '2023-09-01', 8000.00, 6060.00, 1940.00, 'PAY-2023-09-004', NULL, '2023-09-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1004' LIMIT 1), '2023-10-01', 8000.00, 6090.00, 1910.00, 'PAY-2023-10-004', NULL, '2023-10-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1004' LIMIT 1), '2023-11-01', 8000.00, 6121.00, 1879.00, 'PAY-2023-11-004', NULL, '2023-11-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1004' LIMIT 1), '2023-12-01', 8000.00, 6152.00, 1848.00, 'PAY-2023-12-004', NULL, '2023-12-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1004' LIMIT 1), '2024-01-01', 8000.00, 6183.00, 1817.00, 'PAY-2024-01-004', NULL, '2024-01-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1004' LIMIT 1), '2024-02-01', 8000.00, 6214.00, 1786.00, 'PAY-2024-02-004', NULL, '2024-02-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1004' LIMIT 1), '2024-03-01', 8000.00, 6245.00, 1755.00, 'PAY-2024-03-004', NULL, '2024-03-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1004' LIMIT 1), '2024-04-01', 8000.00, 6276.00, 1724.00, 'PAY-2024-04-004', NULL, '2024-04-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1004' LIMIT 1), '2024-05-01', 8000.00, 6308.00, 1692.00, 'PAY-2024-05-004', NULL, '2024-05-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1004' LIMIT 1), '2024-06-01', 8000.00, 6339.00, 1661.00, 'PAY-2024-06-004', NULL, '2024-06-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1004' LIMIT 1), '2024-07-01', 8000.00, 6371.00, 1629.00, 'PAY-2024-07-004', NULL, '2024-07-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1004' LIMIT 1), '2024-08-01', 8000.00, 6403.00, 1597.00, 'PAY-2024-08-004', NULL, '2024-08-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1004' LIMIT 1), '2024-09-01', 8000.00, 6435.00, 1565.00, 'PAY-2024-09-004', NULL, '2024-09-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1004' LIMIT 1), '2024-10-01', 8000.00, 6467.00, 1533.00, 'PAY-2024-10-004', NULL, '2024-10-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1004' LIMIT 1), '2024-11-01', 8000.00, 6500.00, 1500.00, 'PAY-2024-11-004', NULL, '2024-11-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1004' LIMIT 1), '2024-12-01', 8000.00, 6532.00, 1468.00, 'PAY-2024-12-004', NULL, '2024-12-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1004' LIMIT 1), '2025-01-01', 8000.00, 6565.00, 1435.00, 'PAY-2025-01-004', NULL, '2025-01-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1004' LIMIT 1), '2025-02-01', 8000.00, 6598.00, 1402.00, 'PAY-2025-02-004', NULL, '2025-02-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1004' LIMIT 1), '2025-03-01', 8000.00, 6631.00, 1369.00, 'PAY-2025-03-004', NULL, '2025-03-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1004' LIMIT 1), '2025-04-01', 8000.00, 6664.00, 1336.00, 'PAY-2025-04-004', NULL, '2025-04-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1004' LIMIT 1), '2025-05-01', 8000.00, 6697.00, 1303.00, 'PAY-2025-05-004', NULL, '2025-05-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1004' LIMIT 1), '2025-06-01', 8000.00, 6731.00, 1269.00, 'PAY-2025-06-004', NULL, '2025-06-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1004' LIMIT 1), '2025-07-01', 8000.00, 6764.00, 1236.00, 'PAY-2025-07-004', NULL, '2025-07-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1004' LIMIT 1), '2025-08-01', 8000.00, 6798.00, 1202.00, 'PAY-2025-08-004', NULL, '2025-08-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1004' LIMIT 1), '2025-09-01', 8000.00, 6832.00, 1168.00, 'PAY-2025-09-004', NULL, '2025-09-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1004' LIMIT 1), '2025-10-01', 8000.00, 6866.00, 1134.00, 'PAY-2025-10-004', NULL, '2025-10-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1004' LIMIT 1), '2025-11-01', 8000.00, 6900.00, 1100.00, 'PAY-2025-11-004', NULL, '2025-11-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1004' LIMIT 1), '2025-12-01', 8000.00, 6935.00, 1065.00, 'PAY-2025-12-004', NULL, '2025-12-01 10:00:00'),
+
+-- =============================================
+-- LN-1006: Maria Santos - Education Loan ₱80,000 @ 4%, 24 months, 18 payments — ALMOST PAID
+-- =============================================
+((SELECT id FROM loans WHERE loan_no = 'LN-1006' LIMIT 1), '2023-10-01', 3467.00, 3200.00, 267.00, 'PAY-2023-10-006', NULL, '2023-10-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1006' LIMIT 1), '2023-11-01', 3467.00, 3211.00, 256.00, 'PAY-2023-11-006', NULL, '2023-11-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1006' LIMIT 1), '2023-12-01', 3467.00, 3221.00, 246.00, 'PAY-2023-12-006', NULL, '2023-12-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1006' LIMIT 1), '2024-01-01', 3467.00, 3232.00, 235.00, 'PAY-2024-01-006', NULL, '2024-01-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1006' LIMIT 1), '2024-02-01', 3467.00, 3242.00, 225.00, 'PAY-2024-02-006', NULL, '2024-02-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1006' LIMIT 1), '2024-03-01', 3467.00, 3253.00, 214.00, 'PAY-2024-03-006', NULL, '2024-03-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1006' LIMIT 1), '2024-04-01', 3467.00, 3264.00, 203.00, 'PAY-2024-04-006', NULL, '2024-04-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1006' LIMIT 1), '2024-05-01', 3467.00, 3275.00, 192.00, 'PAY-2024-05-006', NULL, '2024-05-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1006' LIMIT 1), '2024-06-01', 3467.00, 3286.00, 181.00, 'PAY-2024-06-006', NULL, '2024-06-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1006' LIMIT 1), '2024-07-01', 3467.00, 3297.00, 170.00, 'PAY-2024-07-006', NULL, '2024-07-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1006' LIMIT 1), '2024-08-01', 3467.00, 3308.00, 159.00, 'PAY-2024-08-006', NULL, '2024-08-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1006' LIMIT 1), '2024-09-01', 3467.00, 3319.00, 148.00, 'PAY-2024-09-006', NULL, '2024-09-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1006' LIMIT 1), '2024-10-01', 3467.00, 3330.00, 137.00, 'PAY-2024-10-006', NULL, '2024-10-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1006' LIMIT 1), '2024-11-01', 3467.00, 3341.00, 126.00, 'PAY-2024-11-006', NULL, '2024-11-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1006' LIMIT 1), '2024-12-01', 3467.00, 3352.00, 115.00, 'PAY-2024-12-006', NULL, '2024-12-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1006' LIMIT 1), '2025-01-01', 3467.00, 3363.00, 104.00, 'PAY-2025-01-006', NULL, '2025-01-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1006' LIMIT 1), '2025-02-01', 3467.00, 3374.00, 93.00, 'PAY-2025-02-006', NULL, '2025-02-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1006' LIMIT 1), '2025-03-01', 3467.00, 3386.00, 81.00, 'PAY-2025-03-006', NULL, '2025-03-01 10:00:00'),
+
+-- =============================================
+-- LN-1009: Elena Flores - Salary Loan ₱40,000, 6 of 12 payments — HALF PAID
+-- =============================================
+((SELECT id FROM loans WHERE loan_no = 'LN-1009' LIMIT 1), '2024-03-15', 3500.00, 3333.00, 167.00, 'PAY-2024-03-009', NULL, '2024-03-15 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1009' LIMIT 1), '2024-04-15', 3500.00, 3347.00, 153.00, 'PAY-2024-04-009', NULL, '2024-04-15 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1009' LIMIT 1), '2024-05-15', 3500.00, 3361.00, 139.00, 'PAY-2024-05-009', NULL, '2024-05-15 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1009' LIMIT 1), '2024-06-15', 3500.00, 3375.00, 125.00, 'PAY-2024-06-009', NULL, '2024-06-15 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1009' LIMIT 1), '2024-07-15', 3500.00, 3389.00, 111.00, 'PAY-2024-07-009', NULL, '2024-07-15 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1009' LIMIT 1), '2024-08-15', 3500.00, 3403.00, 97.00, 'PAY-2024-08-009', NULL, '2024-08-15 10:00:00'),
+
+-- =============================================
+-- LN-1005: Miguel Rivera - Emergency Loan ₱15,000, 3 of 6 payments — HALF PAID
+-- =============================================
+((SELECT id FROM loans WHERE loan_no = 'LN-1005' LIMIT 1), '2024-03-10', 2650.00, 2550.00, 100.00, 'PAY-2024-03-005', NULL, '2024-03-10 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1005' LIMIT 1), '2024-04-10', 2650.00, 2567.00, 83.00, 'PAY-2024-04-005', NULL, '2024-04-10 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1005' LIMIT 1), '2024-05-10', 2650.00, 2584.00, 66.00, 'PAY-2024-05-005', NULL, '2024-05-10 10:00:00'),
+
+-- =============================================
+-- LN-1012: Juan Dela Cruz - Housing Loan ₱300,000 @ 6%, 60 months, 24 payments — HALF PAID
+-- =============================================
+((SELECT id FROM loans WHERE loan_no = 'LN-1012' LIMIT 1), '2023-09-01', 6000.00, 4500.00, 1500.00, 'PAY-2023-09-012', NULL, '2023-09-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1012' LIMIT 1), '2023-10-01', 6000.00, 4523.00, 1477.00, 'PAY-2023-10-012', NULL, '2023-10-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1012' LIMIT 1), '2023-11-01', 6000.00, 4545.00, 1455.00, 'PAY-2023-11-012', NULL, '2023-11-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1012' LIMIT 1), '2023-12-01', 6000.00, 4568.00, 1432.00, 'PAY-2023-12-012', NULL, '2023-12-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1012' LIMIT 1), '2024-01-01', 6000.00, 4590.00, 1410.00, 'PAY-2024-01-012', NULL, '2024-01-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1012' LIMIT 1), '2024-02-01', 6000.00, 4613.00, 1387.00, 'PAY-2024-02-012', NULL, '2024-02-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1012' LIMIT 1), '2024-03-01', 6000.00, 4636.00, 1364.00, 'PAY-2024-03-012', NULL, '2024-03-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1012' LIMIT 1), '2024-04-01', 6000.00, 4659.00, 1341.00, 'PAY-2024-04-012', NULL, '2024-04-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1012' LIMIT 1), '2024-05-01', 6000.00, 4683.00, 1317.00, 'PAY-2024-05-012', NULL, '2024-05-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1012' LIMIT 1), '2024-06-01', 6000.00, 4706.00, 1294.00, 'PAY-2024-06-012', NULL, '2024-06-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1012' LIMIT 1), '2024-07-01', 6000.00, 4730.00, 1270.00, 'PAY-2024-07-012', NULL, '2024-07-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1012' LIMIT 1), '2024-08-01', 6000.00, 4753.00, 1247.00, 'PAY-2024-08-012', NULL, '2024-08-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1012' LIMIT 1), '2024-09-01', 6000.00, 4777.00, 1223.00, 'PAY-2024-09-012', NULL, '2024-09-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1012' LIMIT 1), '2024-10-01', 6000.00, 4801.00, 1199.00, 'PAY-2024-10-012', NULL, '2024-10-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1012' LIMIT 1), '2024-11-01', 6000.00, 4825.00, 1175.00, 'PAY-2024-11-012', NULL, '2024-11-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1012' LIMIT 1), '2024-12-01', 6000.00, 4849.00, 1151.00, 'PAY-2024-12-012', NULL, '2024-12-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1012' LIMIT 1), '2025-01-01', 6000.00, 4873.00, 1127.00, 'PAY-2025-01-012', NULL, '2025-01-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1012' LIMIT 1), '2025-02-01', 6000.00, 4898.00, 1102.00, 'PAY-2025-02-012', NULL, '2025-02-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1012' LIMIT 1), '2025-03-01', 6000.00, 4922.00, 1078.00, 'PAY-2025-03-012', NULL, '2025-03-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1012' LIMIT 1), '2025-04-01', 6000.00, 4947.00, 1053.00, 'PAY-2025-04-012', NULL, '2025-04-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1012' LIMIT 1), '2025-05-01', 6000.00, 4972.00, 1028.00, 'PAY-2025-05-012', NULL, '2025-05-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1012' LIMIT 1), '2025-06-01', 6000.00, 4997.00, 1003.00, 'PAY-2025-06-012', NULL, '2025-06-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1012' LIMIT 1), '2025-07-01', 6000.00, 5022.00, 978.00, 'PAY-2025-07-012', NULL, '2025-07-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1012' LIMIT 1), '2025-08-01', 6000.00, 5047.00, 953.00, 'PAY-2025-08-012', NULL, '2025-08-01 10:00:00'),
+
+-- =============================================
+-- LN-1013: Jose Reyes - Education Loan ₱60,000, 12 of 24 payments — HALF PAID
+-- =============================================
+((SELECT id FROM loans WHERE loan_no = 'LN-1013' LIMIT 1), '2024-02-05', 2600.00, 2400.00, 200.00, 'PAY-2024-02-013', NULL, '2024-02-05 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1013' LIMIT 1), '2024-03-05', 2600.00, 2408.00, 192.00, 'PAY-2024-03-013', NULL, '2024-03-05 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1013' LIMIT 1), '2024-04-05', 2600.00, 2416.00, 184.00, 'PAY-2024-04-013', NULL, '2024-04-05 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1013' LIMIT 1), '2024-05-05', 2600.00, 2424.00, 176.00, 'PAY-2024-05-013', NULL, '2024-05-05 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1013' LIMIT 1), '2024-06-05', 2600.00, 2432.00, 168.00, 'PAY-2024-06-013', NULL, '2024-06-05 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1013' LIMIT 1), '2024-07-05', 2600.00, 2440.00, 160.00, 'PAY-2024-07-013', NULL, '2024-07-05 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1013' LIMIT 1), '2024-08-05', 2600.00, 2448.00, 152.00, 'PAY-2024-08-013', NULL, '2024-08-05 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1013' LIMIT 1), '2024-09-05', 2600.00, 2456.00, 144.00, 'PAY-2024-09-013', NULL, '2024-09-05 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1013' LIMIT 1), '2024-10-05', 2600.00, 2464.00, 136.00, 'PAY-2024-10-013', NULL, '2024-10-05 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1013' LIMIT 1), '2024-11-05', 2600.00, 2472.00, 128.00, 'PAY-2024-11-013', NULL, '2024-11-05 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1013' LIMIT 1), '2024-12-05', 2600.00, 2480.00, 120.00, 'PAY-2024-12-013', NULL, '2024-12-05 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1013' LIMIT 1), '2025-01-05', 2600.00, 2488.00, 112.00, 'PAY-2025-01-013', NULL, '2025-01-05 10:00:00'),
+
+-- =============================================
+-- LN-1020: Antonio Hernandez - Vehicle Loan ₱250,000, 12 of 36 payments
+-- =============================================
+((SELECT id FROM loans WHERE loan_no = 'LN-1020' LIMIT 1), '2024-04-01', 7722.00, 6264.00, 1458.00, 'PAY-2024-04-020', NULL, '2024-04-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1020' LIMIT 1), '2024-05-01', 7722.00, 6300.00, 1422.00, 'PAY-2024-05-020', NULL, '2024-05-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1020' LIMIT 1), '2024-06-01', 7722.00, 6337.00, 1385.00, 'PAY-2024-06-020', NULL, '2024-06-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1020' LIMIT 1), '2024-07-01', 7722.00, 6374.00, 1348.00, 'PAY-2024-07-020', NULL, '2024-07-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1020' LIMIT 1), '2024-08-01', 7722.00, 6411.00, 1311.00, 'PAY-2024-08-020', NULL, '2024-08-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1020' LIMIT 1), '2024-09-01', 7722.00, 6448.00, 1274.00, 'PAY-2024-09-020', NULL, '2024-09-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1020' LIMIT 1), '2024-10-01', 7722.00, 6486.00, 1236.00, 'PAY-2024-10-020', NULL, '2024-10-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1020' LIMIT 1), '2024-11-01', 7722.00, 6524.00, 1198.00, 'PAY-2024-11-020', NULL, '2024-11-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1020' LIMIT 1), '2024-12-01', 7722.00, 6562.00, 1160.00, 'PAY-2024-12-020', NULL, '2024-12-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1020' LIMIT 1), '2025-01-01', 7722.00, 6600.00, 1122.00, 'PAY-2025-01-020', NULL, '2025-01-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1020' LIMIT 1), '2025-02-01', 7722.00, 6639.00, 1083.00, 'PAY-2025-02-020', NULL, '2025-02-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1020' LIMIT 1), '2025-03-01', 7722.00, 6678.00, 1044.00, 'PAY-2025-03-020', NULL, '2025-03-01 10:00:00'),
+
+-- =============================================
+-- LN-1021: Carmen Lopez - Vehicle Loan ₱180,000, 10 of 36 payments
+-- =============================================
+((SELECT id FROM loans WHERE loan_no = 'LN-1021' LIMIT 1), '2024-05-15', 5560.00, 4510.00, 1050.00, 'PAY-2024-05-021', NULL, '2024-05-15 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1021' LIMIT 1), '2024-06-15', 5560.00, 4536.00, 1024.00, 'PAY-2024-06-021', NULL, '2024-06-15 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1021' LIMIT 1), '2024-07-15', 5560.00, 4563.00, 997.00, 'PAY-2024-07-021', NULL, '2024-07-15 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1021' LIMIT 1), '2024-08-15', 5560.00, 4589.00, 971.00, 'PAY-2024-08-021', NULL, '2024-08-15 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1021' LIMIT 1), '2024-09-15', 5560.00, 4616.00, 944.00, 'PAY-2024-09-021', NULL, '2024-09-15 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1021' LIMIT 1), '2024-10-15', 5560.00, 4643.00, 917.00, 'PAY-2024-10-021', NULL, '2024-10-15 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1021' LIMIT 1), '2024-11-15', 5560.00, 4670.00, 890.00, 'PAY-2024-11-021', NULL, '2024-11-15 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1021' LIMIT 1), '2024-12-15', 5560.00, 4697.00, 863.00, 'PAY-2024-12-021', NULL, '2024-12-15 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1021' LIMIT 1), '2025-01-15', 5560.00, 4724.00, 836.00, 'PAY-2025-01-021', NULL, '2025-01-15 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1021' LIMIT 1), '2025-02-15', 5560.00, 4752.00, 808.00, 'PAY-2025-02-021', NULL, '2025-02-15 10:00:00'),
+
+-- =============================================
+-- LN-1015: Maria Santos - Salary Loan ₱35,000, 4 payments — JUST STARTED
+-- =============================================
+((SELECT id FROM loans WHERE loan_no = 'LN-1015' LIMIT 1), '2024-12-01', 3063.00, 2917.00, 146.00, 'PAY-2024-12-015', NULL, '2024-12-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1015' LIMIT 1), '2025-01-01', 3063.00, 2929.00, 134.00, 'PAY-2025-01-015', NULL, '2025-01-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1015' LIMIT 1), '2025-02-01', 3063.00, 2941.00, 122.00, 'PAY-2025-02-015', NULL, '2025-02-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1015' LIMIT 1), '2025-03-01', 3063.00, 2953.00, 110.00, 'PAY-2025-03-015', NULL, '2025-03-01 10:00:00'),
+
+-- =============================================
+-- LN-1016: Ana Garcia - Salary Loan ₱18,000, 3 payments — JUST STARTED
+-- =============================================
+((SELECT id FROM loans WHERE loan_no = 'LN-1016' LIMIT 1), '2024-12-15', 1575.00, 1500.00, 75.00, 'PAY-2024-12-016', NULL, '2024-12-15 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1016' LIMIT 1), '2025-01-15', 1575.00, 1506.00, 69.00, 'PAY-2025-01-016', NULL, '2025-01-15 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1016' LIMIT 1), '2025-02-15', 1575.00, 1513.00, 62.00, 'PAY-2025-02-016', NULL, '2025-02-15 10:00:00'),
+
+-- =============================================
+-- LN-1017: Rosa Cruz - Salary Loan ₱28,000, 3 payments — JUST STARTED
+-- =============================================
+((SELECT id FROM loans WHERE loan_no = 'LN-1017' LIMIT 1), '2025-01-01', 2450.00, 2333.00, 117.00, 'PAY-2025-01-017', NULL, '2025-01-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1017' LIMIT 1), '2025-02-01', 2450.00, 2343.00, 107.00, 'PAY-2025-02-017', NULL, '2025-02-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1017' LIMIT 1), '2025-03-01', 2450.00, 2353.00, 97.00, 'PAY-2025-03-017', NULL, '2025-03-01 10:00:00'),
+
+-- =============================================
+-- LN-1019: Sofia Mendoza - Salary Loan ₱35,000, 2 payments — JUST STARTED
+-- =============================================
+((SELECT id FROM loans WHERE loan_no = 'LN-1019' LIMIT 1), '2025-01-10', 1531.00, 1458.00, 73.00, 'PAY-2025-01-019', NULL, '2025-01-10 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1019' LIMIT 1), '2025-02-10', 1531.00, 1464.00, 67.00, 'PAY-2025-02-019', NULL, '2025-02-10 10:00:00'),
+
+-- =============================================
+-- LN-1014: Miguel Rivera - Education Loan ₱45,000, 4 payments — JUST STARTED
+-- =============================================
+((SELECT id FROM loans WHERE loan_no = 'LN-1014' LIMIT 1), '2024-03-20', 1950.00, 1800.00, 150.00, 'PAY-2024-03-014', NULL, '2024-03-20 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1014' LIMIT 1), '2024-04-20', 1950.00, 1806.00, 144.00, 'PAY-2024-04-014', NULL, '2024-04-20 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1014' LIMIT 1), '2024-05-20', 1950.00, 1812.00, 138.00, 'PAY-2024-05-014', NULL, '2024-05-20 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1014' LIMIT 1), '2024-06-20', 1950.00, 1818.00, 132.00, 'PAY-2024-06-014', NULL, '2024-06-20 10:00:00'),
+
+-- =============================================
+-- LN-1022: Roberto Martinez - Medical Loan ₱12,000, 3 payments
+-- =============================================
+((SELECT id FROM loans WHERE loan_no = 'LN-1022' LIMIT 1), '2024-06-01', 1030.00, 1000.00, 30.00, 'PAY-2024-06-022', NULL, '2024-06-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1022' LIMIT 1), '2024-07-01', 1030.00, 1003.00, 27.00, 'PAY-2024-07-022', NULL, '2024-07-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1022' LIMIT 1), '2024-08-01', 1030.00, 1005.00, 25.00, 'PAY-2024-08-022', NULL, '2024-08-01 10:00:00'),
+
+-- =============================================
+-- LN-1023: Teresa Gonzales - Medical Loan ₱8,000, 2 payments
+-- =============================================
+((SELECT id FROM loans WHERE loan_no = 'LN-1023' LIMIT 1), '2024-07-10', 687.00, 667.00, 20.00, 'PAY-2024-07-023', NULL, '2024-07-10 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1023' LIMIT 1), '2024-08-10', 687.00, 669.00, 18.00, 'PAY-2024-08-023', NULL, '2024-08-10 10:00:00'),
+
+-- =============================================
+-- LN-1024: Fernando Bautista - Appliance Loan ₱15,000, 2 payments
+-- =============================================
+((SELECT id FROM loans WHERE loan_no = 'LN-1024' LIMIT 1), '2024-08-01', 900.00, 833.00, 67.00, 'PAY-2024-08-024', NULL, '2024-08-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1024' LIMIT 1), '2024-09-01', 900.00, 837.00, 63.00, 'PAY-2024-09-024', NULL, '2024-09-01 10:00:00'),
+
+-- =============================================
+-- LN-1025: Isabel Villanueva - Appliance Loan ₱20,000, 1 payment
+-- =============================================
+((SELECT id FROM loans WHERE loan_no = 'LN-1025' LIMIT 1), '2024-09-15', 1194.00, 1111.00, 83.00, 'PAY-2024-09-025', NULL, '2024-09-15 10:00:00'),
+
+-- =============================================
+-- LN-1018: Elena Flores - Salary Loan ₱200,000 @ 5%, 60 months, 6 payments
+-- =============================================
+((SELECT id FROM loans WHERE loan_no = 'LN-1018' LIMIT 1), '2024-10-01', 3774.00, 2941.00, 833.00, 'PAY-2024-10-018', NULL, '2024-10-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1018' LIMIT 1), '2024-11-01', 3774.00, 2953.00, 821.00, 'PAY-2024-11-018', NULL, '2024-11-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1018' LIMIT 1), '2024-12-01', 3774.00, 2966.00, 808.00, 'PAY-2024-12-018', NULL, '2024-12-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1018' LIMIT 1), '2025-01-01', 3774.00, 2978.00, 796.00, 'PAY-2025-01-018', NULL, '2025-01-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1018' LIMIT 1), '2025-02-01', 3774.00, 2991.00, 783.00, 'PAY-2025-02-018', NULL, '2025-02-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1018' LIMIT 1), '2025-03-01', 3774.00, 3003.00, 771.00, 'PAY-2025-03-018', NULL, '2025-03-01 10:00:00'),
+
+-- =============================================
+-- LN-1033: Cristina Lim - Medical Loan ₱15,000, 8 of 12 payments — ALMOST PAID
+-- =============================================
+((SELECT id FROM loans WHERE loan_no = 'LN-1033' LIMIT 1), '2024-05-01', 1288.00, 1250.00, 38.00, 'PAY-2024-05-033', NULL, '2024-05-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1033' LIMIT 1), '2024-06-01', 1288.00, 1253.00, 35.00, 'PAY-2024-06-033', NULL, '2024-06-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1033' LIMIT 1), '2024-07-01', 1288.00, 1257.00, 31.00, 'PAY-2024-07-033', NULL, '2024-07-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1033' LIMIT 1), '2024-08-01', 1288.00, 1260.00, 28.00, 'PAY-2024-08-033', NULL, '2024-08-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1033' LIMIT 1), '2024-09-01', 1288.00, 1263.00, 25.00, 'PAY-2024-09-033', NULL, '2024-09-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1033' LIMIT 1), '2024-10-01', 1288.00, 1266.00, 22.00, 'PAY-2024-10-033', NULL, '2024-10-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1033' LIMIT 1), '2024-11-01', 1288.00, 1269.00, 19.00, 'PAY-2024-11-033', NULL, '2024-11-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1033' LIMIT 1), '2024-12-01', 1288.00, 1273.00, 15.00, 'PAY-2024-12-033', NULL, '2024-12-01 10:00:00'),
+
+-- =============================================
+-- LN-1035: Margarita Sy - Appliance Loan ₱18,000, 6 payments
+-- =============================================
+((SELECT id FROM loans WHERE loan_no = 'LN-1035' LIMIT 1), '2024-07-01', 1075.00, 1000.00, 75.00, 'PAY-2024-07-035', NULL, '2024-07-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1035' LIMIT 1), '2024-08-01', 1075.00, 1004.00, 71.00, 'PAY-2024-08-035', NULL, '2024-08-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1035' LIMIT 1), '2024-09-01', 1075.00, 1008.00, 67.00, 'PAY-2024-09-035', NULL, '2024-09-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1035' LIMIT 1), '2024-10-01', 1075.00, 1013.00, 62.00, 'PAY-2024-10-035', NULL, '2024-10-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1035' LIMIT 1), '2024-11-01', 1075.00, 1017.00, 58.00, 'PAY-2024-11-035', NULL, '2024-11-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1035' LIMIT 1), '2024-12-01', 1075.00, 1021.00, 54.00, 'PAY-2024-12-035', NULL, '2024-12-01 10:00:00'),
+
+-- =============================================
+-- LN-1037: Victoria Ong - Housing Loan ₱350,000, 6 payments
+-- =============================================
+((SELECT id FROM loans WHERE loan_no = 'LN-1037' LIMIT 1), '2024-07-01', 7000.00, 5250.00, 1750.00, 'PAY-2024-07-037', NULL, '2024-07-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1037' LIMIT 1), '2024-08-01', 7000.00, 5276.00, 1724.00, 'PAY-2024-08-037', NULL, '2024-08-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1037' LIMIT 1), '2024-09-01', 7000.00, 5303.00, 1697.00, 'PAY-2024-09-037', NULL, '2024-09-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1037' LIMIT 1), '2024-10-01', 7000.00, 5329.00, 1671.00, 'PAY-2024-10-037', NULL, '2024-10-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1037' LIMIT 1), '2024-11-01', 7000.00, 5356.00, 1644.00, 'PAY-2024-11-037', NULL, '2024-11-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1037' LIMIT 1), '2024-12-01', 7000.00, 5383.00, 1617.00, 'PAY-2024-12-037', NULL, '2024-12-01 10:00:00'),
+
+-- =============================================
+-- LN-1038: Francisco Yap - Vehicle Loan ₱220,000, 2 payments
+-- =============================================
+((SELECT id FROM loans WHERE loan_no = 'LN-1038' LIMIT 1), '2025-02-01', 6793.00, 5510.00, 1283.00, 'PAY-2025-02-038', NULL, '2025-02-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1038' LIMIT 1), '2025-03-01', 6793.00, 5542.00, 1251.00, 'PAY-2025-03-038', NULL, '2025-03-01 10:00:00'),
+
+-- =============================================
+-- DEFAULTED LOANS - Paid some, then stopped
+-- =============================================
+
+-- LN-1008: Rosa Cruz - Emergency Loan ₱10,000, 2 payments then defaulted
+((SELECT id FROM loans WHERE loan_no = 'LN-1008' LIMIT 1), '2024-03-15', 1767.00, 1700.00, 67.00, 'PAY-2024-03-008', NULL, '2024-03-15 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1008' LIMIT 1), '2024-04-15', 1767.00, 1712.00, 55.00, 'PAY-2024-04-008', NULL, '2024-04-15 10:00:00'),
+
+-- LN-1026: Andres De Leon - Salary Loan ₱45,000, 3 payments then defaulted
+((SELECT id FROM loans WHERE loan_no = 'LN-1026' LIMIT 1), '2024-05-01', 3938.00, 3750.00, 188.00, 'PAY-2024-05-026', NULL, '2024-05-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1026' LIMIT 1), '2024-06-01', 3938.00, 3766.00, 172.00, 'PAY-2024-06-026', NULL, '2024-06-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1026' LIMIT 1), '2024-07-01', 3938.00, 3781.00, 157.00, 'PAY-2024-07-026', NULL, '2024-07-01 10:00:00'),
+
+-- LN-1027: Enrique Castro - Vehicle Loan ₱280,000, 5 payments then defaulted
+((SELECT id FROM loans WHERE loan_no = 'LN-1027' LIMIT 1), '2024-02-01', 8644.00, 7011.00, 1633.00, 'PAY-2024-02-027', NULL, '2024-02-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1027' LIMIT 1), '2024-03-01', 8644.00, 7052.00, 1592.00, 'PAY-2024-03-027', NULL, '2024-03-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1027' LIMIT 1), '2024-04-01', 8644.00, 7093.00, 1551.00, 'PAY-2024-04-027', NULL, '2024-04-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1027' LIMIT 1), '2024-05-01', 8644.00, 7135.00, 1509.00, 'PAY-2024-05-027', NULL, '2024-05-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1027' LIMIT 1), '2024-06-01', 8644.00, 7177.00, 1467.00, 'PAY-2024-06-027', NULL, '2024-06-01 10:00:00'),
+
+-- LN-1036: Alejandro Chua - Education Loan ₱90,000, 4 payments then defaulted
+((SELECT id FROM loans WHERE loan_no = 'LN-1036' LIMIT 1), '2024-04-01', 3906.00, 3606.00, 300.00, 'PAY-2024-04-036', NULL, '2024-04-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1036' LIMIT 1), '2024-05-01', 3906.00, 3618.00, 288.00, 'PAY-2024-05-036', NULL, '2024-05-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1036' LIMIT 1), '2024-06-01', 3906.00, 3630.00, 276.00, 'PAY-2024-06-036', NULL, '2024-06-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1036' LIMIT 1), '2024-07-01', 3906.00, 3642.00, 264.00, 'PAY-2024-07-036', NULL, '2024-07-01 10:00:00'),
+
+-- =============================================
+-- EXTENDED LOAN TYPE PAYMENTS
+-- =============================================
+
+-- LN-1041: Ana Garcia - Emergency Loan (Extended) ₱50,000, FULLY PAID (12/12)
+((SELECT id FROM loans WHERE loan_no = 'LN-1041' LIMIT 1), '2024-01-01', 4513.00, 3888.00, 625.00, 'PAY-2024-01-E04', NULL, '2024-01-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1041' LIMIT 1), '2024-02-01', 4513.00, 3937.00, 576.00, 'PAY-2024-02-E04', NULL, '2024-02-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1041' LIMIT 1), '2024-03-01', 4513.00, 3986.00, 527.00, 'PAY-2024-03-E04', NULL, '2024-03-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1041' LIMIT 1), '2024-04-01', 4513.00, 4036.00, 477.00, 'PAY-2024-04-E04', NULL, '2024-04-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1041' LIMIT 1), '2024-05-01', 4513.00, 4086.00, 427.00, 'PAY-2024-05-E04', NULL, '2024-05-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1041' LIMIT 1), '2024-06-01', 4513.00, 4137.00, 376.00, 'PAY-2024-06-E04', NULL, '2024-06-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1041' LIMIT 1), '2024-07-01', 4513.00, 4189.00, 324.00, 'PAY-2024-07-E04', NULL, '2024-07-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1041' LIMIT 1), '2024-08-01', 4513.00, 4241.00, 272.00, 'PAY-2024-08-E04', NULL, '2024-08-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1041' LIMIT 1), '2024-09-01', 4513.00, 4294.00, 219.00, 'PAY-2024-09-E04', NULL, '2024-09-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1041' LIMIT 1), '2024-10-01', 4513.00, 4348.00, 165.00, 'PAY-2024-10-E04', NULL, '2024-10-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1041' LIMIT 1), '2024-11-01', 4513.00, 4402.00, 111.00, 'PAY-2024-11-E04', NULL, '2024-11-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1041' LIMIT 1), '2024-12-01', 4370.00, 4315.00, 55.00, 'PAY-2024-12-E04', NULL, '2024-12-01 10:00:00'),
+
+-- LN-1043: Juan Dela Cruz - Personal Loan ₱150,000, 14 payments
+((SELECT id FROM loans WHERE loan_no = 'LN-1043' LIMIT 1), '2024-02-15', 5025.00, 3463.00, 1562.00, 'PAY-2024-02-E01', NULL, '2024-02-15 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1043' LIMIT 1), '2024-03-15', 5025.00, 3499.00, 1526.00, 'PAY-2024-03-E01', NULL, '2024-03-15 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1043' LIMIT 1), '2024-04-15', 5025.00, 3535.00, 1490.00, 'PAY-2024-04-E01', NULL, '2024-04-15 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1043' LIMIT 1), '2024-05-15', 5025.00, 3572.00, 1453.00, 'PAY-2024-05-E01', NULL, '2024-05-15 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1043' LIMIT 1), '2024-06-15', 5025.00, 3609.00, 1416.00, 'PAY-2024-06-E01', NULL, '2024-06-15 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1043' LIMIT 1), '2024-07-15', 5025.00, 3647.00, 1378.00, 'PAY-2024-07-E01', NULL, '2024-07-15 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1043' LIMIT 1), '2024-08-15', 5025.00, 3685.00, 1340.00, 'PAY-2024-08-E01', NULL, '2024-08-15 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1043' LIMIT 1), '2024-09-15', 5025.00, 3723.00, 1302.00, 'PAY-2024-09-E01', NULL, '2024-09-15 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1043' LIMIT 1), '2024-10-15', 5025.00, 3762.00, 1263.00, 'PAY-2024-10-E01', NULL, '2024-10-15 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1043' LIMIT 1), '2024-11-15', 5025.00, 3801.00, 1224.00, 'PAY-2024-11-E01', NULL, '2024-11-15 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1043' LIMIT 1), '2024-12-15', 5025.00, 3841.00, 1184.00, 'PAY-2024-12-E01', NULL, '2024-12-15 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1043' LIMIT 1), '2025-01-15', 5025.00, 3881.00, 1144.00, 'PAY-2025-01-E01', NULL, '2025-01-15 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1043' LIMIT 1), '2025-02-15', 5025.00, 3922.00, 1103.00, 'PAY-2025-02-E01', NULL, '2025-02-15 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1043' LIMIT 1), '2025-03-15', 5025.00, 3963.00, 1062.00, 'PAY-2025-03-E01', NULL, '2025-03-15 10:00:00'),
+
+-- LN-1044: Maria Santos - Housing Loan (Extended) ₱1,500,000, 13 payments
+((SELECT id FROM loans WHERE loan_no = 'LN-1044' LIMIT 1), '2024-03-01', 12850.00, 2225.00, 10625.00, 'PAY-2024-03-E02', NULL, '2024-03-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1044' LIMIT 1), '2024-04-01', 12850.00, 2241.00, 10609.00, 'PAY-2024-04-E02', NULL, '2024-04-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1044' LIMIT 1), '2024-05-01', 12850.00, 2257.00, 10593.00, 'PAY-2024-05-E02', NULL, '2024-05-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1044' LIMIT 1), '2024-06-01', 12850.00, 2273.00, 10577.00, 'PAY-2024-06-E02', NULL, '2024-06-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1044' LIMIT 1), '2024-07-01', 12850.00, 2289.00, 10561.00, 'PAY-2024-07-E02', NULL, '2024-07-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1044' LIMIT 1), '2024-08-01', 12850.00, 2305.00, 10545.00, 'PAY-2024-08-E02', NULL, '2024-08-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1044' LIMIT 1), '2024-09-01', 12850.00, 2322.00, 10528.00, 'PAY-2024-09-E02', NULL, '2024-09-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1044' LIMIT 1), '2024-10-01', 12850.00, 2338.00, 10512.00, 'PAY-2024-10-E02', NULL, '2024-10-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1044' LIMIT 1), '2024-11-01', 12850.00, 2355.00, 10495.00, 'PAY-2024-11-E02', NULL, '2024-11-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1044' LIMIT 1), '2024-12-01', 12850.00, 2372.00, 10478.00, 'PAY-2024-12-E02', NULL, '2024-12-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1044' LIMIT 1), '2025-01-01', 12850.00, 2389.00, 10461.00, 'PAY-2025-01-E02', NULL, '2025-01-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1044' LIMIT 1), '2025-02-01', 12850.00, 2406.00, 10444.00, 'PAY-2025-02-E02', NULL, '2025-02-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1044' LIMIT 1), '2025-03-01', 12850.00, 2423.00, 10427.00, 'PAY-2025-03-E02', NULL, '2025-03-01 10:00:00'),
+
+-- LN-1045: Jose Reyes - Vehicle Loan (Extended) ₱500,000, 12 payments
+((SELECT id FROM loans WHERE loan_no = 'LN-1045' LIMIT 1), '2024-04-10', 10625.00, 6458.00, 4167.00, 'PAY-2024-04-E03', NULL, '2024-04-10 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1045' LIMIT 1), '2024-05-10', 10625.00, 6512.00, 4113.00, 'PAY-2024-05-E03', NULL, '2024-05-10 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1045' LIMIT 1), '2024-06-10', 10625.00, 6566.00, 4059.00, 'PAY-2024-06-E03', NULL, '2024-06-10 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1045' LIMIT 1), '2024-07-10', 10625.00, 6621.00, 4004.00, 'PAY-2024-07-E03', NULL, '2024-07-10 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1045' LIMIT 1), '2024-08-10', 10625.00, 6676.00, 3949.00, 'PAY-2024-08-E03', NULL, '2024-08-10 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1045' LIMIT 1), '2024-09-10', 10625.00, 6732.00, 3893.00, 'PAY-2024-09-E03', NULL, '2024-09-10 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1045' LIMIT 1), '2024-10-10', 10625.00, 6788.00, 3837.00, 'PAY-2024-10-E03', NULL, '2024-10-10 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1045' LIMIT 1), '2024-11-10', 10625.00, 6845.00, 3780.00, 'PAY-2024-11-E03', NULL, '2024-11-10 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1045' LIMIT 1), '2024-12-10', 10625.00, 6902.00, 3723.00, 'PAY-2024-12-E03', NULL, '2024-12-10 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1045' LIMIT 1), '2025-01-10', 10625.00, 6960.00, 3665.00, 'PAY-2025-01-E03', NULL, '2025-01-10 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1045' LIMIT 1), '2025-02-10', 10625.00, 7018.00, 3607.00, 'PAY-2025-02-E03', NULL, '2025-02-10 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1045' LIMIT 1), '2025-03-10', 10625.00, 7076.00, 3549.00, 'PAY-2025-03-E03', NULL, '2025-03-10 10:00:00'),
+
+-- LN-1046: Pedro Ramos - Salary Loan (Extended) ₱100,000, 11 payments
+((SELECT id FROM loans WHERE loan_no = 'LN-1046' LIMIT 1), '2024-05-01', 4850.00, 3683.00, 1167.00, 'PAY-2024-05-E05', NULL, '2024-05-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1046' LIMIT 1), '2024-06-01', 4850.00, 3726.00, 1124.00, 'PAY-2024-06-E05', NULL, '2024-06-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1046' LIMIT 1), '2024-07-01', 4850.00, 3770.00, 1080.00, 'PAY-2024-07-E05', NULL, '2024-07-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1046' LIMIT 1), '2024-08-01', 4850.00, 3814.00, 1036.00, 'PAY-2024-08-E05', NULL, '2024-08-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1046' LIMIT 1), '2024-09-01', 4850.00, 3858.00, 992.00, 'PAY-2024-09-E05', NULL, '2024-09-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1046' LIMIT 1), '2024-10-01', 4850.00, 3903.00, 947.00, 'PAY-2024-10-E05', NULL, '2024-10-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1046' LIMIT 1), '2024-11-01', 4850.00, 3949.00, 901.00, 'PAY-2024-11-E05', NULL, '2024-11-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1046' LIMIT 1), '2024-12-01', 4850.00, 3995.00, 855.00, 'PAY-2024-12-E05', NULL, '2024-12-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1046' LIMIT 1), '2025-01-01', 4850.00, 4042.00, 808.00, 'PAY-2025-01-E05', NULL, '2025-01-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1046' LIMIT 1), '2025-02-01', 4850.00, 4089.00, 761.00, 'PAY-2025-02-E05', NULL, '2025-02-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1046' LIMIT 1), '2025-03-01', 4850.00, 4136.00, 714.00, 'PAY-2025-03-E05', NULL, '2025-03-01 10:00:00'),
+
+-- LN-1047: Juan Dela Cruz - Personal Loan ₱75,000, 10 payments
+((SELECT id FROM loans WHERE loan_no = 'LN-1047' LIMIT 1), '2024-06-15', 3575.00, 2794.00, 781.00, 'PAY-2024-06-E06', NULL, '2024-06-15 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1047' LIMIT 1), '2024-07-15', 3575.00, 2823.00, 752.00, 'PAY-2024-07-E06', NULL, '2024-07-15 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1047' LIMIT 1), '2024-08-15', 3575.00, 2852.00, 723.00, 'PAY-2024-08-E06', NULL, '2024-08-15 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1047' LIMIT 1), '2024-09-15', 3575.00, 2882.00, 693.00, 'PAY-2024-09-E06', NULL, '2024-09-15 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1047' LIMIT 1), '2024-10-15', 3575.00, 2912.00, 663.00, 'PAY-2024-10-E06', NULL, '2024-10-15 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1047' LIMIT 1), '2024-11-15', 3575.00, 2943.00, 632.00, 'PAY-2024-11-E06', NULL, '2024-11-15 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1047' LIMIT 1), '2024-12-15', 3575.00, 2973.00, 602.00, 'PAY-2024-12-E06', NULL, '2024-12-15 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1047' LIMIT 1), '2025-01-15', 3575.00, 3004.00, 571.00, 'PAY-2025-01-E06', NULL, '2025-01-15 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1047' LIMIT 1), '2025-02-15', 3575.00, 3036.00, 539.00, 'PAY-2025-02-E06', NULL, '2025-02-15 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1047' LIMIT 1), '2025-03-15', 3575.00, 3067.00, 508.00, 'PAY-2025-03-E06', NULL, '2025-03-15 10:00:00'),
+
+-- LN-1049: Ana Garcia - Emergency Loan (Extended) ₱25,000, 9 payments
+((SELECT id FROM loans WHERE loan_no = 'LN-1049' LIMIT 1), '2024-07-01', 2257.00, 1945.00, 312.00, 'PAY-2024-07-E07', NULL, '2024-07-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1049' LIMIT 1), '2024-08-01', 2257.00, 1969.00, 288.00, 'PAY-2024-08-E07', NULL, '2024-08-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1049' LIMIT 1), '2024-09-01', 2257.00, 1994.00, 263.00, 'PAY-2024-09-E07', NULL, '2024-09-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1049' LIMIT 1), '2024-10-01', 2257.00, 2019.00, 238.00, 'PAY-2024-10-E07', NULL, '2024-10-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1049' LIMIT 1), '2024-11-01', 2257.00, 2044.00, 213.00, 'PAY-2024-11-E07', NULL, '2024-11-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1049' LIMIT 1), '2024-12-01', 2257.00, 2070.00, 187.00, 'PAY-2024-12-E07', NULL, '2024-12-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1049' LIMIT 1), '2025-01-01', 2257.00, 2096.00, 161.00, 'PAY-2025-01-E07', NULL, '2025-01-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1049' LIMIT 1), '2025-02-01', 2257.00, 2122.00, 135.00, 'PAY-2025-02-E07', NULL, '2025-02-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1049' LIMIT 1), '2025-03-01', 2257.00, 2149.00, 108.00, 'PAY-2025-03-E07', NULL, '2025-03-01 10:00:00'),
+
+-- LN-1048: Jose Reyes - Vehicle Loan (Extended) ₱350,000, 21 payments (showing last 12)
+((SELECT id FROM loans WHERE loan_no = 'LN-1048' LIMIT 1), '2024-04-01', 7438.00, 4521.00, 2917.00, 'PAY-2024-04-E15', NULL, '2024-04-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1048' LIMIT 1), '2024-05-01', 7438.00, 4559.00, 2879.00, 'PAY-2024-05-E15', NULL, '2024-05-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1048' LIMIT 1), '2024-06-01', 7438.00, 4597.00, 2841.00, 'PAY-2024-06-E15', NULL, '2024-06-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1048' LIMIT 1), '2024-07-01', 7438.00, 4635.00, 2803.00, 'PAY-2024-07-E15', NULL, '2024-07-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1048' LIMIT 1), '2024-08-01', 7438.00, 4674.00, 2764.00, 'PAY-2024-08-E15', NULL, '2024-08-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1048' LIMIT 1), '2024-09-01', 7438.00, 4713.00, 2725.00, 'PAY-2024-09-E15', NULL, '2024-09-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1048' LIMIT 1), '2024-10-01', 7438.00, 4752.00, 2686.00, 'PAY-2024-10-E15', NULL, '2024-10-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1048' LIMIT 1), '2024-11-01', 7438.00, 4792.00, 2646.00, 'PAY-2024-11-E15', NULL, '2024-11-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1048' LIMIT 1), '2024-12-01', 7438.00, 4832.00, 2606.00, 'PAY-2024-12-E15', NULL, '2024-12-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1048' LIMIT 1), '2025-01-01', 7438.00, 4872.00, 2566.00, 'PAY-2025-01-E15', NULL, '2025-01-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1048' LIMIT 1), '2025-02-01', 7438.00, 4913.00, 2525.00, 'PAY-2025-02-E15', NULL, '2025-02-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1048' LIMIT 1), '2025-03-01', 7438.00, 4954.00, 2484.00, 'PAY-2025-03-E15', NULL, '2025-03-01 10:00:00'),
+
+-- LN-1051: Esperanza Lee - Personal Loan ₱60,000, 5 payments
+((SELECT id FROM loans WHERE loan_no = 'LN-1051' LIMIT 1), '2025-05-01', 2863.00, 2238.00, 625.00, 'PAY-2025-05-N01', NULL, '2025-05-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1051' LIMIT 1), '2025-06-01', 2863.00, 2261.00, 602.00, 'PAY-2025-06-N01', NULL, '2025-06-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1051' LIMIT 1), '2025-07-01', 2863.00, 2285.00, 578.00, 'PAY-2025-07-N01', NULL, '2025-07-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1051' LIMIT 1), '2025-08-01', 2863.00, 2308.00, 555.00, 'PAY-2025-08-N01', NULL, '2025-08-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1051' LIMIT 1), '2025-09-01', 2863.00, 2332.00, 531.00, 'PAY-2025-09-N01', NULL, '2025-09-01 10:00:00'),
+
+-- LN-1052: Joaquin Uy - Salary Loan (Extended) ₱80,000, 3 payments
+((SELECT id FROM loans WHERE loan_no = 'LN-1052' LIMIT 1), '2025-09-01', 7200.00, 6267.00, 933.00, 'PAY-2025-09-N02', NULL, '2025-09-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1052' LIMIT 1), '2025-10-01', 7200.00, 6340.00, 860.00, 'PAY-2025-10-N02', NULL, '2025-10-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1052' LIMIT 1), '2025-11-01', 7200.00, 6414.00, 786.00, 'PAY-2025-11-N02', NULL, '2025-11-01 10:00:00'),
+
+-- LN-1053: Rosario Ang - Emergency Loan (Extended) ₱30,000, FULLY PAID (12/12)
+((SELECT id FROM loans WHERE loan_no = 'LN-1053' LIMIT 1), '2024-09-01', 2714.00, 2339.00, 375.00, 'PAY-2024-09-N03', NULL, '2024-09-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1053' LIMIT 1), '2024-10-01', 2714.00, 2368.00, 346.00, 'PAY-2024-10-N03', NULL, '2024-10-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1053' LIMIT 1), '2024-11-01', 2714.00, 2398.00, 316.00, 'PAY-2024-11-N03', NULL, '2024-11-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1053' LIMIT 1), '2024-12-01', 2714.00, 2428.00, 286.00, 'PAY-2024-12-N03', NULL, '2024-12-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1053' LIMIT 1), '2025-01-01', 2714.00, 2458.00, 256.00, 'PAY-2025-01-N03', NULL, '2025-01-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1053' LIMIT 1), '2025-02-01', 2714.00, 2489.00, 225.00, 'PAY-2025-02-N03', NULL, '2025-02-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1053' LIMIT 1), '2025-03-01', 2714.00, 2520.00, 194.00, 'PAY-2025-03-N03', NULL, '2025-03-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1053' LIMIT 1), '2025-04-01', 2714.00, 2551.00, 163.00, 'PAY-2025-04-N03', NULL, '2025-04-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1053' LIMIT 1), '2025-05-01', 2714.00, 2583.00, 131.00, 'PAY-2025-05-N03', NULL, '2025-05-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1053' LIMIT 1), '2025-06-01', 2714.00, 2616.00, 98.00, 'PAY-2025-06-N03', NULL, '2025-06-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1053' LIMIT 1), '2025-07-01', 2714.00, 2648.00, 66.00, 'PAY-2025-07-N03', NULL, '2025-07-01 10:00:00'),
+((SELECT id FROM loans WHERE loan_no = 'LN-1053' LIMIT 1), '2025-08-01', 2580.00, 2546.00, 34.00, 'PAY-2025-08-N03', NULL, '2025-08-01 10:00:00')
+
 ON DUPLICATE KEY UPDATE amount = VALUES(amount);
 
 -- ========================================

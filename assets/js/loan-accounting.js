@@ -499,6 +499,12 @@
                             <span class="loan-detail-label">Last Payment Date:</span>
                             <span class="loan-detail-value">${loan.last_payment_date ? formatDate(loan.last_payment_date) : 'No payments yet'}</span>
                         </div>
+                        ${loan.payments_total ? `
+                        <div class="loan-detail-row">
+                            <span class="loan-detail-label">Payments Made:</span>
+                            <span class="loan-detail-value"><strong>${loan.payments_made || 0} of ${loan.payments_total}</strong> payments</span>
+                        </div>
+                        ` : ''}
                     </div>
                     <div class="col-md-6">
                         <div class="loan-detail-row">

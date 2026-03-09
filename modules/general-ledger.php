@@ -452,6 +452,7 @@ $current_user = getCurrentUser();
                             <option value="posted" selected>Posted</option>
                             <option value="draft">Draft</option>
                             <option value="voided">Voided</option>
+                            <option value="finalized">Finalized</option>
                         </select>
                     </div>
                 </div>

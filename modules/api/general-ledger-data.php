@@ -144,9 +144,9 @@ function getStatistics()
         $audit_row = $audit_result->fetch_assoc();
         $total_audit = $audit_row['total'] ?? 0;
 
-        // Get total completed payroll runs
+        // Get total posted payroll runs (finalized or completed)
         $pr_result = $conn->query(
-            "SELECT COUNT(*) as total FROM payroll_runs WHERE status = 'completed'"
+            "SELECT COUNT(*) as total FROM payroll_runs WHERE status IN ('finalized','completed')"
         );
         $pr_row = $pr_result ? $pr_result->fetch_assoc() : ['total' => 0];
         $total_payroll_je = $pr_row['total'] ?? 0;
@@ -2026,14 +2026,19 @@ function getPayrollJournalEntries()
 
         $sql = "SELECT 
                     pr.id,
-                    CONCAT('PR-', LPAD(pr.id, 4, '0')) AS journal_no,
-                    DATE(pr.run_at) AS entry_date,
-                    CONCAT('Payroll Run - ', DATE_FORMAT(pp.period_start, '%M %Y')) AS description,
+                    COALESCE(je.journal_no, CONCAT('PR-', LPAD(pr.id, 4, '0'))) AS journal_no,
+                    COALESCE(DATE(je.entry_date), DATE(pr.run_at)) AS entry_date,
+                    COALESCE(je.description, CONCAT('Payroll Run - ', DATE_FORMAT(pp.period_start, '%M %Y'))) AS description,
                     pr.total_gross AS total_debit,
-                    pr.total_net AS total_credit,
-                    pr.status,
+                    pr.total_gross AS total_credit,
+                    CASE 
+                        WHEN je.status IS NOT NULL THEN je.status
+                        WHEN pr.status = 'finalized' THEN 'posted'
+                        WHEN pr.status = 'completed' THEN 'posted'
+                        ELSE pr.status 
+                    END AS status,
                     pr.run_at AS created_at,
-                    pr.run_at AS posted_at,
+                    COALESCE(je.created_at, pr.run_at) AS posted_at,
                     'Payroll' AS type_name,
                     'PR' AS type_code,
                     CONCAT(DATE_FORMAT(pp.period_start, '%Y-%m'), ' to ', DATE_FORMAT(pp.period_end, '%Y-%m')) AS period_name,
@@ -2048,6 +2053,7 @@ function getPayrollJournalEntries()
                     (SELECT COUNT(*) FROM payslips ps WHERE ps.payroll_run_id = pr.id) AS employee_count
                 FROM payroll_runs pr
                 INNER JOIN payroll_periods pp ON pr.payroll_period_id = pp.id
+                LEFT  JOIN journal_entries je ON je.id = pr.journal_entry_id
                 LEFT  JOIN users u ON pr.run_by_user_id = u.id
                 WHERE 1=1";
 
@@ -2065,9 +2071,16 @@ function getPayrollJournalEntries()
             $types .= 's';
         }
         if ($status) {
-            $sql .= " AND pr.status = ?";
-            $params[] = $status;
-            $types .= 's';
+            // Map GL status filters to payroll_runs + journal_entries statuses
+            if ($status === 'posted') {
+                $sql .= " AND (pr.status IN ('finalized','completed') OR je.status = 'posted')";
+            } elseif ($status === 'voided') {
+                $sql .= " AND (je.status = 'voided')";
+            } else {
+                $sql .= " AND pr.status = ?";
+                $params[] = $status;
+                $types .= 's';
+            }
         }
 
         $sql .= " ORDER BY pr.run_at DESC, pr.id DESC";

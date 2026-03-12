@@ -17,14 +17,14 @@
 USE BankingDB;
 
 -- Insert the admin user
--- Username: admin@evergreen
+-- Username: admin.evergreen
 -- Password: Evergreen@2026
 INSERT INTO users (id, username, password_hash, email, full_name, is_active, created_at) 
 VALUES (
     1,
-    'admin@evergreen',
+    'admin.evergreen',
     '$2y$10$5FhUwZvOii380drhJ9BJFuybGzSK7bSgfa4ojt9zG.A338U4nEsSy',
-    'admin@evergreen.com',
+    'admin.evergreen@evergreen.com',
     'System Administrator',
     TRUE,
     NOW()

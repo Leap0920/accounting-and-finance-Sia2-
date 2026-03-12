@@ -19,6 +19,7 @@ if (!isset($current_user)) {
 
 $current_user_role = function_exists('getUserRole') ? getUserRole() : ($current_user['role'] ?? null);
 $is_hr_manager = ($current_user_role === 'HR Manager');
+$is_administrator = ($current_user_role === 'Administrator');
 $home_path = $is_hr_manager ? '../core/hr-dashboard.php' : '../core/dashboard.php';
 ?>
 
@@ -77,7 +78,7 @@ $home_path = $is_hr_manager ? '../core/hr-dashboard.php' : '../core/dashboard.ph
                     </ul>
                 </li>
 
-                <?php if (!$is_hr_manager): ?>
+                <?php if ($is_administrator): ?>
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle <?php echo in_array($current_page, ['bin-station.php']) ? 'active' : ''; ?>"
                         href="#" id="settingsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -114,7 +115,7 @@ $home_path = $is_hr_manager ? '../core/hr-dashboard.php' : '../core/dashboard.ph
                     <li>
                         <hr class="dropdown-divider mb-0">
                     </li>
-                    <?php if (!$is_hr_manager): ?>
+                        <?php if ($is_administrator): ?>
                     <li><a class="dropdown-item text-center small" href="../modules/activity-log.php">View All
                             Notifications</a></li>
                     <?php endif; ?>
@@ -148,7 +149,7 @@ $home_path = $is_hr_manager ? '../core/hr-dashboard.php' : '../core/dashboard.ph
                     <li>
                         <hr class="dropdown-divider">
                     </li>
-                    <?php if (!$is_hr_manager): ?>
+                    <?php if ($is_administrator): ?>
                     <li><a class="dropdown-item" href="../modules/activity-log.php"><i
                                 class="fas fa-history me-2"></i>Activity Log</a></li>
                     <li>

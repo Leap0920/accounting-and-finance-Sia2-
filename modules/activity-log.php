@@ -3,7 +3,7 @@ require_once '../config/database.php';
 require_once '../includes/session.php';
 
 requireLogin();
-requireRole(['Administrator', 'Accounting Admin']);
+requireRole(['Administrator']);
 $current_user = getCurrentUser();
 
 // Get filter parameters

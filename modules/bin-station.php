@@ -9,7 +9,7 @@ require_once '../includes/session.php';
 
 // Verify user is logged in
 requireLogin();
-requireRole(['Administrator', 'Accounting Admin']);
+requireRole(['Administrator']);
 $current_user = getCurrentUser();
 ?>
 

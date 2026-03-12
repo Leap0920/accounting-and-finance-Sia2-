@@ -13,8 +13,30 @@ requireLogin();
 
 header('Content-Type: application/json');
 
+function hasGeneralLedgerRole(array $allowed_roles)
+{
+    $role = getUserRole();
+
+    return $role !== null && in_array($role, $allowed_roles, true);
+}
+
+function isHRGeneralLedgerUser()
+{
+    return getUserRole() === 'HR Manager';
+}
+
 try {
     $action = $_GET['action'] ?? $_POST['action'] ?? '';
+
+    if (!hasGeneralLedgerRole(['Administrator', 'Accounting Admin', 'HR Manager'])) {
+        echo json_encode(['success' => false, 'message' => 'Unauthorized access']);
+        exit();
+    }
+
+    if (isHRGeneralLedgerUser() && !in_array($action, ['get_journal_entry_details', 'get_payroll_journal_entries'], true)) {
+        echo json_encode(['success' => false, 'message' => 'HR access is limited to payroll journal viewing']);
+        exit();
+    }
 
     switch ($action) {
         case 'get_statistics':
@@ -733,6 +755,10 @@ function getJournalEntryDetails()
             return ['success' => false, 'message' => 'Journal entry not found'];
         }
 
+        if (isHRGeneralLedgerUser() && ($entry['type_code'] ?? '') !== 'PR') {
+            return ['success' => false, 'message' => 'HR access is limited to payroll journal entries'];
+        }
+
         // Get journal lines
         $sql = "
             SELECT 
@@ -767,9 +793,10 @@ function getJournalEntryDetails()
         }
 
         $entry['lines'] = $lines;
-        $entry['can_edit'] = ($entry['status'] === 'draft');
-        $entry['can_post'] = ($entry['status'] === 'draft');
-        $entry['can_void'] = ($entry['status'] === 'posted');
+        $can_manage_entry = !isHRGeneralLedgerUser();
+        $entry['can_edit'] = $can_manage_entry && ($entry['status'] === 'draft');
+        $entry['can_post'] = $can_manage_entry && ($entry['status'] === 'draft');
+        $entry['can_void'] = $can_manage_entry && ($entry['status'] === 'posted');
 
         // Format dates for display
         $entry['created_at'] = $entry['created_at'] ?? null;

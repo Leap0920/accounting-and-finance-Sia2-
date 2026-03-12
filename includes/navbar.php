@@ -16,6 +16,10 @@ if (!isset($current_user)) {
         $current_user = getCurrentUser();
     }
 }
+
+$current_user_role = function_exists('getUserRole') ? getUserRole() : ($current_user['role'] ?? null);
+$is_hr_manager = ($current_user_role === 'HR Manager');
+$home_path = $is_hr_manager ? '../core/hr-dashboard.php' : '../core/dashboard.php';
 ?>
 
 <nav class="navbar navbar-expand-lg navbar-custom">
@@ -37,8 +41,8 @@ if (!isset($current_user)) {
         <div class="collapse navbar-collapse justify-content-center" id="navbarNav">
             <ul class="navbar-nav">
                 <li class="nav-item">
-                    <a class="nav-link <?php echo ($current_page == 'dashboard.php') ? 'active' : ''; ?>"
-                        href="../core/dashboard.php">
+                    <a class="nav-link <?php echo in_array($current_page, ['dashboard.php', 'hr-dashboard.php']) ? 'active' : ''; ?>"
+                        href="<?php echo $home_path; ?>">
                         <i class="fas fa-home me-1"></i>Home
                     </a>
                 </li>
@@ -48,6 +52,12 @@ if (!isset($current_user)) {
                         <i class="fas fa-th-large me-1"></i>Modules
                     </a>
                     <ul class="dropdown-menu dropdown-menu-custom" aria-labelledby="modulesDropdown">
+                        <?php if ($is_hr_manager): ?>
+                        <li><a class="dropdown-item" href="../modules/general-ledger.php"><i
+                                    class="fas fa-book me-2"></i>General Ledger</a></li>
+                        <li><a class="dropdown-item" href="../modules/payroll-management.php"><i
+                                    class="fas fa-users me-2"></i>Payroll Management</a></li>
+                        <?php else: ?>
                         <li><a class="dropdown-item" href="../modules/general-ledger.php"><i
                                     class="fas fa-book me-2"></i>General Ledger</a></li>
                         <li><a class="dropdown-item" href="../modules/financial-reporting.php"><i
@@ -63,9 +73,11 @@ if (!isset($current_user)) {
                                     class="fas fa-receipt me-2"></i>Expense Tracking</a></li>
                         <li><a class="dropdown-item" href="../modules/payroll-management.php"><i
                                     class="fas fa-users me-2"></i>Payroll Management</a></li>
+                        <?php endif; ?>
                     </ul>
                 </li>
 
+                <?php if (!$is_hr_manager): ?>
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle <?php echo in_array($current_page, ['bin-station.php']) ? 'active' : ''; ?>"
                         href="#" id="settingsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -78,6 +90,7 @@ if (!isset($current_user)) {
 
                     </ul>
                 </li>
+                <?php endif; ?>
             </ul>
         </div>
 
@@ -101,8 +114,10 @@ if (!isset($current_user)) {
                     <li>
                         <hr class="dropdown-divider mb-0">
                     </li>
+                    <?php if (!$is_hr_manager): ?>
                     <li><a class="dropdown-item text-center small" href="../modules/activity-log.php">View All
                             Notifications</a></li>
+                    <?php endif; ?>
                 </ul>
             </div>
 
@@ -133,11 +148,13 @@ if (!isset($current_user)) {
                     <li>
                         <hr class="dropdown-divider">
                     </li>
+                    <?php if (!$is_hr_manager): ?>
                     <li><a class="dropdown-item" href="../modules/activity-log.php"><i
                                 class="fas fa-history me-2"></i>Activity Log</a></li>
                     <li>
                         <hr class="dropdown-divider">
                     </li>
+                    <?php endif; ?>
                     <li><a class="dropdown-item text-danger" href="#" data-bs-toggle="modal"
                             data-bs-target="#logoutModal"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
                 </ul>

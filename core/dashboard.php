@@ -5,6 +5,11 @@ require_once '../includes/session.php';
 // Require login to access this page
 requireLogin();
 
+if (getUserRole() === 'HR Manager') {
+    header('Location: hr-dashboard.php');
+    exit();
+}
+
 $current_user = getCurrentUser();
 
 // Fetch KPI Data

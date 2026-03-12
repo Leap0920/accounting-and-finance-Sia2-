@@ -17,48 +17,76 @@
 USE BankingDB;
 
 -- Insert the admin user
--- Password: admin123 (properly hashed with PASSWORD_DEFAULT)
+-- Username: admin@evergreen
+-- Password: Evergreen@2026
 INSERT INTO users (id, username, password_hash, email, full_name, is_active, created_at) 
 VALUES (
     1,
-    'admin',
-    '$2y$10$0G6Iza9uWgZ1y0ea/5lf7.P3qcY6CVgisAdKlNvq.ZnYYc6F.xDXS',
-    'admin@system.com',
+    'admin@evergreen',
+    '$2y$10$5FhUwZvOii380drhJ9BJFuybGzSK7bSgfa4ojt9zG.A338U4nEsSy',
+    'admin@evergreen.com',
     'System Administrator',
     TRUE,
     NOW()
 ) ON DUPLICATE KEY UPDATE 
     username = VALUES(username),
-    password_hash = VALUES(password_hash);
+    password_hash = VALUES(password_hash),
+    email = VALUES(email),
+    full_name = VALUES(full_name);
 
--- Insert the finance admin user
--- Email: finance.admin@evergreen.com
--- Username: finance.admin
--- Password: Finance2025
+-- Insert the CFO user
+-- Email: finance.cfo@evergreen.com
+-- Username: finance.cfo
+-- Password: CFO@Evergreen!
 INSERT INTO users (id, username, password_hash, email, full_name, is_active, created_at) 
 VALUES (
     2,
-    'finance.admin',
-    '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi',
-    'finance.admin@evergreen.com',
-    'Finance Administrator',
+    'finance.cfo',
+    '$2y$10$iWc8li9X8gKD2sFUeYu6jeEAxAfsmjWdW/836VQqWjGx0NLGHRRUe',
+    'finance.cfo@evergreen.com',
+    'Chief Financial Officer',
     TRUE,
     NOW()
 ) ON DUPLICATE KEY UPDATE 
     username = VALUES(username),
-    password_hash = VALUES(password_hash);
+    password_hash = VALUES(password_hash),
+    email = VALUES(email),
+    full_name = VALUES(full_name);
+
+-- Insert the HR manager user
+-- Email: hr.manager@evergreen.com
+-- Username: hr.manager
+-- Password: HR@Evergreen!
+INSERT INTO users (id, username, password_hash, email, full_name, is_active, created_at) 
+VALUES (
+    3,
+    'hr.manager',
+    '$2y$10$246KgjeYKvH049K6NgCJW.SIUnd5KZ6Nr9pDhhGvoAH1gyn6MAy.C',
+    'hr.manager@evergreen.com',
+    'HR Manager',
+    TRUE,
+    NOW()
+) ON DUPLICATE KEY UPDATE 
+    username = VALUES(username),
+    password_hash = VALUES(password_hash),
+    email = VALUES(email),
+    full_name = VALUES(full_name);
 
 -- Insert default roles
-INSERT INTO roles (name, description) VALUES
-('Administrator', 'Full system access with all privileges'),
-('Accounting Admin', 'Full administrative access to accounting and finance modules')
-ON DUPLICATE KEY UPDATE name = VALUES(name);
+INSERT INTO roles (id, name, description) VALUES
+(1, 'Administrator', 'Full system access with all privileges'),
+(2, 'Accounting Admin', 'Full administrative access to accounting and finance modules'),
+(3, 'HR Manager', 'Access to payroll management and payroll journal visibility in General Ledger')
+ON DUPLICATE KEY UPDATE name = VALUES(name), description = VALUES(description);
 
 -- Assign admin role to the admin user
 INSERT INTO user_roles (user_id, role_id) VALUES (1, 1) ON DUPLICATE KEY UPDATE user_id = VALUES(user_id);
 
--- Assign Accounting Admin role to the finance admin user
+-- Assign Accounting Admin role to the CFO user
 INSERT INTO user_roles (user_id, role_id) VALUES (2, 2) ON DUPLICATE KEY UPDATE user_id = VALUES(user_id);
+
+-- Assign HR Manager role to the HR user
+INSERT INTO user_roles (user_id, role_id) VALUES (3, 3) ON DUPLICATE KEY UPDATE user_id = VALUES(user_id);
 
 -- ========================================
 

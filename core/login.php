@@ -4,8 +4,7 @@ require_once '../includes/session.php';
 
 // Redirect to dashboard if already logged in
 if (isLoggedIn()) {
-    header("Location: dashboard.php");
-    exit();
+    redirectToDefaultDashboard();
 }
 
 $error_message = '';
@@ -25,7 +24,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $error_message = "Database connection failed. Please try again later.";
         } else {
             // Prepare and execute query
-            $stmt = $conn->prepare("SELECT id, username, password_hash, email, full_name, is_active FROM users WHERE username = ?");
+            $stmt = $conn->prepare("SELECT u.id, u.username, u.password_hash, u.email, u.full_name, u.is_active, r.id AS role_id, r.name AS role_name FROM users u LEFT JOIN user_roles ur ON ur.user_id = u.id LEFT JOIN roles r ON r.id = ur.role_id WHERE u.username = ? LIMIT 1");
             $stmt->bind_param("s", $username);
             $stmt->execute();
             $result = $stmt->get_result();
@@ -41,21 +40,24 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     $error_message = "Password format error detected. Please run <a href='../database/fix_user_passwords.php' style='color: #0A3D3D; text-decoration: underline;'>Fix User Passwords</a> to resolve this issue.";
                 } elseif (password_verify($password, $user['password_hash'])) {
                     if ($user['is_active']) {
+                        if (empty($user['role_name'])) {
+                            $error_message = "Your account has no assigned role. Please contact the administrator.";
+                        } else {
                         // Set session
-                        setUserSession($user);
+                            setUserSession($user);
 
                         // Update last login
-                        $update_stmt = $conn->prepare("UPDATE users SET last_login = NOW() WHERE id = ?");
-                        $update_stmt->bind_param("i", $user['id']);
-                        $update_stmt->execute();
-                        $update_stmt->close();
+                            $update_stmt = $conn->prepare("UPDATE users SET last_login = NOW() WHERE id = ?");
+                            $update_stmt->bind_param("i", $user['id']);
+                            $update_stmt->execute();
+                            $update_stmt->close();
 
                         // Log login activity
-                        logActivity('login', 'authentication', 'User logged in successfully', $conn);
+                            logActivity('login', 'authentication', 'User logged in successfully', $conn);
 
                         // Redirect to dashboard
-                        header("Location: dashboard.php");
-                        exit();
+                            redirectToDefaultDashboard($user['role_name']);
+                        }
                     } else {
                         $error_message = "Your account has been deactivated. Please contact the administrator.";
                     }

@@ -18,6 +18,8 @@ let chartDataStore = {
     growth: null
 };
 
+const isHRGeneralLedgerView = window.generalLedgerAccessMode === 'hr';
+
 document.addEventListener('DOMContentLoaded', function () {
     initializeGeneralLedger();
 });
@@ -58,24 +60,28 @@ function initializeGeneralLedger() {
         });
     }
 
-    // Load account types dynamically for filter dropdown
-    loadAccountTypes();
+    if (!isHRGeneralLedgerView) {
+        // Load account types dynamically for filter dropdown
+        loadAccountTypes();
 
-    // Load initial data with better error handling
-    loadStatistics();
-    loadCharts();
-    loadAccountsTable();
-    loadTransactionsTable();
+        // Load initial data with better error handling
+        loadStatistics();
+        loadCharts();
+        loadAccountsTable();
+        loadTransactionsTable();
+    }
 
     // Load payroll journal entries
     loadPayrollJournalEntries();
 
-    // Load audit trail after a delay to ensure DOM is ready
-    setTimeout(() => {
-        if (document.getElementById('audit-trail-table')) {
-            loadAuditTrail();
-        }
-    }, 1500);
+    if (!isHRGeneralLedgerView) {
+        // Load audit trail after a delay to ensure DOM is ready
+        setTimeout(() => {
+            if (document.getElementById('audit-trail-table')) {
+                loadAuditTrail();
+            }
+        }, 1500);
+    }
 }
 
 // ========================================
@@ -1905,10 +1911,10 @@ function displayJournalEntryDetails(entry) {
     const postBtn = document.getElementById('postJournalEntryBtn');
     const voidBtn = document.getElementById('voidJournalEntryBtn');
     if (postBtn) {
-        postBtn.classList.toggle('d-none', !entry.can_post);
+        postBtn.classList.toggle('d-none', isHRGeneralLedgerView || !entry.can_post);
     }
     if (voidBtn) {
-        voidBtn.classList.toggle('d-none', !entry.can_void);
+        voidBtn.classList.toggle('d-none', isHRGeneralLedgerView || !entry.can_void);
     }
 
     // Show modal if not already shown
@@ -1931,6 +1937,11 @@ function getStatusColor(status) {
 
 
 function postJournalEntry() {
+    if (isHRGeneralLedgerView) {
+        showNotification('HR accounts have view-only access to payroll journal entries.', 'error');
+        return;
+    }
+
     if (!currentJournalEntryId) return;
 
     if (!confirm('Are you sure you want to post this journal entry? This action cannot be undone.')) {
@@ -1964,6 +1975,11 @@ function postJournalEntry() {
 }
 
 function voidJournalEntry() {
+    if (isHRGeneralLedgerView) {
+        showNotification('HR accounts have view-only access to payroll journal entries.', 'error');
+        return;
+    }
+
     if (!currentJournalEntryId) return;
 
     const noEl = document.getElementById('voidJEConfirmNo');
@@ -3157,7 +3173,9 @@ function changeApplicationsPerPage() {
 document.addEventListener('DOMContentLoaded', function () {
     // Load pending applications after a short delay to ensure page is ready
     setTimeout(() => {
-        loadPendingApplications();
+        if (!isHRGeneralLedgerView && document.getElementById('pending-applications-table')) {
+            loadPendingApplications();
+        }
     }, 500);
 });
 

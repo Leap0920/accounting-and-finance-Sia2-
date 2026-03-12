@@ -4,6 +4,21 @@ if (session_status() == PHP_SESSION_NONE) {
     session_start();
 }
 
+function getCorePath($file_name)
+{
+    $script_path = $_SERVER['SCRIPT_NAME'] ?? '';
+
+    if (strpos($script_path, '/core/') !== false) {
+        return $file_name;
+    }
+
+    if (strpos($script_path, '/modules/') !== false || strpos($script_path, '/utils/') !== false) {
+        return '../core/' . $file_name;
+    }
+
+    return '../core/' . $file_name;
+}
+
 // Function to check if user is logged in
 function isLoggedIn()
 {
@@ -18,22 +33,7 @@ function isLoggedIn()
 function requireLogin()
 {
     if (!isLoggedIn()) {
-        // Calculate the correct path to login.php based on current script location
-        $script_path = $_SERVER['SCRIPT_NAME'] ?? '';
-
-        // Determine the correct relative path based on where the script is located
-        if (strpos($script_path, '/core/') !== false) {
-            // If we're in the core directory, login.php is in the same directory
-            $login_path = 'login.php';
-        } elseif (strpos($script_path, '/modules/') !== false || strpos($script_path, '/utils/') !== false) {
-            // If we're in modules or utils, go up one level then into core
-            $login_path = '../core/login.php';
-        } else {
-            // Default: assume we're at root level or in includes
-            $login_path = '../core/login.php';
-        }
-
-        header("Location: " . $login_path);
+        header("Location: " . getCorePath('login.php'));
         exit();
     }
 }
@@ -46,10 +46,40 @@ function getCurrentUser()
             'id' => $_SESSION['user_id'],
             'username' => $_SESSION['username'],
             'email' => $_SESSION['email'] ?? '',
-            'full_name' => $_SESSION['full_name'] ?? ''
+            'full_name' => $_SESSION['full_name'] ?? '',
+            'role' => $_SESSION['user_role'] ?? '',
+            'role_id' => $_SESSION['role_id'] ?? null
         ];
     }
     return null;
+}
+
+function getUserRole()
+{
+    return $_SESSION['user_role'] ?? null;
+}
+
+function getDefaultDashboardFile($role = null)
+{
+    $role = $role ?? getUserRole();
+
+    return $role === 'HR Manager' ? 'hr-dashboard.php' : 'dashboard.php';
+}
+
+function redirectToDefaultDashboard($role = null)
+{
+    header('Location: ' . getCorePath(getDefaultDashboardFile($role)));
+    exit();
+}
+
+function requireRole(array $allowed_roles)
+{
+    requireLogin();
+
+    $user_role = getUserRole();
+    if (!$user_role || !in_array($user_role, $allowed_roles, true)) {
+        redirectToDefaultDashboard($user_role);
+    }
 }
 
 // Function to set user session
@@ -59,6 +89,8 @@ function setUserSession($user_data)
     $_SESSION['username'] = $user_data['username'];
     $_SESSION['email'] = $user_data['email'];
     $_SESSION['full_name'] = $user_data['full_name'];
+    $_SESSION['role_id'] = $user_data['role_id'] ?? null;
+    $_SESSION['user_role'] = $user_data['role_name'] ?? ($user_data['role'] ?? null);
 }
 
 // Function to destroy session

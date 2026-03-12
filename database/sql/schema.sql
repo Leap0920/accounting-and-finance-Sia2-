@@ -19,6 +19,11 @@ USE BankingDB;
 -- CORE USERS AND AUTHENTICATION
 -- ========================================
 
+-- Role hierarchy:
+-- 1. Administrator   - full system access
+-- 2. Accounting Admin - full accounting and finance access
+-- 3. HR Manager      - payroll access plus payroll journal visibility in General Ledger
+
 CREATE TABLE users (
     id INT AUTO_INCREMENT PRIMARY KEY,
     username VARCHAR(50) UNIQUE NOT NULL,

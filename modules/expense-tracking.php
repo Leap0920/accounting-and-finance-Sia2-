@@ -3,6 +3,7 @@ require_once '../config/database.php';
 require_once '../includes/session.php';
 
 requireLogin();
+requireRole(['Administrator', 'Accounting Admin']);
 $current_user = getCurrentUser();
 
 /**

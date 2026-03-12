@@ -4,6 +4,7 @@ require_once '../includes/session.php';
 require_once 'api/payroll-calculation.php';
 
 requireLogin();
+requireRole(['Administrator', 'Accounting Admin', 'HR Manager']);
 $current_user = getCurrentUser();
 
 // Get filter parameters from URL

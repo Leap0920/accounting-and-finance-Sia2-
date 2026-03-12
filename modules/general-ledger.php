@@ -3,7 +3,11 @@ require_once '../config/database.php';
 require_once '../includes/session.php';
 
 requireLogin();
+requireRole(['Administrator', 'Accounting Admin', 'HR Manager']);
 $current_user = getCurrentUser();
+$user_role = getUserRole();
+$is_hr = ($user_role === 'HR Manager');
+$dashboard_path = $is_hr ? '../core/hr-dashboard.php' : '../core/dashboard.php';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -71,13 +75,20 @@ $current_user = getCurrentUser();
                     </div>
                 </div>
                 <div class="header-actions mt-3">
-                    <a href="../core/dashboard.php" class="btn btn-outline-secondary">
+                    <a href="<?php echo $dashboard_path; ?>" class="btn btn-outline-secondary">
                         <i class="fas fa-arrow-left me-1"></i>Back to Dashboard
                     </a>
                 </div>
             </div>
         </div>
 
+        <?php if ($is_hr): ?>
+        <div class="alert alert-info border-0 shadow-sm mb-4" role="alert">
+            You are viewing the payroll journal area only. Full ledger administration is restricted to finance roles.
+        </div>
+        <?php endif; ?>
+
+        <?php if (!$is_hr): ?>
         <!-- Statistics Cards -->
         <div class="row g-3 mb-4 stats-cards-row">
             <div class="col-md-3 col-lg-3">
@@ -428,6 +439,7 @@ $current_user = getCurrentUser();
                 </div>
             </div>
         </div>
+        <?php endif; ?>
 
         <!-- Payroll Journal Entries -->
         <div class="gl-section" id="payroll-journals">
@@ -497,6 +509,7 @@ $current_user = getCurrentUser();
             </div>
         </div>
 
+        <?php if (!$is_hr): ?>
         <!-- Audit Trail -->
         <div class="gl-section" id="audit">
             <div class="section-header">
@@ -564,6 +577,7 @@ $current_user = getCurrentUser();
                 </div>
             </div>
         </div>
+        <?php endif; ?>
 
     </main>
 
@@ -584,6 +598,7 @@ $current_user = getCurrentUser();
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <?php if (!$is_hr): ?>
                     <button type="button" class="btn btn-success d-none" id="postJournalEntryBtn"
                         onclick="postJournalEntry()">
                         <i class="fas fa-check me-1"></i>Post
@@ -592,11 +607,13 @@ $current_user = getCurrentUser();
                         onclick="voidJournalEntry()">
                         <i class="fas fa-times me-1"></i>Void
                     </button>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>
     </div>
 
+    <?php if (!$is_hr): ?>
     <!-- Application Detail Modal -->
     <div class="modal fade" id="applicationDetailModal" tabindex="-1" aria-labelledby="applicationDetailModalLabel"
         aria-hidden="true">
@@ -626,7 +643,9 @@ $current_user = getCurrentUser();
             </div>
         </div>
     </div>
+    <?php endif; ?>
 
+    <?php if (!$is_hr): ?>
     <!-- Decline Reason Modal -->
     <div class="modal fade" id="declineReasonModal" tabindex="-1" aria-labelledby="declineReasonModalLabel"
         aria-hidden="true">
@@ -658,7 +677,9 @@ $current_user = getCurrentUser();
             </div>
         </div>
     </div>
+    <?php endif; ?>
 
+    <?php if (!$is_hr): ?>
     <!-- Approve Confirmation Modal -->
     <div class="modal fade" id="approveConfirmModal" tabindex="-1" aria-labelledby="approveConfirmModalLabel"
         aria-hidden="true">
@@ -695,7 +716,9 @@ $current_user = getCurrentUser();
             </div>
         </div>
     </div>
+    <?php endif; ?>
 
+    <?php if (!$is_hr): ?>
     <!-- Void Journal Entry Confirmation Modal -->
     <div class="modal fade" id="voidJournalEntryConfirmModal" tabindex="-1" aria-labelledby="voidJournalEntryConfirmModalLabel"
         aria-hidden="true">
@@ -728,7 +751,9 @@ $current_user = getCurrentUser();
             </div>
         </div>
     </div>
+    <?php endif; ?>
 
+    <?php if (!$is_hr): ?>
     <!-- Account Detail Modal -->
     <div class="modal fade" id="accountDetailModal" tabindex="-1" aria-labelledby="accountDetailModalLabel"
         aria-hidden="true">
@@ -753,6 +778,7 @@ $current_user = getCurrentUser();
             </div>
         </div>
     </div>
+    <?php endif; ?>
 
     <div class="container pb-4">
         <?php include '../includes/footer.php'; ?>
@@ -768,6 +794,9 @@ $current_user = getCurrentUser();
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.1/jspdf.plugin.autotable.min.js"></script>
     <!-- Custom JS -->
+    <script>
+        window.generalLedgerAccessMode = '<?php echo $is_hr ? 'hr' : 'full'; ?>';
+    </script>
     <script src="../assets/js/general-ledger.js"></script>
     <script src="../assets/js/notifications.js"></script>
 </body>

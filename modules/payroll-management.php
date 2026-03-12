@@ -6,6 +6,7 @@ require_once 'api/payroll-calculation.php';
 requireLogin();
 requireRole(['Administrator', 'Accounting Admin', 'HR Manager']);
 $current_user = getCurrentUser();
+logSuperAudit('page_visit', 'payroll_management', 'Visited Payroll Management page', $conn);
 
 // Get filter parameters from URL
 $selected_employee = isset($_GET['employee']) ? $_GET['employee'] : '';
@@ -2681,6 +2682,7 @@ if ($attendance_payroll_adjustments && isset($attendance_payroll_adjustments['at
         <!-- Custom JS -->
         <script src="../assets/js/payroll-management.js"></script>
         <script src="../assets/js/notifications.js"></script>
+        <?php renderSuperAuditTracker('payroll_management', 'api/super-audit-tracker.php'); ?>
 
         <div class="container-fluid px-5 pb-5">
             <?php include '../includes/footer.php'; ?>

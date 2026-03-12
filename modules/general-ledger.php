@@ -8,6 +8,7 @@ $current_user = getCurrentUser();
 $user_role = getUserRole();
 $is_hr = ($user_role === 'HR Manager');
 $dashboard_path = $is_hr ? '../core/hr-dashboard.php' : '../core/dashboard.php';
+logSuperAudit('page_visit', 'general_ledger', 'Visited General Ledger page', $conn);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -799,6 +800,7 @@ $dashboard_path = $is_hr ? '../core/hr-dashboard.php' : '../core/dashboard.php';
     </script>
     <script src="../assets/js/general-ledger.js"></script>
     <script src="../assets/js/notifications.js"></script>
+    <?php renderSuperAuditTracker('general_ledger', 'api/super-audit-tracker.php'); ?>
 </body>
 
 </html>

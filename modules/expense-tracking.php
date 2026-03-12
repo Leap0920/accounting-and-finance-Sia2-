@@ -5,6 +5,7 @@ require_once '../includes/session.php';
 requireLogin();
 requireRole(['Administrator', 'Accounting Admin']);
 $current_user = getCurrentUser();
+logSuperAudit('page_visit', 'expense_tracking', 'Visited Expense Tracking page', $conn);
 
 /**
  * Expense Tracking using REAL client data from operational subsystems
@@ -918,6 +919,7 @@ function buildPageUrl($page)
     <!-- Custom JS -->
     <script src="../assets/js/expense-tracking.js"></script>
     <script src="../assets/js/notifications.js"></script>
+    <?php renderSuperAuditTracker('expense_tracking', 'api/super-audit-tracker.php'); ?>
 
     <script>
         // ===== Filter pill interactions =====

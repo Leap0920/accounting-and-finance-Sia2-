@@ -11,6 +11,7 @@ if (getUserRole() === 'HR Manager') {
 }
 
 $current_user = getCurrentUser();
+logSuperAudit('page_visit', 'dashboard', 'Visited finance dashboard', $conn);
 
 // Fetch KPI Data
 
@@ -279,6 +280,7 @@ if ($active_result && $row = $active_result->fetch_assoc()) {
     <!-- Custom Dashboard JS -->
     <script src="../assets/js/dashboard.js"></script>
     <script src="../assets/js/notifications.js"></script>
+    <?php renderSuperAuditTracker('dashboard', '../modules/api/super-audit-tracker.php'); ?>
 </body>
 
 </html>

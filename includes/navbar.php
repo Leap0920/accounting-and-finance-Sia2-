@@ -80,7 +80,7 @@ $home_path = $is_hr_manager ? '../core/hr-dashboard.php' : '../core/dashboard.ph
 
                 <?php if ($is_administrator): ?>
                 <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle <?php echo in_array($current_page, ['bin-station.php']) ? 'active' : ''; ?>"
+                    <a class="nav-link dropdown-toggle <?php echo in_array($current_page, ['bin-station.php', 'activity-log.php']) ? 'active' : ''; ?>"
                         href="#" id="settingsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                         <i class="fas fa-cog me-1"></i>Settings
                     </a>
@@ -88,6 +88,8 @@ $home_path = $is_hr_manager ? '../core/hr-dashboard.php' : '../core/dashboard.ph
                         <li><a class="dropdown-item" href="../modules/bin-station.php"><i
                                     class="fas fa-trash-alt me-2"></i>Bin
                                 Station</a></li>
+                        <li><a class="dropdown-item" href="../modules/activity-log.php#super-audit"><i
+                                    class="fas fa-user-shield me-2"></i>Super Audit</a></li>
 
                     </ul>
                 </li>

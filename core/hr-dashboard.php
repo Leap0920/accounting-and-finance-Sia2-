@@ -6,6 +6,7 @@ requireLogin();
 requireRole(['HR Manager']);
 
 $current_user = getCurrentUser();
+logSuperAudit('page_visit', 'hr_dashboard', 'Visited HR dashboard', $conn);
 
 $total_employees = 0;
 $employees_result = $conn->query("SELECT COUNT(*) AS total FROM employee");
@@ -176,6 +177,7 @@ if ($pending_payslips_result && $row = $pending_payslips_result->fetch_assoc()) 
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="../assets/js/dashboard.js"></script>
     <script src="../assets/js/notifications.js"></script>
+    <?php renderSuperAuditTracker('hr_dashboard', '../modules/api/super-audit-tracker.php'); ?>
 </body>
 
 </html>

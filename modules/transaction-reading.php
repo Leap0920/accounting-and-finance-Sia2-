@@ -5,6 +5,7 @@ require_once '../includes/session.php';
 requireLogin();
 requireRole(['Administrator', 'Accounting Admin']);
 $current_user = getCurrentUser();
+logSuperAudit('page_visit', 'transaction_reading', 'Visited Transaction Reading page', $conn);
 
 // Initialize filter variables
 $filter_date_from = $_GET['date_from'] ?? '';
@@ -1074,6 +1075,7 @@ try {
     <script src="../assets/js/dashboard.js"></script>
     <script src="../assets/js/transaction-reading.js"></script>
     <script src="../assets/js/notifications.js"></script>
+    <?php renderSuperAuditTracker('transaction_reading', 'api/super-audit-tracker.php'); ?>
     <script>
         function filterByStatus(status, btn) {
             document.querySelectorAll('.tr-tab').forEach(t => t.classList.remove('active'));

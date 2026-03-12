@@ -5,6 +5,7 @@ require_once '../includes/session.php';
 requireLogin();
 requireRole(['Administrator', 'Accounting Admin']);
 $current_user = getCurrentUser();
+logSuperAudit('page_visit', 'loan_accounting', 'Visited Loan Accounting page', $conn);
 
 // Ensure soft delete columns exist in loans table
 function ensureSoftDeleteColumnsExist($conn)
@@ -1364,6 +1365,7 @@ if (!empty($status) && $applyFilters) {
         <!-- Custom JS -->
         <script src="../assets/js/loan-accounting.js"></script>
         <script src="../assets/js/notifications.js"></script>
+        <?php renderSuperAuditTracker('loan_accounting', 'api/super-audit-tracker.php'); ?>
 </body>
 
 </html>

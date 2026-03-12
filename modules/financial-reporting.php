@@ -5,6 +5,7 @@ require_once '../includes/session.php';
 requireLogin();
 requireRole(['Administrator', 'Accounting Admin']);
 $current_user = getCurrentUser();
+logSuperAudit('page_visit', 'financial_reporting', 'Visited Financial Reporting page', $conn);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -652,6 +653,7 @@ $current_user = getCurrentUser();
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script src="../assets/js/financial-reporting.js"></script>
     <script src="../assets/js/notifications.js"></script>
+    <?php renderSuperAuditTracker('financial_reporting', 'api/super-audit-tracker.php'); ?>
 </body>
 
 </html>

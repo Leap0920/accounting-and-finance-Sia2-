@@ -670,6 +670,29 @@ CREATE TABLE audit_logs (
     INDEX idx_created_at (created_at)
 );
 
+-- SUPER AUDIT LOGGING (Behavioral tracking for non-admin users)
+CREATE TABLE super_audit_logs (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    user_role VARCHAR(100) NOT NULL,
+    action_type ENUM('page_visit','button_click','link_click','form_submit','modal_open','tab_switch','dropdown_select') NOT NULL,
+    module VARCHAR(100) NOT NULL,
+    element_tag VARCHAR(50),
+    element_id VARCHAR(200),
+    element_class VARCHAR(500),
+    element_text VARCHAR(500),
+    element_href VARCHAR(500),
+    page_url VARCHAR(500),
+    ip_address VARCHAR(45),
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    INDEX idx_super_audit_user_id (user_id),
+    INDEX idx_super_audit_role (user_role),
+    INDEX idx_super_audit_module (module),
+    INDEX idx_super_audit_action_type (action_type),
+    INDEX idx_super_audit_created_at (created_at)
+);
+
 CREATE TABLE integration_logs (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     source_system VARCHAR(100) NOT NULL,

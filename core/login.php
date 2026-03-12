@@ -188,9 +188,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     </div>
 
                     <div class="form-extras">
-                        <label class="remember-me">
-                            <input type="checkbox" name="remember">
-                            <span>Remember me</span>
+                        <label class="remember-me" for="show-password-toggle">
+                            <input type="checkbox" id="show-password-toggle">
+                            <span>Show password</span>
                         </label>
                     </div>
 
@@ -205,6 +205,19 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             </div>
         </div>
     </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const passwordInput = document.getElementById('password');
+            const showPasswordToggle = document.getElementById('show-password-toggle');
+
+            if (passwordInput && showPasswordToggle) {
+                showPasswordToggle.addEventListener('change', function () {
+                    passwordInput.type = showPasswordToggle.checked ? 'text' : 'password';
+                });
+            }
+        });
+    </script>
 </body>
 
 </html>
